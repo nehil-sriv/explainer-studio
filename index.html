@@ -1,0 +1,3056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PHOSPHOR builder · build b249-beats</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/tokens.css">
+<style id="tokens-inline">
+/* PHOSPHOR design tokens — single source of truth. Import this everywhere. */
+:root {
+  --bg-deep: #0A0F0A;
+  --panel: #101710;
+  --line-dim: #1E2A1E;
+  --text-primary: #D3FFDE;
+  --text-dim: #5C8A66;
+  --phos-green: #39FF7A;
+  --amber: #FFB000;
+  --alert-red: #FF5555;
+  --cyan-dim: #57C7C0;
+  --fill-green: #102E19;
+  --fill-amber: #2A2409;
+  --fill-red: #221616;
+  --ghost-fill: #0B170E;
+  --ghost-stroke: #0D1D11;
+
+  --font-display: 'VT323', monospace;
+  --font-body: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-hand: 'Caveat', cursive;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: transparent; /* export with transparent background */
+  font-family: var(--font-body);
+  color: var(--text-primary);
+}
+
+/* every element sits on a labelled export stage */
+.stage {
+  position: relative;
+  outline: 1px dashed rgba(255, 255, 255, 0.08); /* guide only — crop it off */
+}
+.stage-label {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  font-size: 14px;
+  color: #666;
+  font-family: sans-serif;
+}
+
+.glow-green { filter: drop-shadow(0 0 8px rgba(57, 255, 122, 0.3)); }
+
+</style>
+<link rel="stylesheet" href="css/phosphor.css">
+<style>
+  /* ====== builder chrome (not exported) ====== */
+  * { box-sizing: border-box; }
+  body { margin:0; background:#060906; color:#cfe; font-family:'JetBrains Mono',monospace;
+         display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+  header { display:flex; align-items:center; gap:16px; padding:10px 18px; border-bottom:1px solid #1E2A1E; }
+  header h1 { font-family:'VT323'; font-size:28px; color:#39FF7A; margin:0; }
+  header .spacer { flex:1; }
+
+  main { flex:1; display:flex; min-height:0; }
+  /* stage column */
+  .stage-wrap { flex:1; display:grid; place-items:center; padding:20px; min-width:0; overflow:auto; }
+  #stage-scale { transform-origin: top center; }
+
+  .scene { cursor: default; }
+  .scene.editing .comp { cursor:move; }
+  .comp { position:absolute; } /* every placed component is absolutely positioned */
+
+  /* right sidebar */
+  aside { width:400px; border-left:1px solid #1E2A1E; display:flex; flex-direction:column; min-height:0; }
+  section { padding:12px 14px; border-bottom:1px solid #1E2A1E; overflow-y:auto; }
+  section h2 { margin:0 0 8px; font-size:11px; letter-spacing:2px; color:#39FF7A; opacity:.75;
+               cursor:pointer; user-select:none; }
+  section h2::before { content:'▾ '; }
+  section.collapsed h2::before { content:'▸ '; }
+  section.collapsed > *:not(h2):not(.sec-head) { display:none !important; }
+  section.collapsed .sec-head > *:not(h2) { display:none !important; }
+  section.collapsed { overflow-y:hidden !important; flex:none !important; height:auto !important;
+                      min-height:0 !important; max-height:none !important; padding-bottom:10px; }
+  #inspector { flex:none; }
+  .sec-head { display:flex; align-items:center; justify-content:space-between; }
+  .sec-head h2 { margin:0 0 8px; }
+  .hint { font-size:10px; color:#3a5540; margin:-2px 0 8px; }
+
+  .palette { display:flex; flex-wrap:wrap; gap:6px; }
+  .palette button {
+    font-family:inherit; font-size:12px; background:#101710; color:#D3FFDE;
+    border:1px solid #1E2A1E; padding:5px 9px; cursor:pointer; border-radius:4px;
+  }
+  .palette button:hover { border-color:#39FF7A; color:#39FF7A; background:#0F2015; }
+  /* palette role-group headers (SCENE BASICS / NODES / FLOW …) */
+  .pal-h { width:100%; margin:12px 0 3px; font-size:10px; letter-spacing:2px; color:#5C8A66;
+           border-bottom:1px solid #1E2A1E; padding-bottom:3px; cursor:pointer; user-select:none; }
+  .pal-h::before { content:'▾ '; }
+  .pal-h.closed { color:#3a5540; }
+  .pal-h.closed::before { content:'▸ '; }
+  .palette .pal-h:first-child { margin-top:0; }
+  .pal-set { display:contents; }
+  .pal-search { display:flex; gap:6px; margin-bottom:8px; }
+  .pal-search input { flex:1; min-width:0; background:#0A0F0A; border:1px solid #1E2A1E; color:#D3FFDE;
+                      font-family:inherit; font-size:12px; padding:5px 9px; }
+  .pal-search input:focus { outline:none; border-color:#39FF7A; }
+  /* ⏱ beat strip */
+  footer#beatbar { display:flex; align-items:center; padding:8px 16px; border-top:1px solid #1E2A1E;
+                   overflow-x:auto; overflow-y:hidden; }
+  footer#beatbar::-webkit-scrollbar { height:6px; }
+  footer#beatbar::-webkit-scrollbar-thumb { background:#1E2A1E; border-radius:3px; }
+  .pal-none { font-size:11px; color:#3a5540; padding:6px 2px; }
+  /* 💡 spotlight — dim all but the story focus */
+  body.spotting .comp.dim { opacity:.13 !important; filter:saturate(.25); }
+  body.spotting .comp.lit { filter:drop-shadow(0 0 22px rgba(57,255,122,.45)); }
+
+  /* uniform small action buttons */
+  button.mini, ul.clean button {
+    font-family:inherit; font-size:11px; line-height:1;
+    background:#0F1710; color:#7da88a; border:1px solid #22301f;
+    padding:5px 8px; cursor:pointer; border-radius:4px; transition:all .12s;
+    white-space:nowrap;
+  }
+  ul.clean button:hover { color:#39FF7A; border-color:#39FF7A; background:#10291a; }
+  ul.clean button.danger:hover, button.mini.danger:hover { color:#FF5555; border-color:#FF5555; background:#221010; }
+  button.mini.primary { color:#39FF7A; border-color:#1E4630; background:#0F2417; }
+  button.mini.primary:hover { background:#123420; }
+
+  ul.clean { list-style:none; margin:0; padding:0; }
+  ul.clean li { display:flex; align-items:center; gap:6px; padding:6px 8px; font-size:12px;
+                border:1px solid transparent; border-radius:4px; margin-bottom:2px; }
+  ul.clean li.sel { border-color:#264d33; background:#0F1F15; }
+  #complist li.sel { border-color:#39FF7A; }
+  ul.clean li .name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#BFE5C8; }
+
+  /* inspector */
+  #inspector .row { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px; }
+  #inspector label { width:78px; flex:none; color:#5C8A66; }
+  #inspector input[type=text], #inspector input[type=number], #inspector select, #inspector textarea {
+    flex:1; min-width:0; background:#0A0F0A; border:1px solid #1E2A1E; color:#D3FFDE;
+    font-family:inherit; font-size:12px; padding:4px 7px;
+  }
+  #inspector textarea { resize:vertical; min-height:54px; }
+  #inspector input[type=color] { width:40px; height:26px; padding:0; border:1px solid #1E2A1E; background:none; }
+  #empty-msg { color:#3a5540; font-size:12px; padding:4px 0; }
+  footer { padding:8px 16px; font-size:11px; color:#3a5540; }
+
+  /* ===== component entrance animations (configurable per component) ===== */
+  @keyframes pa-fade      { from{opacity:0} to{opacity:1} }
+  @keyframes pa-left      { from{opacity:0;transform:translateX(-120px)} to{opacity:1;transform:none} }
+  @keyframes pa-right     { from{opacity:0;transform:translateX(120px)} to{opacity:1;transform:none} }
+  @keyframes pa-up        { from{opacity:0;transform:translateY(120px)} to{opacity:1;transform:none} }
+  @keyframes pa-down      { from{opacity:0;transform:translateY(-120px)} to{opacity:1;transform:none} }
+  @keyframes pa-zoom      { from{opacity:0;transform:scale(0.4)} to{opacity:1;transform:scale(1)} }
+  @keyframes pa-zoomout   { from{opacity:0;transform:scale(2.2)} to{opacity:1;transform:scale(1)} }
+  @keyframes pa-glitchin  { 0%{opacity:0;transform:translate(-8px,3px)} 20%{opacity:1;transform:translate(7px,-4px)}
+                            40%{transform:translate(-5px,2px)} 60%{transform:translate(4px,-2px)} 100%{opacity:1;transform:none} }
+  .comp.anim-typing .pa-char { visibility:hidden; }
+  .comp.anim-typing .pa-char.on { visibility:visible; }
+  /* snap guides + lock badge */
+  #gv,#gh { position:absolute; background:rgba(57,255,122,.5); display:none; z-index:85; pointer-events:none; }
+  #gv { width:1px; top:0; bottom:0; } #gh { height:1px; left:0; right:0; }
+  .comp.lockedbadge::after { content:'🔒'; position:absolute; top:-26px; right:-4px; font-size:16px; }
+
+  /* ===== tech-explainer components (KUBEKLLOUD set) ===== */
+.tech { font-family:var(--font-body); }
+.svc {
+  background:var(--panel); border:2px solid var(--stroke,var(--phos-green));
+  border-radius:10px; padding:10px 16px; position:relative; min-width:170px;
+}
+.svc-name { color:var(--text-primary); font-weight:700; font-size:20px; }
+.svc-sub { color:var(--text-dim); font-size:13px; margin-top:2px; }
+.svc-dot { position:absolute; top:-7px; right:-7px; width:14px; height:14px;
+  border-radius:50%; background:var(--dotc,var(--phos-green)); border:2px solid #0A0F0A; }
+.podbox { border:2px dashed var(--stroke,var(--cyan-dim)); border-radius:14px;
+  padding:10px 14px; display:inline-flex; align-items:center; gap:8px;
+  background:var(--fill-green); }
+.nodebox { border:2px solid var(--line-dim); border-radius:8px; overflow:hidden;
+  background:var(--panel); min-width:220px; }
+.nodebox-head { background:#16220f; color:var(--text-primary); font-size:14px;
+  padding:5px 12px; border-bottom:1px solid var(--line-dim); display:flex; justify-content:space-between; }
+.nodebox-body { padding:14px; display:flex; gap:12px; flex-wrap:wrap; }
+.cpbadge { background:var(--fill-amber); border-color:var(--amber); }
+.clusterfence { border:2px dashed var(--stroke,var(--line-dim)); border-radius:10px;
+  padding:26px 22px 18px; position:relative; background:transparent; }
+.clusterfence.tint { background:var(--cbgtint,var(--fill-green)); }
+.fence-label { position:absolute; top:-12px; left:16px; background:var(--bg-deep);
+  padding:0 8px; color:var(--text-dim); font-size:14px; letter-spacing:1px; }
+.wire { stroke-linecap:round; fill:none; }
+@keyframes flowdash { to { stroke-dashoffset:-24; } }
+.flow { stroke-dasharray:10 14; animation:flowdash 0.9s linear infinite; }
+@keyframes techpulse { 0%,100%{ filter:drop-shadow(0 0 2px var(--dotc,var(--phos-green))); } 50%{ filter:drop-shadow(0 0 9px var(--dotc,var(--phos-green))); } }
+.tpulse { animation:techpulse 1.6s ease-in-out infinite; }
+@keyframes techshake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+.tshake { animation:techshake 0.15s linear 3; }
+
+/* drag handles for resizable panels + sidebar edge */
+  .rsz { height:6px; margin:-4px -16px 8px; cursor:ns-resize; background:transparent; }
+  .rsz:hover { background:rgba(57,255,122,0.15); }
+  #sec-recording.collapsed { flex:0 0 auto !important; }
+  /* whole sidebar scrolls as one — no per-section height caps */
+  aside { overflow-y:auto; }
+  section { overflow-y:visible; flex:none; }
+  #sec-recording { min-height:0; }
+  #sidebar-rsz { width:5px; cursor:ew-resize; background:transparent; flex:none; }
+  #sidebar-rsz:hover { background:rgba(57,255,122,0.25); }
+
+  /* present mode — everything hidden except the scene at 1:1, for OBS capture */
+  body.present header, body.present aside, body.present footer { display:none; }
+  body.present main { display:block; }
+  body.present .stage-wrap { padding:0; overflow:hidden; }
+  body.present #stage-scale { transform:scale(1) !important; }
+  body.present .scene.editing .comp { cursor:default; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>$ ./builder</h1>
+  <span style="font-size:12px;color:#5C8A66">canvas</span>
+  <input type="number" id="scene-w" value="1920" min="200" step="10"
+         style="width:80px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:4px 6px;">
+  <span style="color:#3a5540">×</span>
+  <input type="number" id="scene-h" value="1080" min="200" step="10"
+         style="width:80px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:4px 6px;">
+  <button class="palette" id="preset-yt">1920×1080</button>
+  <button class="palette" id="preset-shorts">1080×1920</button>
+  <button class="palette" id="btn-present" style="border-color:#39FF7A;color:#39FF7A">▶ present</button>
+  <button class="palette" id="btn-popout" style="border-color:#39FF7A;color:#39FF7A">⧉ popout</button>
+  <button class="palette" id="btn-save">💾 save project</button>
+  <button class="palette" id="btn-open">📂 open project</button>
+  <button class="palette" id="btn-new-project" style="color:#FF5555;border-color:#552222">🆕 new project</button>
+  <input type="file" id="file-open" accept=".json" style="display:none">
+  <span class="spacer"></span>
+  <button class="mini primary" id="btn-record" title="record the popout window to a video clip · Space walks your beats" style="color:#FF5555;border-color:#552222">⏺ REC</button>
+  <button class="mini primary" id="btn-spot" title="spotlight: dim all except the selected component · S toggles · Esc exits">💡 spot</button>
+  <button class="mini primary" id="btn-shot">📸 PNG</button>
+  <button class="palette" id="btn-export">help ↓</button>
+  <button class="mini primary" id="btn-help">❓ help</button>
+</header>
+
+<main>
+  <div class="stage-wrap"><div id="stage-scale">
+    <div class="scene editing" id="scene" style="--scene-w:1920px; --scene-h:1080px">
+      <div class="ghosts"><span style="top:-240px;left:-100px">#</span><span style="bottom:-280px;right:420px">#</span><span style="top:180px;left:1420px;font-size:700px">#</span></div>
+      <div class="bg-logo">$▮ llmao.md</div>
+      <div id="gv"></div><div id="gh"></div><div class="corners"><i></i><i></i><i></i><i></i></div>
+      <div class="crt"></div>
+    </div>
+  </div></div>
+
+  <div id="sidebar-rsz"></div>
+  <aside>
+    <section id="sec-palette">
+      <h2>1 · AVAILABLE COMPONENTS</h2>
+      <p class="hint">click one → preview & edit → add to recording scene</p>
+      <div class="pal-search">
+        <input type="text" id="pal-search" placeholder="search components…  (press / )" autocomplete="off" spellcheck="false">
+        <button class="mini" id="pal-collapse" title="collapse all groups">⊟</button>
+        <button class="mini" id="pal-expand" title="expand all groups">⊞</button>
+        <button class="mini" id="pal-clear" title="clear search">✕</button>
+      </div>
+      <div class="palette" id="palette"></div>
+    </section>
+
+    <section id="sec-recording">
+      <div class="sec-head"><h2>2 · STORY CANVAS</h2>
+      <span style="display:flex;gap:6px">
+        <button class="mini danger" id="btn-scene-clear" title="delete every component of the story">✕ clear all</button>
+      </span></div>
+      <ul id="complist" class="clean"></ul>
+    </section>
+
+    <section id="sec-saved">
+      <div class="rsz" data-target="sec-saved"></div>
+      <h2>3 · SAVED COMPONENTS</h2>
+      <ul id="savedlist" class="clean"></ul>
+    </section>
+
+
+    <section id="inspector">
+      <h2>EDIT SELECTED</h2>
+      <div id="empty-msg">select a component…</div>
+      <div id="fields" style="display:none"></div>
+    </section>
+  </aside>
+</main>
+
+<div id="tour" style="display:none">
+    <div id="tour-card">
+      <div id="tour-stepnum"></div>
+      <div id="tour-title"></div>
+      <div id="tour-text"></div>
+      <div id="tour-btns">
+        <button class="mini" id="tour-skip">skip</button>
+        <span style="flex:1"></span>
+        <button class="mini" id="tour-back">← back</button>
+        <button class="mini primary" id="tour-next">next →</button>
+      </div>
+    </div>
+  </div>
+  <style>
+    #tour { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; display:flex; align-items:center; justify-content:center; }
+    #tour-card { width:460px; max-width:92vw; background:#0F1710; border:1px solid #39FF7A; border-radius:8px; padding:22px 24px; font-family:'JetBrains Mono',monospace; }
+    #tour-stepnum { font-size:11px; color:#5C8A66; letter-spacing:2px; margin-bottom:8px; }
+    #tour-title { font-family:'VT323'; font-size:30px; color:#39FF7A; margin-bottom:10px; }
+    #tour-text { font-size:13px; line-height:1.7; color:#D3FFDE; margin-bottom:18px; }
+    #tour-text b { color:#39FF7A; }
+    #tour-btns { display:flex; gap:6px; }
+  </style>
+  </div>
+  <div id="beat-choose">
+    <div id="bc-title">＋ next beat…</div>
+    <p class="hint" id="bc-hint">tick what stays on screen in this beat:</p>
+    <div id="bc-list"></div>
+    <div class="bc-row"><button class="mini" id="bc-all">all</button><button class="mini" id="bc-none">none</button><span style="flex:1"></span><button class="mini" id="bc-cancel">cancel</button></div>
+    <button class="mini primary" id="bc-create" style="width:100%;margin-top:8px;padding:8px">create beat →</button>
+  </div>
+  <style>
+    #beat-choose { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:950;
+                   width:420px; max-width:92vw; max-height:80vh; overflow-y:auto; display:none;
+                   background:#0F1710; border:2px solid #FFB000; border-radius:10px; padding:18px 20px;
+                   font-family:'JetBrains Mono',monospace; }
+    #bc-title { font-family:'VT323'; font-size:26px; color:#FFB000; margin-bottom:4px; }
+    #bc-list { display:flex; flex-direction:column; gap:2px; margin:6px 0;
+               border-top:1px solid #1E2A1E; border-bottom:1px solid #1E2A1E; padding:8px 0; }
+    .bc-row { display:flex; gap:6px; align-items:center; }
+    #beat-choose .mini { padding:3px 9px; }
+  </style>
+  <div id="rec-pop">
+    <div id="rec-pop-title">⏺ record clip</div>
+    <p class="hint">captures the ⧉ popout window in realtime — entrances play once, exactly as OBS would see them.</p>
+    <div class="rec-row"><label>max s</label><input type="number" id="rec-dur" value="" min="1" max="7200" step="0.5" placeholder="∞ until ⏹"><span class="hint" style="margin:0">blank = run till you stop</span></div>
+    <div id="rec-status"></div>
+    <div class="rec-btns">
+      <button class="mini primary" id="rec-start">⏺ start</button>
+      <span style="flex:1"></span>
+      <button class="mini" id="rec-close">close</button>
+    </div>
+  </div>
+  <style>
+    #rec-pop { position:fixed; top:54px; right:14px; z-index:900; width:320px; background:#0F1710;
+               border:1px solid #FF5555; border-radius:8px; padding:14px 16px; display:none;
+               font-family:'JetBrains Mono',monospace; }
+    #rec-pop-title { font-family:'VT323'; font-size:24px; color:#FF5555; margin-bottom:6px; }
+    #rec-pop .hint { margin:0 0 10px; }
+    .rec-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:12px; color:#D3FFDE; }
+    .rec-row label { color:#5C8A66; letter-spacing:1px; }
+    .rec-row input { width:70px; background:#0A0F0A; border:1px solid #1E2A1E; color:#D3FFDE; font-family:inherit; padding:4px 6px; }
+    #rec-status { font-size:12px; color:#FFB000; min-height:15px; margin-bottom:10px; white-space:pre-wrap; line-height:1.5; }
+    .rec-btns { display:flex; gap:6px; }
+    /* while recording: lock the editor except the REC controls */
+    body.recording header :not(#btn-record) { pointer-events:none; }
+    body.recording.live aside { pointer-events:auto; }   /* live take: scene/queue panels stay usable */
+    body.recording aside { pointer-events:none; }
+  </style>
+  <footer id="beatbar"><div id="strip" style="display:flex;align-items:center;gap:8px;width:100%"></div></footer>
+
+<script src="js/phosphor.js"></script>
+<script src="js/themes.js"></script>
+<script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<script>
+/* ============ onboarding tour ============ */
+const TOUR=[
+ {t:'Welcome, operator', x:'This is the <b>PHOSPHOR builder</b> — design every visual as HTML, then record narrated clips straight to MP4. No OBS, no After Effects.<br><br>Type text, press Space. That\'s 90% of it.', sel:null},
+ {t:'1 · Available components', x:'Everything you can put on screen lives here — <b>terminals</b>, servers, pods, charts, fan-outs… 109 and counting.<br><br>Press <b>/</b> to search. Click one to drop it on the canvas.', sel:'#sec-palette'},
+ {t:'The canvas', x:'What you see on this big dark canvas is <b>exactly what viewers see</b>.<br><br>Drag to move; click to edit text/colors/size in EDIT SELECTED below.', sel:'#sec-recording'},
+ {t:'EDIT SELECTED', x:'Every component is editable: position (x/y), size, rotation, colors, entrance animations — even word-by-word color tags like <b>[r]word[/r]</b>.', sel:'#inspector'},
+ {t:'BEATS — the story strip', x:'The bottom bar is your story, beat by beat. <b>＋</b> adds a beat; drop components there; <b>Space / →</b> advances, <b>←</b> goes back.<br><br>Older beats never disappear — the story accumulates while you talk.', sel:'#beatbar'},
+ {t:'⏺ REC + 💡 spotlight', x:'<b>⏺ REC</b> records the ⧉ popout straight to MP4 — Space walks your beats live. <b>S</b> spotlights the selected component (dims everything else); <b>Esc</b> exits.', sel:'#sec-recording'},
+ {t:"You're ready", x:'Open the example projects from 📂 to see full stories.<br><br>Start simple: kicker ＋ terminal, hit ⏺ REC, talk, Space. This help reopens via ❓.', sel:null},
+];
+let ti=0;
+function tourShow(i){
+  const st=TOUR[i]; if(!st) return;
+  document.getElementById('tour').style.display='flex';
+  document.getElementById('tour-stepnum').textContent='STEP '+(i+1)+' / '+TOUR.length;
+  document.getElementById('tour-title').textContent=st.t;
+  document.getElementById('tour-text').innerHTML=st.x;
+  document.getElementById('tour-back').style.visibility=i===0?'hidden':'visible';
+  document.getElementById('tour-next').textContent=i===TOUR.length-1?'got it ✔':'next →';
+  // highlight target section
+  document.querySelectorAll('aside section').forEach(s=>s.style.outline='');
+  if(st.sel){
+    const t=document.querySelector('aside '+st.sel);
+    if(t){ t.scrollIntoView({behavior:'smooth',block:'center'}); t.style.outline='2px solid #39FF7A'; }
+  }
+}
+function tourEnd(save){
+  document.getElementById('tour').style.display='none';
+  document.querySelectorAll('aside section').forEach(s=>s.style.outline='');
+  if(save) try{ localStorage.setItem('phosphor-onboarded','1'); }catch(e){}
+}
+document.getElementById('btn-help').onclick=()=>{ ti=0; tourShow(0); };
+document.getElementById('tour-next').onclick=()=>{ if(ti>=TOUR.length-1){ tourEnd(true); } else { ti++; tourShow(ti); } };
+document.getElementById('tour-back').onclick=()=>{ if(ti>0){ ti--; tourShow(ti); } };
+document.getElementById('tour-skip').onclick=()=>tourEnd(true);
+(function(){
+  let seen=false; try{ seen=!!localStorage.getItem('phosphor-onboarded'); }catch(e){}
+  if(!seen){ setTimeout(()=>{ ti=0; tourShow(0); }, 600); }
+})();
+
+/* collapse/expand — isolated so it works even if the main script hits an error */
+document.addEventListener('click', e=>{
+  const h=e.target.closest('aside section h2');
+  if(!h || e.target.closest('button')) return;
+  const sec=h.parentElement;
+  const collapsing=!sec.classList.contains('collapsed');
+  sec.classList.toggle('collapsed', collapsing);
+  sec.style.flex      = collapsing ? '0 0 auto' : '';
+  sec.style.height    = collapsing ? 'auto'   : '';
+  sec.style.minHeight = collapsing ? '0'      : '';
+  sec.style.maxHeight = collapsing ? 'none'   : '';
+  sec.style.overflow  = collapsing ? 'hidden' : '';
+});
+/* start with the working trio open — palette, story canvas, inspector */
+document.querySelectorAll('aside section').forEach(s=>{
+  const open=['sec-palette','sec-recording','inspector'].includes(s.id);
+  s.classList.toggle('collapsed', !open);
+});
+</script>
+<script>
+/* ============ component registry ============
+   Each entry: markup(props) → html string; props → editable fields.
+   Components are independent: they render inside a positioned wrapper div. */
+
+const ACCENTS = ['#39FF7A','#FFB000','#FF5555','#57C7C0','#D3FFDE'];
+
+// global runtime state — declared early because renderCanvas reads these
+let curBeat=-1;       // beats timeline: -1 = blank pre-roll, 0 = first beat
+let beatStep={};      // beat -> how many comps of that beat are revealed ≤ curBeat is visible
+/* universal parenting: ANY component can attach to / hold any other */
+function childrenOf(id){ return comps.filter(c=>c.parentId===id); }
+function revealComp(c){
+  // new/duplicated comps must be VISIBLE immediately — otherwise they sit hidden
+  // until Space, which desyncs builder vs popout
+  const b=(c.beat==null)?curBeat:c.beat;
+  const sibs=comps.filter(x=>((x.beat==null)?curBeat:x.beat)===b);
+  beatStep[b]=Math.max(beatStep[b]||0, sibs.length);
+}
+function containerAt(px,py,excludeId){
+  for(let i=comps.length-1;i>=0;i--){ const c=comps[i];
+    if(c.id===excludeId) continue;
+    const w=c._rw||(c.wpx||220), h=c._rh||(c.hpx||140);
+    if(px>=c.x&&px<=c.x+w&&px<=c.x+Math.max(w,c._rw||w)&&py>=c.y&&py<=c.y+h) return c;
+  } return null;
+}
+function moveGroup(c,dx,dy){
+  c.x+=dx; c.y+=dy;
+  childrenOf(c.id).forEach(ch=>{ ch.x+=dx; ch.y+=dy; });
+}
+function resizeGroup(c,oldW,oldH){
+  childrenOf(c.id).forEach(ch=>{
+    ch.x=Math.round(c.x+(ch.x-c.x)/2*0); // positions are absolute; scale below
+  });
+}
+/* word-level markup, shared by title / caption / terminal / any text field.
+   Colors — single letter = theme color:
+     [g]…[/g] green  [a]…[/a] amber  [r]…[/r] red
+     [c]…[/c] cyan   [m]…[/m] mint   [d]…[/d] dim
+   [#FFB000]…[/#] any custom hex
+   Style:
+     [b]…[/b] bold   [i]…[/i] italic   [s1.5]…[/s] font-size ×1.5
+   Legacy aliases still work: [w]=green [e]=red [n]=amber */
+const RICH_COLORS={ g:'var(--phos-green)', a:'var(--amber)', r:'var(--alert-red)',
+                    c:'var(--cyan-dim)', m:'#D3FFDE', d:'var(--text-dim)',
+                    w:'var(--phos-green)', e:'var(--alert-red)', n:'var(--amber)' };
+function rich(t){
+  const tokens=[];
+  const stash=html=>{ tokens.push(html); return '\u0000'+(tokens.length-1)+'\u0000'; };
+  t=String(t);
+  // pass 1: colors (letter names + legacy + custom hex) → protected tokens
+  t=t.replace(/\[([garcmdwen])\]([\s\S]+?)\[\/\1\]/gi,(m,k,x)=>{
+    const v=RICH_COLORS[k.toLowerCase()]||k;
+    return stash(`<span style="color:${v}">${x}</span>`); });
+  t=t.replace(/\[(#[0-9a-fA-F]{3,8})\]([\s\S]+?)\[\/#\]/g,(m,c,x)=>stash(`<span style="color:${c}">${x}</span>`));
+  // pass 2: styles → protected tokens
+  t=t.replace(/\[b\]([\s\S]+?)\[\/b\]/g,(m,x)=>stash(`<b>${x}</b>`));
+  t=t.replace(/\[i\]([\s\S]+?)\[\/i\]/g,(m,x)=>stash(`<i>${x}</i>`));
+  t=t.replace(/\[s([0-9]*\.?[0-9]+)\]([\s\S]+?)\[\/s\]/g,(m,f,x)=>stash(`<span style="font-size:${f}em">${x}</span>`));
+  // pass 3: escape whatever plain text remains (so stray < > can't break the scene)
+  t=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // pass 4: restore rendered tokens — repeat because tokens can nest
+  let prev=null;
+  while(t!==prev){ prev=t; t=t.replace(/\u0000(\d+)\u0000/g,(m,i)=>tokens[+i]); }
+  return t;
+}
+
+/* tech-kit shared bits (strategy/TECH-ELEMENTS.md) */
+const TK_BOLT='<svg width="24" height="36" viewBox="0 0 24 36" style="display:block"><path d="M14 2 L4 20 h6 l-3 14 L21 14 h-7 z" fill="var(--amber)"/></svg>';
+const TK_CLOCK='<svg width="15" height="15" viewBox="0 0 16 16" style="vertical-align:-2px;margin-right:5px"><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--amber)" stroke-width="2"/><path d="M8 4.5 V8 L10.5 10" stroke="var(--amber)" stroke-width="2" fill="none"/></svg>';
+function tkCyl(p, opts={}){
+  const overlay = opts.hexes ? '<span class="hexgrid"></span>'
+    : opts.constel ? `<svg class="constel" viewBox="0 0 100 52" preserveAspectRatio="none">
+        <path d="M8 40 L30 18 L55 34 L78 12 L92 30 M30 18 L48 44 L78 12 M55 34 L88 46" stroke="var(--text-dim)" stroke-width="1.2" fill="none" opacity=".7"/>
+        ${[[8,40],[30,18],[55,34],[78,12],[92,30],[48,44],[88,46]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3.4" fill="var(--stroke)"/>`).join('')}
+      </svg>` : '';
+  return `<div class="tk-cyl" style="width:${p.w}px;height:${p.h}px;--stroke:${p.accent}">
+    <div class="cbody"></div>${overlay}
+    <div class="clabel">${opts.bolt?TK_BOLT:''}${p.label?rich(p.label):''}${p.sub?`<span style="font-size:.72em;color:var(--text-dim);letter-spacing:2px">${p.sub}</span>`:''}</div>
+  </div>`;
+}
+
+const REGISTRY = {
+  kicker:   { name:'Kicker chip (EP.NNN // TYPE)',
+    props:{text:'EP.001 // HOT TAKE'},
+    fields:['text'],
+    markup:p=>`<span class="kicker">${p.text}</span>` },
+
+  title:    { name:'Title line (VT323 big)',
+    help:'TAGS: [g]green [a]amber [r]red [c]cyan [m]mint [d]dim · [#hex]custom · [b]bold [i]italic [s1.5]bigger',
+    props:{text:'RAG IS JUST GREP', glitch:'', size:150},
+    fields:['text','glitch','size'], fieldTypes:{size:'number'},
+    markup:p=>{
+      let t=rich(p.text);
+      if(p.glitch) t=t.replace(p.glitch, `<span class="glitch-word" data-w="${p.glitch}">${p.glitch}</span>`);
+      return `<div class="title-line" style="font-size:${p.size}px">${t}</div>`; } },
+
+  terminal: { name:'Terminal window',
+    props:{title:'~/opinions — zsh', body:`$ rag --ask "does it scale?"\n✓ match found (score 0.02)`, w:900, stepped:false},
+    fields:['title','body','w','stepped'], fieldTypes:{body:'textarea', w:'number', stepped:'check'}, help:'enable stepped to reveal line-by-line (Space = next line)',
+    markup:p=>`
+      <div class="term glow" style="width:${p.w}px">
+        <div class="term-bar"><span class="dot dot-r"></span><span class="dot dot-a"></span><span class="dot dot-g"></span><span class="term-title">${p.title}</span></div>
+        <div class="term-body">${rich(p.body).split("\n").map(l=>`<div class="tline">${l||"&nbsp;"}</div>`).join("")}</div>
+      </div>` },
+
+  hottake:  { name:'Lower third · HOT TAKE',
+    props:{label:'HOT TAKE', text:"it's grep with a marketing budget"},
+    fields:['label','text'],
+    markup:p=>`<div class="hot-take"><div class="hot-take-tab">${p.label}</div><div class="hot-take-text">${p.text}<span class="cursor is-on"></span></div></div>` },
+
+  toast:    { name:'Error toast',
+    props:{text:'confidence 0.97 · sources read: none ⚠'},
+    fields:['text'],
+    markup:p=>`<div class="toast-error"><b>ERROR:</b> ${p.text}</div>` },
+
+  blame:    { name:'git blame tag',
+    props:{who:'<rahul@management>', msg:'just a small change'},
+    fields:['who','msg'],
+    markup:p=>`<div class="blame"><span class="who">&lt;${p.who.replace(/^<|>$/g,'')}&gt;</span> <span class="msg">"${p.msg}"</span></div>` },
+
+  comment:  { name:'Code-comment bar',
+    props:{text:'// hot take incoming'},
+    fields:['text'],
+    markup:p=>`<div class="code-comment">${p.text}</div>` },
+
+  stamp:    { name:'Stamp',
+    props:{text:'NOT APPROVED'},
+    fields:['text'],
+    markup:p=>`<div class="stamp">${p.text}</div>` },
+
+  sticky:   { name:'Sticky note',
+    props:{text:'TODO:<br>read the docs ← nah', rot:-3},
+    fields:['text','rot'], fieldTypes:{text:'textarea', rot:'number'},
+    markup:p=>`<div class="sticky-note" style="--rot:${p.rot}deg">${p.text}</div>` },
+
+  loopbox:  { name:'Loop box (dashed)',
+    props:{text:'↻ see: recursion'},
+    fields:['text'],
+    markup:p=>`<div class="loopbox">${p.text}</div>` },
+
+  box:      { name:'Box (border+fill)',
+    props:{text:'TRANSLATION:<br>chunk docs → pray', accent:'#39FF7A', fill:true, alert:false},
+    fields:['text','accent','fill','alert'], fieldTypes:{text:'textarea', fill:'check', alert:'check'},
+    markup:p=>`<div class="${p.fill?'box-fill':'box-border'}${p.alert?' box-alert':''}"${p.color?'':` style="--stroke:${p.accent}; --boxbg:${p.accent==='#FFB000'?'var(--fill-amber)':p.accent==='#FF5555'?'var(--fill-red)':'var(--fill-green)'}"`}>${p.text}</div>` },
+
+  caption:  { name:'Caption pops',
+    help:'same word tags: [w]=green [e]=red [n]=amber still valid',
+    props:{text:'it handles [n]10x[/n] load — [w]works![/w] …in prod it\'s a [e]fire[/e]'},
+    fields:['text'], fieldTypes:{text:'textarea'},
+    markup:p=>`<div class="caps">${rich(p.text)}</div>` },
+
+  progress: { name:'Progress bar',
+    props:{pct:64, stall:false},
+    fields:['pct','stall'], fieldTypes:{pct:'number', stall:'check'},
+    markup:p=>{
+      const pct=Math.max(0,Math.min(100,+p.pct||0));
+      const total=10, filled=Math.round(total*pct/100);
+      return `<div class="progress${p.stall?' stall':''}">
+        <span class="bar-fill">${'▓'.repeat(filled)}</span><span class="bar-rest">${'░'.repeat(total-filled)}</span> ${pct}%
+      </div>`; } },
+
+  rec:      { name:'REC indicator',
+    props:{}, fields:[],
+    markup:()=>`<span class="rec">REC</span>` },
+
+  diff:     { name:'Diff pair',
+    props:{bad:'microservices for everything', good:'one boring process'},
+    fields:['bad','good'],
+    markup:p=>`<div class="diff"><div class="diff-del">− ${p.bad}</div><div class="diff-add">+ ${p.good}</div></div>` },
+
+  checklist:{ name:'Checklist card',
+    props:{items:'write code|done\nwrite tests|done\nupdate docs|never', stepped:false},
+    fields:['items','stepped'], fieldTypes:{items:'textarea', stepped:'check'}, help:'one per line: text | done|never · enable stepped to reveal line-by-line',
+    markup:p=>`<ul class="checklist">${p.items.split('\n').map(l=>{
+      const [t,s]=l.split('|');
+      return `<li class="cline ${(s||'').trim()}">${t}</li>`;}).join('')}</ul>` },
+
+  arrow:    { name:'Arrow (annotation)',
+    props:{accent:'#39FF7A', w:220, thick:false},
+    fields:['accent','w','thick'], fieldTypes:{w:'number', thick:'check'},
+    markup:p=>`<span class="annot glow" style="color:${p.color||p.accent}"><svg width="${p.w}" viewBox="0 0 200 60"><line x1="8" y1="30" x2="172" y2="30" stroke="currentColor" stroke-width="${p.thick?10:6}"/><polygon points="188,30 158,15 158,45" fill="currentColor"/></svg></span>` },
+
+  circle:   { name:'Hand-drawn circle',
+    props:{accent:'#FFB000', s:300},
+    fields:['accent','s'], fieldTypes:{s:'number'},
+    markup:p=>`<span class="annot" style="color:${p.color||p.accent}"><svg width="${p.s}" viewBox="0 0 180 120"><path d="M88 13 C142 14, 171 38, 167 64 C163 95, 118 111, 78 107 C34 103, 11 84, 15 54 C19 27, 55 12, 102 18" fill="none" stroke="currentColor" stroke-width="5"/></svg></span>` },
+
+  verdict:  { name:'✓ / ✗ verdict mark',
+    props:{kind:'ok', s:260},
+    fields:['kind','s'], fieldTypes:{kind:'select', s:'number'}, options:{kind:['ok','bad']},
+    markup:p=>p.kind==='ok'
+      ? `<span class="annot glow" style="color:${p.color||'#39FF7A'}"><svg width="${p.s}" viewBox="0 0 100 100"><polyline points="18,52 40,74 82,26" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`
+      : `<span class="annot" style="color:${p.color||'#FF5555'}"><svg width="${p.s}" viewBox="0 0 100 100"><line x1="22" y1="22" x2="78" y2="78" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><line x1="78" y1="22" x2="22" y2="78" stroke="currentColor" stroke-width="12" stroke-linecap="round"/></svg></span>` },
+
+  svcblock: { name:'Service block (microservice)',
+    props:{label:'payment-svc', sub:'go', accent:'#39FF7A', state:'healthy'},
+    fields:['label','sub','accent','state'], fieldTypes:{state:'select'}, options:{state:['healthy','warn','error','none']},
+    markup:p=>{
+      const dc=p.state==='warn'?'#FFB000':p.state==='error'?'#FF5555':'#39FF7A';
+      return `<div class="svc tech" style="--stroke:${p.accent}${p.state==='none'?';--dotc:transparent':''}">
+        ${p.state!=='none'?`<span class="svc-dot${p.state==='healthy'?' tpulse':''}" style="--dotc:${dc}"></span>`:''}
+        <div class="svc-name">${p.label}</div><div class="svc-sub">${p.sub}</div></div>`; } },
+
+  kpod:     { name:'Pod (container)',
+    props:{label:'api', accent:'#57C7C0'},
+    fields:['label','accent'],
+    markup:p=>`<div class="podbox tech" style="--stroke:${p.accent}">
+      <svg width="34" height="30" viewBox="0 0 34 30"><rect x="2" y="4" width="30" height="22" rx="3" fill="none" stroke="${p.accent}" stroke-width="2"/><path d="M8 9h18M8 21h18" stroke="${p.accent}" stroke-width="2"/></svg>
+      <span style="color:var(--text-primary);font-size:17px;font-weight:700">${p.label}</span></div>` },
+
+  knode:    { name:'Node (worker) — drop pods inside',
+    props:{label:'node-1', role:'worker'},
+    fields:['label','role'],
+    markup:p=>`<div class="nodebox tech"><div class="nodebox-head"><span>${p.label}</span><span style="color:var(--text-dim)">${p.role}</span></div>
+      <div class="nodebox-body" data-slot="pods">drop pods here</div></div>` },
+
+  kcp:      { name:'Control plane',
+    props:{label:'control-plane'},
+    fields:['label'],
+    markup:p=>`<div class="nodebox tech cpbadge" style="--amber:1"><div class="nodebox-head" style="background:#241d08"><span>${p.label}</span></div>
+      <div class="nodebox-body" style="color:var(--text-dim);font-size:13px">apiserver · scheduler · etcd</div></div>` },
+
+  fence:    { name:'Boundary (cluster / zone / VPC)',
+    props:{label:'cluster-prod', accent:'#5C8A66', tint:false},
+    fields:['label','accent','tint'], fieldTypes:{tint:'check'},
+    markup:p=>`<div class="clusterfence tech${p.tint?' tint':''}" style="--stroke:${p.accent};${p.tint?'':'background:transparent'}">
+      <span class="fence-label">${p.label}</span><span class="fenceslot">drop services inside</span></div>` },
+
+  dbtech:   { name:'Database (cylinder)',
+    props:{label:'postgres', accent:'#57C7C0'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tech" style="text-align:center">
+      <svg width="70" height="60" viewBox="0 0 70 60"><ellipse cx="35" cy="10" rx="28" ry="8" fill="${p.accent}22" stroke="${p.accent}" stroke-width="2"/>
+      <path d="M7 10 v40 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8 v-40" fill="none" stroke="${p.accent}" stroke-width="2"/>
+      <path d="M7 24 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8 M7 38 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8" fill="none" stroke="${p.accent}" stroke-width="1.4" opacity=".55"/></svg>
+      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>` },
+
+  cachetech:{ name:'Cache (redis)',
+    props:{label:'cache', accent:'#FFB000'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tech" style="text-align:center">
+      <svg width="70" height="60" viewBox="0 0 70 60"><ellipse cx="35" cy="10" rx="28" ry="8" fill="#FFB00022" stroke="${p.accent}" stroke-width="2"/>
+      <path d="M7 10 v40 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8 v-40" fill="none" stroke="${p.accent}" stroke-width="2"/>
+      <path d="M38 20 l-10 12 h8 l-4 10 12 -14 h-8 z" fill="${p.accent}"/></svg>
+      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>` },
+
+  loadbal:  { name:'Load balancer',
+    props:{label:'load-balancer', accent:'#39FF7A'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tech" style="text-align:center">
+      <svg width="120" height="64" viewBox="0 0 120 64"><circle cx="60" cy="10" r="7" fill="#39FF7A22" stroke="${p.accent}" stroke-width="2"/>
+      <path d="M60 17 v12 M60 29 L20 47 M60 29 L100 47 M60 29 v18" stroke="${p.accent}" stroke-width="2" fill="none"/>
+      <polygon points="20,56 14,44 26,44" fill="${p.accent}"/><polygon points="100,56 94,44 106,44" fill="${p.accent}"/><polygon points="60,58 54,46 66,46" fill="${p.accent}"/></svg>
+      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>` },
+
+  usericon: { name:'User (person)',
+    props:{label:'user', accent:'#D3FFDE'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tech" style="text-align:center">
+      <svg width="56" height="60" viewBox="0 0 56 60"><circle cx="28" cy="16" r="12" fill="none" stroke="${p.accent}" stroke-width="2.5"/>
+      <path d="M6 56 c0 -18 10 -26 22 -26 s22 8 22 26" fill="none" stroke="${p.accent}" stroke-width="2.5"/></svg>
+      <div style="color:var(--text-primary);font-size:15px">${p.label}</div></div>` },
+
+  clientdev:{ name:'Client device (browser)',
+    props:{label:'browser', accent:'#57C7C0'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tech" style="text-align:center">
+      <svg width="110" height="72" viewBox="0 0 110 72"><rect x="3" y="3" width="104" height="66" rx="6" fill="var(--panel)" stroke="${p.accent}" stroke-width="2"/>
+      <path d="M3 17 h104" stroke="${p.accent}" stroke-width="2"/><circle cx="14" cy="10" r="3" fill="#FF5555"/><circle cx="24" cy="10" r="3" fill="#FFB000"/><circle cx="34" cy="10" r="3" fill="#39FF7A"/>
+      <rect x="12" y="26" width="86" height="34" rx="3" fill="none" stroke="${p.accent}" stroke-width="1.4" opacity=".6"/></svg>
+      <div style="color:var(--text-primary);font-size:15px">${p.label}</div></div>` },
+
+  wire:     { name:'Wire (request/response)',
+    props:{label:'', len:320, accent:'#39FF7A', res:true},
+    fields:['label','len','accent','res'], fieldTypes:{len:'number', accent:'color2', res:'check'},
+    markup:p=>`<div class="tech" style="width:${p.len}px;text-align:center">
+      <svg width="100%" height="26" viewBox="0 0 ${p.len} 26" preserveAspectRatio="none">
+        <line class="wire${p.res?'':' flow'}" x1="6" y1="13" x2="${p.len-14}" y2="13" stroke="${p.accent}" stroke-width="2.5"/>
+        <polygon points="${p.len-4},13 ${p.len-16},6 ${p.len-16},20" fill="${p.accent}"/>
+        ${p.res?`<line class="wire" x1="${p.len-6}" y1="22" x2="14" y2="22" stroke="${p.accent}" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/><polygon points="4,22 16,16 16,28" fill="${p.accent}"/>`:''}
+      </svg>
+      ${p.label?`<div style="font-size:13px;color:var(--text-dim);margin-top:-6px">${p.label}</div>`:''}</div>` },
+
+  statdot:  { name:'Status dot (up/dead/error)',
+    props:{kind:'healthy', size:18},
+    fields:['kind','size'], fieldTypes:{kind:'select', size:'number'}, options:{kind:['healthy','warn','error','loading']},
+    markup:p=>{
+      const col=p.kind==='warn'?'#FFB000':p.kind==='error'?'#FF5555':p.kind==='loading'?'#57C7C0':'#39FF7A';
+      const anim=p.kind==='healthy'?' tpulse':p.kind==='error'?' tshake':'';
+      const inner=p.kind==='error'?'✕':p.kind==='warn'?'!':p.kind==='loading'?'◌':'';
+      return `<span class="tpulse" style="display:inline-grid;place-items:center;width:${p.size}px;height:${p.size}px;border-radius:50%;border:2px solid ${col};color:${col};font-weight:700;font-size:${Math.round(p.size*0.6)}px;${p.kind==='healthy'?'' :''}">${inner}</span>`; } },
+
+  countbadg:{ name:'Count badge (×N)',
+    props:{n:'×12', accent:'#FFB000'},
+    fields:['n','accent'],
+    markup:p=>`<span class="tech" style="display:inline-block;background:${p.accent};color:#0A0F0A;font-weight:700;font-size:15px;padding:3px 10px;border-radius:99px">${p.n}</span>` },
+
+  image:    { name:'Image / logo (PNG)',
+    props:{src:'', w:400},
+    fields:['src','w'], fieldTypes:{src:'textarea', w:'number'},
+    help:'paste an image URL / data-URI in the text box, or use the file picker below',
+    markup:p=>p.src
+      ?`<img src="${p.src}" style="width:${p.w}px;display:block" onerror="this.style.outline='3px solid #FF5555'; this.title='image failed to load'">`
+      :`<div style="width:${p.w}px;padding:40px;border:3px dashed var(--line-dim);text-align:center;color:var(--text-dim);font-family:var(--font-body);font-size:20px;line-height:1.6">
+          🖼 IMAGE PLACEHOLDER<br><span style="font-size:14px;color:#5C8A66">select me →<br>choose a file or paste a URL<br>in EDIT SELECTED</span>
+        </div>` },
+
+  callout:  { name:'Callout chip + leader',
+    props:{text:'this: broken', accent:'#FFB000'},
+    fields:['text','accent'],
+    markup:p=>`<div class="callout" style="position:relative"><span class="callout-chip"${p.color?'':` style="--cc:${p.accent}"`}>${p.text}</span><span class="callout-line dashed"></span></div>` },
+
+  /* ====== tech-diagram kit · batch 1 (strategy/TECH-ELEMENTS.md) ====== */
+
+  user:     { name:'TK · user actor',
+    group:'actors',
+    props:{label:'user', size:120, accent:'#39FF7A'},
+    fields:['label','size','accent'], fieldTypes:{size:'number'},
+    markup:p=>`<div class="tk-user" style="--stroke:${p.accent}">
+      <svg width="${+p.size||120}" height="${Math.round((+p.size||120)*1.15)}" viewBox="0 0 100 115" fill="none">
+        <circle cx="50" cy="30" r="22" stroke="var(--stroke)" stroke-width="6"/>
+        <path d="M12 110 C12 80 30 67 50 67 C70 67 88 80 88 110" stroke="var(--stroke)" stroke-width="6"/>
+      </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  svc:      { name:'TK · service block',
+    group:'nodes',
+    help:'the generic microservice box — name + tech subtitle. add boundaries FIRST so they sit behind.',
+    props:{name:'payment-svc', sub:'go · grpc', accent:'#39FF7A'},
+    fields:['name','sub','accent'],
+    markup:p=>`<div class="tk-svc" style="--stroke:${p.accent}"><div class="tk-name">${rich(p.name)}</div>${p.sub?`<div class="tk-sub">${p.sub}</div>`:''}</div>` },
+
+  server:   { name:'TK · rack server',
+    group:'nodes',
+    props:{label:'api-01', units:4, accent:'#39FF7A'},
+    fields:['label','units','accent'], fieldTypes:{units:'number'},
+    markup:p=>{ const u=Math.max(2,Math.min(8,+p.units||4));
+      return `<div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tk-server" style="--stroke:${p.accent}">${Array.from({length:u},()=>'<span class="slat"><i></i><i></i></span>').join('')}</div>
+        ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  db:       { name:'TK · database',
+    group:'data',
+    props:{label:'postgres', sub:'', w:190, h:150, accent:'#57C7C0'},
+    fields:['label','sub','w','h','accent'], fieldTypes:{w:'number',h:'number'},
+    markup:p=>tkCyl(p) },
+
+  cache:    { name:'TK · cache',
+    group:'data',
+    props:{label:'redis', sub:'TTL 60s', w:170, h:140, accent:'#FFB000'},
+    fields:['label','sub','w','h','accent'], fieldTypes:{w:'number',h:'number'},
+    markup:p=>tkCyl(p,{bolt:true}) },
+
+  queue:    { name:'TK · message queue',
+    group:'data',
+    props:{label:'kafka', cells:4, accent:'#57C7C0'},
+    fields:['label','cells','accent'], fieldTypes:{cells:'number'},
+    markup:p=>{ const n=Math.max(1,Math.min(10,+p.cells||4));
+      return `<div class="tk-queue" style="--stroke:${p.accent}">${'<span class="cell"></span>'.repeat(n)}<span class="qcap">${rich(p.label)}</span></div>`; } },
+
+  pod:      { name:'TK · pod',
+    group:'nodes',
+    help:'status dot: ok / warn / dead — place on top of a boundary (cluster/node)',
+    props:{name:'web-7f9d', status:'ok', accent:'#39FF7A'},
+    fields:['name','status','accent'], fieldTypes:{status:'select'}, options:{status:['ok','warn','dead']},
+    markup:p=>`<div class="tk-pod" style="--stroke:${p.accent}"><div class="pbox"><span class="hdot ${p.status}" style="position:absolute;top:-9px;right:-9px;width:18px;height:18px;"></span></div>${p.name?`<div class="pname">${rich(p.name)}</div>`:''}</div>` },
+
+  boundary: { name:'TK · boundary (cluster/node/AZ)',
+    group:'groups',
+    help:'dashed region with title tab — add it FIRST so pods/services sit on top. tint = trust/blast-radius wash.',
+    props:{label:'cluster-prod', tint:'none', w:900, h:520, accent:'#5C8A66'},
+    fields:['label','tint','w','h','accent'], fieldTypes:{tint:'select',w:'number',h:'number'}, options:{tint:['none','green','red']},
+    markup:p=>`<div class="tk-zone ${p.tint==='green'?'tint-g':p.tint==='red'?'tint-r':''}" style="--stroke:${p.accent};width:${+p.w||900}px;height:${+p.h||520}px"><span class="ztab">${rich(p.label)}</span></div>` },
+
+  wire:     { name:'TK · wire (labeled arrow)',
+    group:'flow',
+    help:'head: closed ▶ sync · open › async · none plain. both = duplex. clock = latency glyph on label. flow = marching dashes.',
+    props:{dir:'→', len:420, label:'', dashed:false, flow:false, head:'closed', both:false, clock:false, accent:'#39FF7A'},
+    fields:['dir','len','label','dashed','flow','head','both','clock','accent'], fieldTypes:{dir:'select',len:'number',label:'textarea',dashed:'check',flow:'check',head:'select',both:'check',clock:'check'}, options:{dir:['→','←','↑','↓'], head:['closed','open','none']},
+    markup:p=>{
+      const vert=p.dir==='↑'||p.dir==='↓';
+      const rotC={'→':0,'↓':90,'←':180,'↑':270}[p.dir];
+      const rotO={'→':45,'↓':135,'←':225,'↑':315}[p.dir];
+      const dim=vert?`height:${+p.len||300}px;width:48px;`:`width:${+p.len||300}px;height:44px;`;
+      const mkHead=atStart=>{
+        if(p.head==='none') return '';
+        let r=(p.head==='open'?rotO:rotC); if(atStart) r=(r+180)%360;
+        return `<span class="head ${p.head}${atStart?' backh':''}" style="transform:rotate(${r}deg)"></span>`;
+      };
+      return `<div class="tk-wire ${vert?'v':'h'} ${p.dashed?'dashed':''} ${p.flow?'flow':''}" style="${dim}--stroke:${p.accent}">${mkHead(true)}<span class="line"></span>${mkHead(false)}${(p.label||p.clock)?`<span class="wlbl">${p.clock?TK_CLOCK:''}${p.label?rich(p.label):''}</span>`:''}</div>`; } },
+
+  packet:   { name:'TK · packet (traveling dot)',
+    group:'flow',
+    help:'drop on top of a wire — dot travels end to end. loop off = fires once.',
+    props:{dir:'→', len:420, dur:2, loop:true, accent:'#FFB000'},
+    fields:['dir','len','dur','loop','accent'], fieldTypes:{dir:'select',len:'number',dur:'number',loop:'check'}, options:{dir:['→','←','↑','↓']},
+    markup:p=>{
+      const vert=p.dir==='↑'||p.dir==='↓';
+      const rev=p.dir==='←'||p.dir==='↑';
+      return `<div class="tk-packet ${vert?'v':'h'} ${rev?'rev':''} ${p.loop?'':'once'}" style="${vert?`height:${+p.len||300}px;width:24px;`:`width:${+p.len||300}px;`}--stroke:${p.accent};--dur:${+p.dur||2}s"><span class="pk"></span></div>`; } },
+
+  chip:     { name:'TK · chip (tech tag / protocol)',
+    group:'meta',
+    props:{text:'k8s', color:'#57C7C0'},
+    fields:['text','color'],
+    markup:p=>`<span class="tk-chip"${p.color?` style="--cc:${p.color}"`:''}>${rich(p.text)}</span>` },
+
+  health:   { name:'TK · health dot',
+    group:'meta',
+    help:'ok = steady green · warn = amber pulse · dead = red flicker',
+    props:{status:'ok', label:'UP'},
+    fields:['status','label'], fieldTypes:{status:'select'}, options:{status:['ok','warn','dead']},
+    markup:p=>`<span class="tk-health"><span class="hdot ${p.status}" style="width:22px;height:22px;"></span>${p.label?`<span>${rich(p.label)}</span>`:''}</span>` },
+
+  /* ====== tech-diagram kit · batch 2 (AI/RAG + data-flow states) ====== */
+
+  nosql:    { name:'TK · nosql database',
+    group:'data',
+    props:{label:'mongo', sub:'', w:190, h:150, accent:'#57C7C0'},
+    fields:['label','sub','w','h','accent'], fieldTypes:{w:'number',h:'number'},
+    markup:p=>tkCyl(p,{hexes:true}) },
+
+  stream:   { name:'TK · event stream (pub/sub)',
+    group:'data',
+    help:'source dot fanning marching dashes — subscribers implied at the right',
+    props:{label:'events topic', lanes:3, accent:'#57C7C0'},
+    fields:['label','lanes','accent'], fieldTypes:{lanes:'number'},
+    markup:p=>{ const n=Math.max(1,Math.min(6,+p.lanes||3));
+      return `<div class="tk-stream" style="--stroke:${p.accent}">
+        <div class="fan"><span class="node"></span><span class="waves">${'<span class="wv"></span>'.repeat(n)}</span><span class="node"></span></div>
+        ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  embed:    { name:'TK · embedding cube',
+    group:'ai',
+    props:{label:'', size:150, accent:'#57C7C0'},
+    fields:['label','size','accent'], fieldTypes:{size:'number'},
+    markup:p=>{ const s=+p.size||150;
+      const pts=[[18,30],[42,14],[70,26],[92,44],[30,58],[58,52],[82,72],[22,80],[50,88],[74,96],[40,110],[64,120]];
+      return `<div class="tk-embed" style="--stroke:${p.accent}">
+        <svg width="${s}" height="${s}" viewBox="0 0 140 140" fill="none">
+          <path d="M20 34 L70 12 L120 34 L120 106 L70 130 L20 106 Z M20 34 L70 56 L120 34 M70 56 L70 130"
+                stroke="var(--stroke)" stroke-width="3" opacity=".8"/>
+          ${pts.map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i%3?3:4.5}" fill="${i%2?'var(--cyan-dim)':'var(--phos-green)'}"/>`).join('')}
+        </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  vdb:      { name:'TK · vector db',
+    group:'ai',
+    props:{label:'pgvector', sub:'cosine', w:190, h:160, accent:'#57C7C0'},
+    fields:['label','sub','w','h','accent'], fieldTypes:{w:'number',h:'number'},
+    markup:p=>tkCyl(p,{constel:true}) },
+
+  model:    { name:'TK · model / neural net',
+    group:'ai',
+    help:'gpu toggle = chip-pins frame for hardware-angle videos',
+    props:{label:'llama-3', layers:[3,4,3], gpu:false, w:210, accent:'#39FF7A'},
+    fields:['label','layers','gpu','w','accent'], fieldTypes:{gpu:'check'},
+    markup:p=>{
+      const cols=(Array.isArray(p.layers)?p.layers:String(p.layers||'').split(',')).map(Number).filter(n=>n>0);
+      if(!cols.length) cols.push(3,4,3);
+      const W=+p.w||210, H=Math.max(...cols)*44;
+      const colX=i=>28+(W-56)*(cols.length>1?i/(cols.length-1):0);
+      let links='';
+      for(let i=0;i<cols.length-1;i++)
+        for(let a=0;a<cols[i];a++) for(let b=0;b<cols[i+1];b++)
+          links+=`<line x1="${colX(i)}" y1="${(a+.5)*(H/cols[i])}" x2="${colX(i+1)}" y2="${(b+.5)*(H/cols[i+1])}" stroke="var(--text-dim)" stroke-width="1.1" opacity=".55"/>`;
+      let nodes='';
+      cols.forEach((n,i)=>{ for(let a=0;a<n;a++)
+        nodes+=`<circle cx="${colX(i)}" cy="${(a+.5)*(H/n)}" r="9" fill="var(--ghost-fill)" stroke="var(--stroke)" stroke-width="2.5"/>`; });
+      return `<div class="tk-model${p.gpu?' gpu':''}" style="--stroke:${p.accent}">
+        <svg width="${W}" height="${H}">${links}${nodes}</svg>
+        ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  tokens:   { name:'TK · token stream',
+    group:'ai',
+    help:'falling character chips — ambient loop; height controls the column',
+    props:{text:'the|cat|sat|down', h:200, dur:3.5, accent:'#39FF7A'},
+    fields:['text','h','dur','accent'], fieldTypes:{h:'number',dur:'number'},
+    markup:p=>{
+      const parts=String(p.text).split('|').filter(Boolean);
+      return `<div class="tk-tokens" style="--stroke:${p.accent};--h:${+p.h||190}px;--dur:${+p.dur||3.2}s">
+        ${parts.map((t,i)=>`<span style="animation-delay:${(-i*(+p.dur||3.2)/parts.length).toFixed(2)}s">${rich(t)}</span>`).join('')}</div>`; } },
+
+  prompt:   { name:'TK · prompt box',
+    group:'ai',
+    props:{text:'why did my prod db fall over?', send:'▸ send', accent:'#39FF7A'},
+    fields:['text','send','accent'],
+    markup:p=>`<div class="tk-prompt" style="--stroke:${p.accent}"><span class="ptext">${rich(p.text)}<span class="cursor is-on"></span></span><span class="psend">${p.send}</span></div>` },
+
+  ctxwin:   { name:'TK · context window',
+    group:'ai',
+    help:'slots: on = filled context, hot = about to overflow (amber)',
+    props:{label:'context · 8k tokens', used:5, total:8, hot:false, accent:'#39FF7A'},
+    fields:['label','used','total','hot','accent'], fieldTypes:{used:'number',total:'number',hot:'check'},
+    markup:p=>{ const tot=Math.max(1,Math.min(16,+p.total||8)), use=Math.max(0,Math.min(tot,+p.used||0));
+      return `<div class="tk-ctx" style="--stroke:${p.accent}">
+        <div class="clbl">${rich(p.label)}</div>
+        <div class="slots">${Array.from({length:tot},(_,i)=>`<span class="slot ${i<use?(p.hot&&i===use-1?'hot':'on'):''}"></span>`).join('')}</div></div>`; } },
+
+  gauge:    { name:'TK · fill gauge',
+    group:'meta',
+    help:'amber sweep toward full — over = overflow flicker. label rides the bar.',
+    props:{label:'cache 84%', pct:84, over:false, w:280, accent:'#FFB000'},
+    fields:['label','pct','over','w','accent'], fieldTypes:{pct:'number',over:'check',w:'number'},
+    markup:p=>{ const pct=Math.max(0,Math.min(100,+p.pct||0));
+      return `<div class="tk-gauge${p.over?' over':''}" style="--stroke:${p.accent};--w:${+p.w||280}px;--pct:${pct}%"><span class="gfill"></span>${p.label?`<span class="gcap">${rich(p.label)}</span>`:''}</div>`; } },
+
+  /* ====== tech-diagram kit · batch 3 (everything else) ====== */
+
+  vm:       { name:'TK · virtual machine',
+    group:'nodes',
+    props:{label:'vm-2', units:4, accent:'#39FF7A'},
+    fields:['label','units','accent'], fieldTypes:{units:'number'},
+    markup:p=>{ const u=Math.max(2,Math.min(8,+p.units||4));
+      return `<div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tk-server dashed" style="--stroke:${p.accent}">${Array.from({length:u},()=>'<span class="slat"><i></i><i></i></span>').join('')}</div>
+        ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  container:{ name:'TK · docker container',
+    group:'nodes',
+    props:{name:'checkout · v2', accent:'#57C7C0'},
+    fields:['name','accent'],
+    markup:p=>`<div class="tk-cont" style="--stroke:${p.accent}"><div class="tk-name">${rich(p.name)}</div></div>` },
+
+  controlplane:{ name:'TK · control plane',
+    group:'nodes',
+    props:{name:'control plane', sub:'kube-apiserver · etcd', accent:'#FFB000'},
+    fields:['name','sub','accent'],
+    markup:p=>`<div class="tk-cp" style="--stroke:${p.accent}"><div class="crown">★ ★ ★</div><div class="tk-name">${rich(p.name)}</div>${p.sub?`<div class="tk-sub">${p.sub}</div>`:''}</div>` },
+
+  lb:       { name:'TK · load balancer',
+    group:'nodes',
+    props:{label:'', accent:'#39FF7A'},
+    fields:['label','accent'],
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center">
+      <svg width="180" height="122" fill="none" stroke="var(--stroke)" stroke-width="3">
+        <line x1="90" y1="2" x2="90" y2="24"/>
+        <path d="M50 26 H130 L102 62 H78 Z"/>
+        <path d="M79 64 L38 104 M90 64 V110 M101 64 L142 104"/>
+        <polygon points="34,112 46,106 40,98" fill="var(--stroke)" stroke="none"/>
+        <polygon points="84,120 96,120 90,108" fill="var(--stroke)" stroke="none"/>
+        <polygon points="146,112 140,98 154,106" fill="var(--stroke)" stroke="none"/>
+      </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  gateway:  { name:'TK · api gateway / proxy',
+    group:'nodes',
+    help:'one gate covers B9 reverse-proxy and B10 api-gateway — label decides',
+    props:{name:'api-gateway', sub:'auth · routing', accent:'#39FF7A'},
+    fields:['name','sub','accent'],
+    markup:p=>`<div class="tk-gate" style="--stroke:${p.accent}"><div class="door"></div><div class="tk-name">${rich(p.name)}</div>${p.sub?`<div class="tk-sub">${p.sub}</div>`:''}</div>` },
+
+  cdn:      { name:'TK · edge / CDN',
+    group:'nodes',
+    props:{label:'cdn · 42 pops', accent:'#57C7C0'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tk-cdn" style="--stroke:${p.accent}">
+      <svg width="150" height="150" fill="none">
+        <circle cx="75" cy="75" r="44" stroke="var(--stroke)" stroke-width="3"/>
+        <ellipse cx="75" cy="75" rx="19" ry="44" stroke="var(--stroke)" stroke-width="2"/>
+        <line x1="31" y1="75" x2="119" y2="75" stroke="var(--stroke)" stroke-width="2"/>
+        <line x1="118" y1="52" x2="136" y2="36" stroke="var(--amber)" stroke-width="2" stroke-dasharray="5 5"/><circle cx="140" cy="32" r="5.5" fill="var(--amber)"/>
+        <line x1="34" y1="98" x2="16" y2="116" stroke="var(--phos-green)" stroke-width="2" stroke-dasharray="5 5"/><circle cx="13" cy="120" r="5.5" fill="var(--phos-green)"/>
+        <line x1="104" y1="114" x2="120" y2="132" stroke="var(--cyan-dim)" stroke-width="2" stroke-dasharray="5 5"/><circle cx="123" cy="136" r="5.5" fill="var(--cyan-dim)"/>
+      </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  lambda:   { name:'TK · serverless fn',
+    group:'nodes',
+    props:{label:'resizeImg()', accent:'#FFB000'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tk-lambda" style="--stroke:${p.accent}">${TK_BOLT}${p.label?`<span class="tk-caption" style="margin-top:0">${rich(p.label)}</span>`:''}</div>` },
+
+  worker:   { name:'TK · queue worker',
+    group:'nodes',
+    props:{label:'job-runner ×4', cells:3, accent:'#57C7C0'},
+    fields:['label','cells','accent'], fieldTypes:{cells:'number'},
+    markup:p=>{ const n=Math.max(1,Math.min(6,+p.cells||3));
+      return `<div class="tk-worker" style="--stroke:${p.accent}">
+        <div class="belt">${'<i></i>'.repeat(n)}</div>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  firewall: { name:'TK · firewall',
+    group:'nodes',
+    props:{label:'allow :443 only', accent:'#FF5555'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tk-firewall" style="--stroke:${p.accent}"><span class="tk-fw-cap">${rich(p.label)}</span></div>` },
+
+  cloud:    { name:'TK · internet cloud',
+    group:'flow',
+    props:{label:'the internet', w:260, accent:'#5C8A66'},
+    fields:['label','w','accent'],
+    markup:p=>{ const s=+p.w||260;
+      return `<div style="display:flex;flex-direction:column;align-items:center">
+        <svg width="${s}" height="${s*0.62}" viewBox="0 0 200 124" fill="none">
+          <path d="M56 100 A30 30 0 0 1 58 41 A38 38 0 0 1 128 28 A32 32 0 0 1 172 74 A26 26 0 0 1 156 100 Z"
+                stroke="var(--stroke)" stroke-width="3.5"/>
+        </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  bucket:   { name:'TK · object storage',
+    group:'data',
+    props:{label:'s3://assets', accent:'#57C7C0'},
+    fields:['label','accent'],
+    markup:p=>`<div class="tk-bucket" style="--stroke:${p.accent}">
+      <svg width="130" height="138" viewBox="0 0 130 138" fill="none" stroke="var(--stroke)" stroke-width="3">
+        <ellipse cx="65" cy="30" rx="48" ry="12"/>
+        <path d="M17 30 L31 118 A34 10 0 0 0 99 118 L113 30"/>
+        <path d="M20 18 Q65 -8 110 18"/>
+      </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  warehouse:{ name:'TK · data warehouse',
+    group:'data',
+    props:{label:'snowflake', rows:3, w:150, h:70, accent:'#57C7C0'},
+    fields:['label','rows','w','h','accent'], fieldTypes:{rows:'number',w:'number',h:'number'},
+    markup:p=>{ const n=Math.max(2,Math.min(4,+p.rows||3));
+      const cyls=Array.from({length:n},()=>tkCyl({label:'',sub:'',w:+p.w||150,h:+p.h||70,accent:p.accent}));
+      return `<div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tk-warehouse">${cyls.map((m,i)=>i===0?m:`<span style="display:inline-block;margin-top:-${Math.round((+p.h||70)*0.48)}px">${m}</span>`).join('')}</div>
+        ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  doc:      { name:'TK · file / document',
+    group:'data',
+    props:{text:'nginx.conf', accent:'#5C8A66'},
+    fields:['text','accent'],
+    markup:p=>`<div class="tk-doc" style="--stroke:${p.accent}">
+      <svg width="44" height="56" viewBox="0 0 46 58"><path d="M3 3 H32 L43 14 V55 H3 Z" fill="var(--ghost-fill)" stroke="var(--stroke)" stroke-width="2.5"/><path d="M32 3 V14 H43" fill="none" stroke="var(--stroke)" stroke-width="2.5"/><line x1="10" y1="25" x2="36" y2="25" stroke="var(--text-dim)" stroke-width="2"/><line x1="10" y1="34" x2="36" y2="34" stroke="var(--text-dim)" stroke-width="2"/><line x1="10" y1="43" x2="27" y2="43" stroke="var(--text-dim)" stroke-width="2"/></svg>
+      <span>${rich(p.text)}</span></div>` },
+
+  logs:     { name:'TK · log stream',
+    group:'data',
+    help:'scrolling log lines — ambient loop; one line per row in the body field',
+    props:{body:`10:14:02 ERR checkout timeout\n10:14:03 ERR retry 1/3\n10:14:05 WRN circuit half-open`, w:430, h:170, dur:7, accent:'#FFB000'},
+    fields:['body','w','h','dur','accent'], fieldTypes:{body:'textarea',w:'number',h:'number',dur:'number'},
+    markup:p=>`<div class="tk-logs" style="--stroke:${p.accent};--w:${+p.w||430}px;--h:${+p.h||190}px;--dur:${+p.dur||7}s">
+      <div class="lset">${String(p.body).split('\n').map(l=>`<div>${rich(l)||'&nbsp;'}</div>`).join('')}</div></div>` },
+
+  kv:       { name:'TK · key → value',
+    group:'data',
+    props:{key:'session:42', val:'redis-A', accent:'#FFB000'},
+    fields:['key','val','accent'],
+    markup:p=>`<div class="tk-kv"><span class="kk">${rich(p.key)}</span><span class="arr">──▶</span><span class="kv">${rich(p.val)}</span></div>` },
+
+  ws:       { name:'TK · websocket (realtime)',
+    group:'flow',
+    props:{label:'', len:240, accent:'#57C7C0'},
+    fields:['label','len','accent'], fieldTypes:{len:'number'},
+    markup:p=>{
+      const waves=n=>'M8 17 '+Array.from({length:n-1},(_,i)=>`Q ${23+i*30} ${i%2?22:2} ${38+i*30} 17`).join(' ');
+      const n=Math.max(3,Math.min(8,Math.round((+p.len||240)/30)));
+      return `<div style="display:flex;flex-direction:column;align-items:center">
+        <svg width="${n*30}" height="34" fill="none" stroke="var(--stroke)" stroke-width="3">
+          <path d="${waves(n)}"/>
+          <polygon points="2,17 14,10 14,24" fill="var(--stroke)" stroke="none"/>
+          <polygon points="${n*30-2},17 ${n*30-14},10 ${n*30-14},24" fill="var(--stroke)" stroke="none"/>
+        </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  latency:  { name:'TK · latency marker',
+    group:'meta',
+    props:{text:'p99 · 420ms', accent:'#FFB000'},
+    fields:['text','accent'],
+    markup:p=>`<span class="tk-latency" style="--stroke:${p.accent}">
+      <svg width="34" height="40" viewBox="0 0 34 40" fill="none" stroke="var(--stroke)" stroke-width="2.5">
+        <rect x="12" y="2" width="10" height="5"/><circle cx="17" cy="23" r="13"/>
+        <line x1="17" y1="23" x2="17" y2="13"/><line x1="17" y1="23" x2="24" y2="27"/></svg>
+      <span>${rich(p.text)}</span></span>` },
+
+  retry:    { name:'TK · retry loop',
+    group:'flow',
+    props:{label:'retry ×3', accent:'#FFB000'},
+    fields:['label','accent'],
+    markup:p=>`<span class="tk-retry" style="--stroke:${p.accent}">
+      <svg width="54" height="54" viewBox="0 0 56 56" fill="none" stroke="var(--stroke)" stroke-width="4">
+        <path d="M46 28 A18 18 0 1 1 28 10"/><polygon points="28,2 40,10 28,18" fill="var(--stroke)" stroke="none"/></svg>
+      <span>${rich(p.label)}</span></span>` },
+
+  timeout:  { name:'TK · timeout (broken call)',
+    group:'flow',
+    props:{label:'deadline exceeded', accent:'#FF5555'},
+    fields:['label','accent'],
+    markup:p=>`<span class="tk-timeout" style="--stroke:${p.accent}">
+      <svg width="152" height="44" fill="none">
+        <line x1="2" y1="22" x2="84" y2="22" stroke="var(--phos-green)" stroke-width="3" stroke-dasharray="12 9"/>
+        <circle cx="110" cy="22" r="15" stroke="var(--text-dim)" stroke-width="3"/>
+        <line x1="110" y1="22" x2="110" y2="12" stroke="var(--text-dim)" stroke-width="2.5"/><line x1="110" y1="22" x2="118" y2="27" stroke="var(--text-dim)" stroke-width="2.5"/>
+        <path d="M134 13 l15 18 M149 13 l-15 18" stroke="var(--alert-red)" stroke-width="4.5"/>
+      </svg><span>${rich(p.label)}</span></span>` },
+
+  valve:    { name:'TK · rate limiter',
+    group:'flow',
+    props:{label:'max 100 rps', accent:'#39FF7A'},
+    fields:['label','accent'],
+    markup:p=>`<span class="tk-valve" style="--stroke:${p.accent}">
+      <svg width="168" height="58" fill="none">
+        <line x1="2" y1="42" x2="166" y2="42" stroke="var(--cyan-dim)" stroke-width="4"/>
+        <line x1="84" y1="42" x2="84" y2="18" stroke="var(--stroke)" stroke-width="3"/>
+        <circle cx="84" cy="13" r="11" stroke="var(--amber)" stroke-width="3.5"/>
+        <line x1="74" y1="13" x2="94" y2="13" stroke="var(--amber)" stroke-width="2.5"/>
+      </svg><span>${rich(p.label)}</span></span>` },
+
+  scale:    { name:'TK · autoscaling',
+    group:'meta',
+    help:'up = boxes spawn in staggered · down = fade & drop out',
+    props:{dir:'up', n:4, accent:'#39FF7A'},
+    fields:['dir','n','accent'], fieldTypes:{dir:'select',n:'number'}, options:{dir:['up','down']},
+    markup:p=>{ const n=Math.max(2,Math.min(6,+p.n||4));
+      return `<div class="tk-scale ${p.dir==='down'?'down':'up'}" style="--stroke:${p.accent}">${Array.from({length:n},(_,i)=>`<span class="sb" style="animation-delay:${(i*0.15).toFixed(2)}s"></span>`).join('')}</div>`; } },
+
+  lock:     { name:'TK · locked',
+    group:'meta',
+    props:{label:'TLS', accent:'#39FF7A'},
+    fields:['label','accent'],
+    markup:p=>`<span class="tk-lock" style="--stroke:${p.accent}">
+      <svg width="44" height="52" viewBox="0 0 44 52" fill="none" stroke="var(--stroke)" stroke-width="3.5">
+        <rect x="5" y="22" width="34" height="27" fill="var(--fill-green)"/>
+        <path d="M12 22 V14 a10 10 0 0 1 20 0 V22"/>
+        <circle cx="22" cy="33" r="3.5" fill="var(--stroke)" stroke="none"/><line x1="22" y1="36" x2="22" y2="43"/></svg>
+      <span>${rich(p.label)}</span></span>` },
+
+  replicate:{ name:'TK · replication twins',
+    group:'meta',
+    help:'two cylinders + solid sync / dashed async twin wires',
+    props:{label:'', accent:'#57C7C0'},
+    fields:['label','accent'],
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center">
+      <div class="tk-replicate" style="--stroke:${p.accent}">
+        ${tkCyl({label:'',sub:'',w:110,h:92,accent:p.accent})}
+        <svg width="86" height="46" fill="none" stroke="var(--stroke)">
+          <line x1="2" y1="12" x2="72" y2="12" stroke-width="3"/><polygon points="84,12 72,6 72,18" fill="var(--stroke)" stroke="none"/>
+          <line x1="84" y1="34" x2="14" y2="34" stroke-width="3" stroke-dasharray="9 7"/><polygon points="2,34 14,28 14,40" fill="var(--stroke)" stroke="none"/>
+        </svg>
+        ${tkCyl({label:'',sub:'',w:110,h:92,accent:p.accent})}
+      </div>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  pipeline: { name:'TK · pipeline stages',
+    group:'flow',
+    help:'stages separated by |',
+    props:{stages:'chunk|embed|store|retrieve', accent:'#39FF7A'},
+    fields:['stages','accent'],
+    markup:p=>{ const st=String(p.stages).split('|').filter(Boolean);
+      return `<div class="tk-pipe" style="--stroke:${p.accent};--cbg:var(--fill-green)">${st.map(s=>`<span class="st">${rich(s)}</span>`).join('')}</div>`; } },
+
+  breaker:  { name:'TK · circuit breaker',
+    group:'flow',
+    help:'open = circuit broken (red gap) · closed = flowing',
+    props:{state:'open', label:'', accent:'#FF5555'},
+    fields:['state','label','accent'], fieldTypes:{state:'select'}, options:{state:['open','closed']},
+    markup:p=>{ const open=p.state!=='closed';
+      return `<span class="tk-breaker" style="--stroke:${open?'#FF5555':p.accent}">
+        <svg width="200" height="60" fill="none" stroke="${open?'var(--alert-red)':'var(--stroke)'}" stroke-width="3.5">
+          <line x1="2" y1="34" x2="80" y2="34"/><line x1="136" y1="34" x2="198" y2="34" ${open?'stroke-dasharray="10 8"':''}/>
+          <line x1="80" y1="34" x2="${open?126:136}" y2="${open?8:34}"/>
+          <circle cx="80" cy="34" r="5" fill="var(--ghost-fill)"/><circle cx="136" cy="34" r="5" fill="var(--ghost-fill)"/>
+        </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</span>`; } },
+
+  consensus:{ name:'TK · consensus vote',
+    group:'flow',
+    props:{label:'quorum 2/3', accent:'#39FF7A'},
+    fields:['label','accent'],
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center">
+      <svg width="210" height="160" fill="none">
+        <line x1="45" y1="45" x2="165" y2="45" stroke="var(--text-dim)" stroke-width="1.5" opacity=".6"/>
+        <line x1="45" y1="45" x2="105" y2="125" stroke="var(--text-dim)" stroke-width="1.5" opacity=".6"/>
+        <line x1="165" y1="45" x2="105" y2="125" stroke="var(--text-dim)" stroke-width="1.5" opacity=".6"/>
+        <circle cx="40" cy="40" r="17" stroke="var(--stroke)" stroke-width="3" fill="var(--ghost-fill)"/>
+        <circle cx="170" cy="40" r="17" stroke="var(--stroke)" stroke-width="3" fill="var(--ghost-fill)"/>
+        <circle cx="105" cy="130" r="17" stroke="var(--stroke)" stroke-width="3" fill="var(--ghost-fill)"/>
+        <path d="M32 40 l6 6 l10 -12" stroke="var(--phos-green)" stroke-width="3.5"/>
+        <path d="M162 40 l6 6 l10 -12" stroke="var(--phos-green)" stroke-width="3.5"/>
+        <text x="99" y="136" fill="var(--amber)" font-family="var(--font-display)" font-size="22">?</text>
+      </svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  index:    { name:'TK · search index',
+    group:'ai',
+    props:{label:'inverted index', accent:'#57C7C0'},
+    fields:['label','accent'],
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center">
+      <div class="tk-index" style="--stroke:${p.accent}"><span></span><span></span><span></span></div>
+      ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  plate:    { name:'TK · name plate',
+    group:'meta',
+    props:{title:'kafka-cluster', sub:'3 brokers · rf=3', accent:'#39FF7A'},
+    fields:['title','sub','accent'],
+    markup:p=>`<span class="tk-plate" style="--cc:${p.accent}"><span class="pt">${rich(p.title)}</span>${p.sub?`<span class="ps">${p.sub}</span>`:''}</span>` },
+
+  region:   { name:'TK · region tag',
+    group:'meta',
+    props:{text:'us-east-1a', accent:'#5C8A66'},
+    fields:['text','accent'],
+    markup:p=>`<span class="tk-region" style="--stroke:${p.accent}">${rich(p.text)}</span>` },
+
+  fproc:    { name:'FL · process step',
+    group:'logic',
+    props:{text:'validate payload', accent:'#39FF7A'},
+    fields:['text','accent'],
+    markup:p=>`<div class="tk-fproc" style="--stroke:${p.accent}">${rich(p.text)}</div>` },
+
+  fdec:     { name:'FL · decision diamond',
+    group:'logic',
+    help:'yes/no branches — pair with chips for edge labels',
+    props:{text:'valid?', accent:'#FFB000'},
+    fields:['text','accent'],
+    markup:p=>`<div style="width:283px;height:283px;display:flex;align-items:center;justify-content:center;overflow:visible"><div class="tk-dec" style="--stroke:${p.accent}"><div>${rich(p.text)}</div></div></div>` },
+
+  fterm:    { name:'FL · start / end',
+    group:'logic',
+    props:{text:'START', accent:'#39FF7A'},
+    fields:['text','accent'],
+    markup:p=>`<div class="tk-term" style="--stroke:${p.accent}">${rich(p.text)}</div>` },
+
+  fio:      { name:'FL · input / output',
+    group:'logic',
+    props:{text:'read events', accent:'#57C7C0'},
+    fields:['text','accent'],
+    markup:p=>`<div class="tk-io" style="--stroke:${p.accent}"><span>${rich(p.text)}</span></div>` },
+
+  lifeline: { name:'SQ · lifeline',
+    group:'seq',
+    help:'participant box + dashed drop — place activation bars and messages on top',
+    props:{label:'api-gateway', h:380, accent:'#39FF7A'},
+    fields:['label','h','accent'], fieldTypes:{h:'number'},
+    markup:p=>`<div class="tk-life" style="--stroke:${p.accent}"><span class="pbox">${rich(p.label)}</span><span class="ll" style="--h:${+p.h||380}px"></span></div>` },
+
+  activation:{ name:'SQ · activation bar',
+    group:'seq',
+    props:{h:140, accent:'#39FF7A'},
+    fields:['h','accent'], fieldTypes:{h:'number'},
+    markup:p=>`<span class="tk-act" style="--stroke:${p.accent};--h:${+p.h||140}px"></span>` },
+
+  selfcall: { name:'SQ · self-call loop',
+    group:'seq',
+    props:{accent:'#39FF7A'},
+    fields:['accent'],
+    markup:p=>`<span class="tk-selfcall" style="--stroke:${p.accent}">
+      <svg width="76" height="94" viewBox="0 0 76 94" fill="none" stroke="var(--stroke)" stroke-width="3">
+        <path d="M14 90 V26 Q14 8 40 8 Q66 8 66 28 V74"/>
+        <polygon points="66,88 58,72 74,72" fill="var(--stroke)" stroke="none"/></svg></span>` },
+
+  dtitle:   { name:'CH · diagram title',
+    group:'chrome',
+    props:{kicker:'EP.014 // ARCHITECTURE', title:'how payments actually flows'},
+    fields:['kicker','title'],
+    markup:p=>`<div class="tk-dtitle"><div class="dk">${rich(p.kicker)}</div><div class="dt">${rich(p.title)}</div></div>` },
+
+  legend:   { name:'CH · legend / key',
+    group:'chrome',
+    help:'rows: style|text — styles: solid dashed red amber open',
+    props:{rows:`solid|sync call\ndashed|async / response\nred|failure path\nopen|fire-and-forget`},
+    fields:['rows'], fieldTypes:{rows:'textarea'},
+    markup:p=>{ const S={solid:['solid','var(--phos-green)'],dashed:['dashed','var(--phos-green)'],red:['solid','var(--alert-red)'],amber:['dashed','var(--amber)']};
+      return `<div class="tk-legend">${String(p.rows).split('\n').filter(Boolean).map(r=>{
+        const i=r.indexOf('|'); const st=(r.slice(0,i)||'solid').trim(), txt=r.slice(i+1);
+        if(st==='open') return `<div class="lr"><span class="sw open"></span><span>${rich(txt)}</span></div>`;
+        const [cls,col]=S[st]||S.solid;
+        return `<div class="lr"><span class="sw ${cls}" style="border-top-color:${col}"></span><span>${rich(txt)}</span></div>`; }).join('')}</div>`; } },
+
+  footnote: { name:'CH · source footnote',
+    group:'chrome',
+    props:{text:'source: a guy on hacker news'},
+    fields:['text'],
+    markup:p=>`<div class="tk-footnote">${rich(p.text)}</div>` },
+
+  frame:    { name:'CH · frame border',
+    group:'chrome',
+    help:'thin outer rectangle — add FIRST, lowest z, then build inside it',
+    props:{w:1600, h:880},
+    fields:['w','h'], fieldTypes:{w:'number',h:'number'},
+    markup:p=>`<div class="tk-frame" style="--w:${+p.w||1600}px;--h:${+p.h||880}px"></div>` },
+
+  chartline:{ name:'X · line / area chart',
+    group:'charts',
+    help:'comma-separated values, normalized to peak',
+    props:{label:'p99 latency', data:'12,34,28,52,46,74,88', area:true, color:'#39FF7A'},
+    fields:['label','data','area','color'], fieldTypes:{area:'check'},
+    markup:p=>{
+      const vals=String(p.data).split(',').map(Number).filter(v=>!isNaN(v));
+      if(vals.length<2) return '<b>needs 2+ values</b>';
+      const W=340,H=180,P=14, max=Math.max(...vals,1);
+      const pts=vals.map((v,i)=>`${(P+i*((W-2*P)/(vals.length-1))).toFixed(1)},${(H-P-(v/max)*(H-2*P)).toFixed(1)}`);
+      return `<div class="tk-chart" style="--cc:${p.color}">${p.label?`<div class="clbl">${rich(p.label)}</div>`:''}
+        <svg width="${W}" height="${H}">
+          <line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="var(--line-dim)" stroke-width="2"/>
+          <line x1="${P}" y1="${P}" x2="${P}" y2="${H-P}" stroke="var(--line-dim)" stroke-width="2"/>
+          ${p.area?`<polygon points="${P},${H-P} ${pts.join(' ')} ${W-P},${H-P}" fill="${p.color}" opacity=".14"/>`:''}
+          <polyline points="${pts.join(' ')}" fill="none" stroke="${p.color}" stroke-width="3.5"/>
+          <circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="5.5" fill="${p.color}"/>
+        </svg></div>`; } },
+
+  chartbars:{ name:'X · comparison bars',
+    group:'charts',
+    help:'rows: label:value separated by |',
+    props:{label:'who serves faster', rows:'gRPC:91|REST:62|SOAP:23', color:'#39FF7A'},
+    fields:['label','rows','color'],
+    markup:p=>{ const rows=String(p.rows).split('|').filter(Boolean).map(r=>{
+        const i=r.lastIndexOf(':'); return [r.slice(0,i).trim(), parseFloat(r.slice(i+1))||0]; });
+      return `<div class="tk-chart">${p.label?`<div class="clbl">${rich(p.label)}</div>`:''}
+        <div class="tk-bars">${rows.map(([lab,val])=>`<div class="brow"><span class="blab">${rich(lab)}</span><span class="btrack"><span class="bfill" style="width:${Math.min(100,val)}%;background:${p.color}"></span></span><span class="bval">${val}</span></div>`).join('')}</div></div>`; } },
+
+  chartdonut:{ name:'X · donut split',
+    group:'charts',
+    props:{label:'64%', pct:64, d:220, color:'#39FF7A'},
+    fields:['label','pct','d','color'], fieldTypes:{pct:'number',d:'number'},
+    markup:p=>{ const pct=Math.max(0,Math.min(100,+p.pct||0));
+      return `<div class="tk-chart"><div class="tk-donut" style="--d:${+p.d||220}px;--pct:${pct};--dc:${p.color}"><span class="dcap">${rich(p.label||(pct+'%'))}</span></div></div>`; } },
+
+  elbow:    { name:'TK · elbow wire (ports)',
+    group:'flow',
+    help:'comes from top, exits right — flipH/flipV mirror it. ports = attach squares on node edges.',
+    props:{lenH:260, lenV:180, ports:true, flipH:false, flipV:false, accent:'#39FF7A'},
+    fields:['lenH','lenV','ports','flipH','flipV','accent'], fieldTypes:{lenH:'number',lenV:'number',ports:'check',flipH:'check',flipV:'check'},
+    markup:p=>`<div class="tk-elbow ${p.flipH?'flipx':''} ${p.flipV?'flipy':''}" style="width:${+p.lenH||260}px;height:${+p.lenV||180}px;--stroke:${p.accent}"><span class="vseg"></span><span class="hseg"></span>${p.ports?`<span class="port" style="left:-6px;top:-7px"></span><span class="port" style="right:-7px;bottom:-6px"></span>`:''}</div>` },
+
+  /* ====== tech-diagram kit · cinematic pack (kubekloud-style motion) ====== */
+
+  backdrop: { name:'KK · environment backdrop',
+    group:'chrome',
+    help:'place FIRST — gradient mood + perspective floor + twinkling stars. sits behind everything.',
+    props:{mood:'green', grid:true, stars:true, w:1920, h:1080},
+    fields:['mood','grid','stars','w','h'], fieldTypes:{mood:'select',grid:'check',stars:'check',w:'number',h:'number'}, options:{mood:['green','amber','cyan']},
+    markup:p=>{
+      const stars=[[8,12],[22,6],[35,18],[48,9],[61,15],[74,7],[88,20],[15,28],[55,30],[82,32],[68,24],[40,34]];
+      return `<div class="tk-bd ${p.mood!=='green'?p.mood:''}" style="width:${+p.w||1920}px;height:${+p.h||1080}px">
+        <span class="neb"></span>${p.grid?'<span class="floor"></span>':''}
+        ${p.stars?stars.map(([x,y],i)=>`<span class="star" style="left:${x}%;top:${Math.round(y*4.2)}%;animation-delay:${(i*0.4).toFixed(1)}s"></span>`).join(''):''}
+      </div>`; } },
+
+  camera:   { name:'KK · camera move',
+    group:'chrome',
+    help:'invisible on canvas. during ⏺ REC the popout pans/zooms from start→end across the take. zoom 1 = full frame.',
+    props:{zoomFrom:1, zoomTo:1.35, panX:0, panY:-120, durS:6},
+    fields:['zoomFrom','zoomTo','panX','panY','durS'], fieldTypes:{zoomFrom:'number',zoomTo:'number',panX:'number',panY:'number',durS:'number'},
+    markup:p=>`<div class="tk-cam" title="camera move — visible only in the recording"></div>` },
+
+  arcwire:  { name:'KK · curved flow wire',
+    group:'flow',
+    help:'bezier arc with moving data — data: one packet · stream: many dots · pulse: slow single. rotate the component for direction.',
+    props:{len:420, bow:-90, mode:'data', n:4, label:'', dashed:false, head:false, accent:'#39FF7A'},
+    fields:['len','bow','mode','n','label','dashed','head','accent'],
+    fieldTypes:{len:'number',bow:'number',mode:'select',n:'number',label:'textarea',dashed:'check',head:'check'}, options:{mode:['data','stream','pulse']},
+    markup:p=>{
+      const L=+p.len||420, bow=Math.max(-160,Math.min(160,+p.bow||-90));
+      const H=Math.abs(bow)*2+36, base=H-18;
+      const path=`M 14 ${base} Q ${L/2} ${base+bow*2} ${L-14} ${base}`;
+      const dur=p.mode==='pulse'?3.4:1.7;
+      let dots='';
+      if(p.mode==='stream'){
+        const nn=Math.max(2,Math.min(10,+p.n||4));
+        for(let i=0;i<nn;i++) dots+=`<circle r="${i%3===2?4:5.5}" fill="${i%3===2?'var(--cyan-dim)':'var(--stroke)'}"><animateMotion dur="${dur}s" begin="${(-(i*dur/nn)).toFixed(2)}s" repeatCount="indefinite" path="${path}"/></circle>`;
+      } else {
+        dots=`<circle r="6" fill="var(--stroke)"><animateMotion dur="${dur}s" repeatCount="indefinite" path="${path}"/></circle>`;
+      }
+      const head=p.head?`<polygon class="headf" points="${L-16},${base-8} ${L-3},${base} ${L-16},${base+8}"/>`:'';
+      return `<div class="tk-aw ${p.dashed?'dashed':''}" style="--stroke:${p.accent};width:${L}px;position:relative">
+        <svg width="${L}" height="${H}"><path class="track" d="${path}"/>${head}${dots}</svg>
+        ${p.label?`<span class="lbl" style="position:absolute;left:50%;top:${base+bow}px;transform:translate(-50%,-50%)">${rich(p.label)}</span>`:''}</div>`; } },
+
+  fanout:   { name:'KK · fan-out branches',
+    group:'flow',
+    help:'one source splitting into N curved branches — branching services, sharding, fan-out reads',
+    props:{n:4, len:380, spread:220, mode:'stream', label:'', accent:'#39FF7A'},
+    fields:['n','len','spread','mode','label','accent'],
+    fieldTypes:{n:'number',len:'number',spread:'number',mode:'select'}, options:{mode:['data','stream','pulse']},
+    markup:p=>{
+      const n=Math.max(2,Math.min(8,+p.n||4)), L=+p.len||380, S=+p.spread||220;
+      const H=S+44, cy=(H)/2;
+      const fade=i=>(0.55+0.45*(1-Math.abs(i-(n-1)/2)/(((n-1)/2)||1))).toFixed(2);
+      /* canonical 4-branch stream = exact showcase geometry; other counts use the formula */
+      const CTRL4=[9,5,18,31], BEG4=[-0,-.95,-.35,-1.3];
+      let paths='',dots='';
+      for(let i=0;i<n;i++){
+        const ty=14+i*(S/(n-1));
+        const ctrl=(n===4&&p.mode==='stream')?(CTRL4[i]!==undefined?cy+CTRL4[i]:cy+(ty-cy)*0.25):(cy+(ty-cy)*0.25);
+        const d=`M 10 ${cy} Q ${(L*0.45).toFixed(0)} ${ctrl.toFixed(1)} ${L-16} ${ty}`;
+        paths+=`<path class="track" d="${d}" opacity="${fade(i)}"/>`;
+        if(p.mode==='stream'){
+          const col=i%2?'var(--cyan-dim)':'var(--stroke)';
+          const beg=(n===4)?BEG4[i]:-(i*0.475);
+          dots+=`<circle r="4.5" fill="${col}" opacity="${fade(i)}"><animateMotion dur="1.9s" begin="${beg}s" repeatCount="indefinite" path="${d}"/></circle>`;
+        } else {
+          const dur=p.mode==='pulse'?3.2:1.7;
+          dots+=`<circle r="5" fill="var(--stroke)" opacity="${fade(i)}"><animateMotion dur="${dur}s" begin="${(i*0.25).toFixed(2)}s" repeatCount="indefinite" path="${d}"/></circle>`;
+        }
+      }
+      return `<div class="tk-fan" style="--stroke:${p.accent};width:${L}px;position:relative">
+        <svg width="${L}" height="${H}">${paths}<circle cx="10" cy="${cy}" r="8" fill="var(--stroke)"/>${dots}</svg>
+        ${p.label?`<span class="lbl" style="position:absolute;left:16px;top:${cy+22}px">${rich(p.label)}</span>`:''}</div>`; } },
+
+  splitter: { name:'KK · doc → chunks splitter',
+    group:'ai',
+    help:'document splits into chunks drifting out staggered — RAG ingestion, sharding, fanning out work',
+    props:{doc:'doc.pdf', chunks:'c1|c2|c3|c4|c5', accent:'#FFB000', docAccent:'#39FF7A'},
+    fields:['doc','chunks','accent','docAccent'],
+    markup:p=>{ const ch=String(p.chunks).split('|').filter(Boolean);
+      return `<div class="tk-split" style="--stroke:${p.docAccent}">
+        <div class="doc">${rich(p.doc)}</div>
+        <span style="color:var(--text-dim);font-size:26px">⟶</span>
+        <div class="chunks" style="--stroke:${p.accent}">${ch.map((c,i)=>`<span class="chk" style="animation-delay:${(i*0.18).toFixed(2)}s">${rich(c)}</span>`).join('')}</div></div>`; } },
+
+  bootnode: { name:'KK · node bootstrap',
+    group:'nodes',
+    help:'outline draws itself in, status lights up — "worker nodes coming up". replays every time it is pulled.',
+    props:{label:'node-3 joining', units:4, status:'ok', accent:'#39FF7A'},
+    fields:['label','units','status','accent'], fieldTypes:{units:'number',status:'select'}, options:{status:['ok','warn','dead']},
+    markup:p=>{ const u=Math.max(2,Math.min(6,+p.units||4)); const H=u*34+10;
+      return `<div class="tk-boot" style="--stroke:${p.accent}">
+        <svg width="130" height="${H}">
+          <rect class="draw" x="3" y="3" width="124" height="${H-6}" rx="6" fill="var(--ghost-fill)" stroke="var(--stroke)" stroke-width="3"/>
+          ${Array.from({length:u},(_,i)=>`<line class="draw" x1="14" y1="${21+i*34}" x2="116" y2="${21+i*34}" stroke="var(--line-dim)" stroke-width="2.5" style="animation-delay:${(0.25+i*0.12).toFixed(2)}s"/>`).join('')}
+        </svg>
+        <span class="hdot ${p.status}" style="position:absolute;top:-8px;right:-8px;width:19px;height:19px;"></span>
+        ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  crashpod: { name:'KK · crash-looping pod',
+    group:'nodes',
+    help:'flickers red, collapses, restarts on loop — CrashLoopBackOff while you narrate',
+    props:{name:'payment-svc-7f9d', accent:'#FF5555'},
+    fields:['name','accent'],
+    markup:p=>`<div class="tk-cpod" style="--stroke:${p.accent}"><div class="pbox2">✕</div><div class="pname">${rich(p.name)}</div></div>` },
+
+  swarm:    { name:'KK · scale-to-N swarm',
+    group:'nodes',
+    help:'grid of tiny nodes materializing in stagger — "scaling to 100 servers". dead count tints some red.',
+    props:{n:48, dead:0, label:'×100 nodes', gap:10, accent:'#39FF7A'},
+    fields:['n','dead','label','gap','accent'], fieldTypes:{n:'number',dead:'number',gap:'number'},
+    markup:p=>{
+      const n=Math.max(4,Math.min(100,+p.n||48)), deadN=Math.max(0,Math.min(n,+p.dead||0));
+      const cols=Math.ceil(Math.sqrt(n*16/9));
+      const stride=deadN>0?(n/deadN):Infinity;
+      const isDead=i=>deadN>0 && Math.floor(i/stride)!==Math.floor((i+1)/stride);
+      return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:10px">
+        <div class="tk-swarm" style="--stroke:${p.accent};grid-template-columns:repeat(${cols},auto);gap:${+p.gap||10}px">${Array.from({length:n},(_,i)=>`<span class="celln${isDead(i)?' dead':''}" style="animation-delay:${(i*0.02).toFixed(2)}s"></span>`).join('')}</div>
+        ${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  warn:     { name:'TK · warning triangle',
+    group:'meta',
+    props:{label:'degraded', accent:'#FFB000'},
+    fields:['label','accent'],
+    markup:p=>`<span class="tk-warn" style="--stroke:${p.accent}">
+      <svg width="54" height="48" viewBox="0 0 54 48" fill="none"><path d="M27 3 L51 45 H3 Z" stroke="var(--stroke)" stroke-width="3.5"/><line x1="27" y1="17" x2="27" y2="31" stroke="var(--stroke)" stroke-width="3.5"/><circle cx="27" cy="38" r="2.6" fill="var(--stroke)"/></svg>
+      ${p.label?`<span>${rich(p.label)}</span>`:''}</span>` },
+
+  burst:    { name:'TK · error burst',
+    group:'meta',
+    props:{label:'outage'},
+    fields:['label'],
+    markup:p=>`<span class="tk-burst"><svg width="56" height="56" viewBox="0 0 56 56"><path d="M28 2 L33 20 L50 10 L40 26 L54 32 L38 35 L44 52 L28 40 L12 52 L18 35 L2 32 L16 26 L6 10 L23 20 Z" fill="var(--alert-red)"/></svg>${p.label?`<span>${rich(p.label)}</span>`:''}</span>` },
+
+  spinner:  { name:'TK · loading spinner',
+    group:'meta',
+    props:{},
+    fields:[],
+    markup:p=>`<span class="tk-spinner"><svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="var(--phos-green)" stroke-width="4"><path d="M22 4 A18 18 0 0 1 40 22"/></svg></span>` },
+};
+
+/* ============ state ============ */
+let comps = [];       // {id, type, x, y, scale, rot, z, opacity, props}
+let selId = null;
+const scene = document.getElementById('scene');
+
+function uid(){ return Math.random().toString(36).slice(2,7); }
+
+/* ============ palette & list — grouped by role, searchable, collapsible ============ */
+const palette = document.getElementById('palette');
+const palSearch=document.getElementById('pal-search');
+const PAL_GROUPS=[
+  ['basics','SCENE BASICS'],
+  ['actors','ACTORS'],
+  ['nodes','NODES'],
+  ['data','STORAGE · DATA'],
+  ['ai','AI · RAG'],
+  ['groups','GROUPS & ZONES'],
+  ['flow','WIRES & MOTION'],
+  ['logic','FLOWCHART'],
+  ['seq','SEQUENCE'],
+  ['meta','LABELS · STATUS'],
+  ['chrome','DIAGRAM CHROME'],
+  ['charts','CHARTS'],
+];
+const gord=g=>{ const i=PAL_GROUPS.findIndex(x=>x[0]===g); return i<0?PAL_GROUPS.length:i; };
+const PAL_ITEMS=Object.entries(REGISTRY).map(([key,c])=>{
+  const gid=c.group||'basics';
+  return { key, c, gid, glabel:(PAL_GROUPS[gord(gid)]||[,gid.toUpperCase()])[1] };
+}).sort((a,b)=>gord(a.gid)-gord(b.gid) || a.key.localeCompare(b.key));
+
+/* collapsed groups persist across reloads — FIRST RUN defaults to all collapsed */
+const palClosed=new Set();
+try{
+  const saved=localStorage.getItem('phosphor-palclosed-v1');
+  const arr=(saved===null) ? [...new Set(PAL_ITEMS.map(it=>it.gid))] : JSON.parse(saved);
+  arr.forEach(g=>palClosed.add(g));
+}catch(_){}
+function storePalClosed(){ try{ localStorage.setItem('phosphor-palclosed-v1', JSON.stringify([...palClosed])); }catch(_){}}
+
+function renderPalette(q){
+  q=(q||'').trim().toLowerCase();
+  const filtering=q.length>0;               // search ignores collapsed state — results always show
+  palette.innerHTML='';
+  /* bucket items per group (search filters items; collapse never hides headers) */
+  const order=[], buckets={};
+  PAL_ITEMS.forEach(it=>{
+    if(filtering){
+      const hay=(it.key+' '+it.c.name+' '+(it.c.help||'')+' '+it.glabel).toLowerCase();
+      if(!hay.includes(q)) return;
+    }
+    if(!buckets[it.gid]){ buckets[it.gid]=[]; order.push(it.gid); }
+    buckets[it.gid].push(it);
+  });
+  let shown=0;
+  order.forEach(gid=>{
+    const items=buckets[gid], it0=items[0];
+    const closed=!filtering && palClosed.has(gid);
+    const h=document.createElement('div');
+    h.className='pal-h'+(closed?' closed':'');
+    h.textContent=`${it0.glabel} · ${items.length}`;
+    h.title='click to '+(closed?'expand':'collapse');
+    h.onclick=()=>{
+      palClosed.has(gid)?palClosed.delete(gid):palClosed.add(gid);
+      storePalClosed(); renderPalette(palSearch.value);
+    };
+    palette.appendChild(h);
+    if(closed) return;                      // folded: header stays, buttons hide
+    items.forEach(it=>{
+      const b=document.createElement('button');
+      b.textContent=it.key;
+      b.title=it.c.name + (it.c.help?`\n\n${it.c.help}`:'');
+      b.onclick=()=>startDraft(it.key);
+      palette.appendChild(b); shown++;
+    });
+  });
+  if(!order.length || (!filtering && !shown)){
+    const d=document.createElement('div'); d.className='pal-none';
+    d.textContent = filtering ? `no components match “${q}”` : 'all groups collapsed — ⊞ expands · click a header';
+    palette.appendChild(d);
+  }
+}
+renderPalette('');
+palSearch.oninput=()=>renderPalette(palSearch.value);
+document.getElementById('pal-clear').onclick=()=>{ palSearch.value=''; renderPalette(''); palSearch.focus(); };
+document.getElementById('pal-collapse').onclick=()=>{ PAL_ITEMS.forEach(it=>palClosed.add(it.gid)); storePalClosed(); renderPalette(palSearch.value); };
+document.getElementById('pal-expand').onclick =()=>{ palClosed.clear(); storePalClosed(); renderPalette(palSearch.value); };
+addEventListener('keydown',e=>{
+  const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if(e.key==='/' && !typing && !(typeof REC!=='undefined' && REC.active)){
+    e.preventDefault(); palSearch.focus(); palSearch.select();
+  }
+});
+
+/* ============ draft: lands on the scene immediately as an editable preview ============ */
+let draft=null; // {type}
+
+// last-used transform values → new components start where you've been working
+const lastUsed={ x:null, y:null, scale:null, opacity:null };
+function startDraft(type){
+  const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
+  const x=(lastUsed.x!==null)?lastUsed.x:Math.round(W*0.5-300);
+  const y=(lastUsed.y!==null)?lastUsed.y+40:Math.round(H*0.22);
+  const c={ id:uid(), type,
+            x:Math.max(0,Math.min(W-100,x)),
+            y:Math.max(0,Math.min(H-80,y)),
+            scale:(lastUsed.scale!==null)?lastUsed.scale:(TK_DSCALE[type]||1),
+            rot:0, z:comps.length+10,
+            opacity:(lastUsed.opacity!==null)?lastUsed.opacity:1,
+            props:structuredClone(REGISTRY[type].props),
+            draft:true, beat:curBeat };
+  comps.push(c);
+  const sibs0=comps.filter(x=>(x.beat||0)===c.beat);
+  beatStep[c.beat]=sibs0.length;
+  draft=type; selId=c.id; render();
+}
+
+/* ============ 💡 spotlight — dim all but the story focus ============ */
+const SPOT={ active:false };
+function spotLitIds(){
+  if(!SPOT.active) return new Set();
+  /* components flagged 💡 (c.spot) are the spotlight cast; otherwise follow selection */
+  const flagged=comps.filter(x=>x.spot).map(x=>x.id);
+  if(flagged.length) return new Set(flagged);
+  return selId ? new Set([selId]) : new Set();
+}
+function applySpotClasses(){
+  const lit=spotLitIds();
+  document.body.classList.toggle('spotting', SPOT.active);
+  const any=lit.size>0;   // armed with no target yet → don't dim anything, just wait
+  scene.querySelectorAll('.comp').forEach(n=>{
+    n.classList.toggle('lit', lit.has(n.dataset.id));
+    n.classList.toggle('dim', SPOT.active && any && !lit.has(n.dataset.id));
+  });
+}
+function syncPopupSpot(){
+  try{
+    if(!popup || popup.closed) return;
+    const lit=spotLitIds();
+    const any=lit.size>0;
+    popup.document.querySelectorAll('#scene .comp').forEach(n=>{
+      n.classList.toggle('lit', lit.has(n.dataset.id));
+      n.classList.toggle('dim', SPOT.active && any && !lit.has(n.dataset.id));
+    });
+  }catch(_){}
+}
+function setSpot(on){
+  if(on && !selId){ toastMsg('select a component to spotlight first'); return; }
+  SPOT.active=on;
+  const b=document.getElementById('btn-spot');
+  b.style.color=on?'#FFB000':''; b.style.borderColor=on?'#FFB000':'';
+  applySpotClasses(); syncPopupSpot();
+  toastMsg(on
+    ? '💡 spotlight on — click elements to move focus · S/Esc exits'
+    : 'spotlight off — regular canvas');
+}
+
+function select(id){ selId=id; render(); if(SPOT.active) syncPopupSpot(); }
+
+/* ============ render ============ */
+const freshTrack=new WeakSet();   // comps seen before — their one-shot inner animations don't replay
+function renderCanvas(){
+  scene.querySelectorAll('.comp').forEach(n=>n.remove());
+  const crt=scene.querySelector('.crt'), corners=scene.querySelector('.corners');
+  comps.forEach(c=>{
+    // --- beat visibility: 🧹 chapters + 🔁 carry, then isolated vs accumulative ---
+    if(!compVisible(c)) return;
+    const bidx=(c.beat==null)?curBeat:c.beat;
+    const accum=(localStorage.getItem('ph-accum')==='1');
+    const isCarry=!!c.carry;
+    const sibsAll=comps.filter(x=>((x.beat==null)?curBeat:x.beat)===bidx);
+    const sibs=sibsAll.filter(x=>!x.carry);           // carries are always lit, never stepped
+    const pos=sibs.indexOf(c);
+    if(accum){
+      if(bidx>curBeat) return;
+      if(bidx===curBeat && !isCarry && pos>=(beatStep[bidx]!==undefined?beatStep[bidx]:sibs.length)) return;
+    } else {
+      if(!isCarry && bidx!==curBeat) return;          // 🔁 cast stays lit in every beat
+      if(!isCarry && bidx===curBeat && pos>=(beatStep[bidx]!==undefined?beatStep[bidx]:sibs.length)) return;
+    }
+    const reg=REGISTRY[c.type];
+    const el=document.createElement('div');
+    const isFirstRender=!freshTrack.has(c);
+    freshTrack.add(c);
+    el.className='comp'+(isFirstRender?' fresh':'');
+    el.dataset.draft=c.draft?'1':'0';
+    el.dataset.id=c.id;
+    el.style.cssText=`left:${c.x}px;top:${c.y}px;z-index:${c.z};transform:scale(${c.scale}) rotate(${c.rot}deg);opacity:${c.opacity};`;
+    if(c.wpx) el.style.width=c.wpx+'px';
+    if(c.hpx) el.style.height=c.hpx+'px';
+    if(c.props&&c.props.color){ el.style.setProperty('--ca', c.props.color); el.style.setProperty('--cc', c.props.color); el.style.setProperty('--ct', c.props.color); }
+    if(c.props&&c.props.bg) el.style.setProperty('--cbg', c.props.bg);
+    el.style.setProperty('--fscale', c.fscale||1);
+    if(c.locked) el.classList.add('lockedbadge');
+    el.innerHTML=reg.markup(c.props);
+    // explicit pixel size: make inline SVGs stretch with the box
+    if(c.wpx || c.hpx){
+      const both=c.wpx && c.hpx;
+      el.querySelectorAll('svg').forEach(v=>{
+        v.style.width  = (both || c.wpx) ? '100%' : 'auto';
+        v.style.height = c.hpx ? '100%' : 'auto';
+      });
+      el.querySelectorAll('.annot').forEach(an=>{ an.style.width='100%'; an.style.height='100%'; });
+    }
+    // line-by-line reveal (terminal / checklist): hide lines past c.revealed
+    if(c.props.stepped){
+      const lines=el.querySelectorAll('.tline,.cline');
+      const n=(typeof c.revealed==='number')?c.revealed:lines.length; // default: all visible
+      lines.forEach((ln,i)=>{ ln.style.visibility = i<n ? 'visible':'hidden'; });
+    }
+    c._rw=el.offsetWidth; c._rh=el.offsetHeight;   // real layout size → used by drop detection
+    applyAnimation(el,c, isFirstRender);
+    if(REC.active && compVisible(c)) mirrorCompToPopup(c);   // never re-add a hidden comp
+    if(REC.active) pruneHiddenFromPopup();
+    if(!c.locked && c.id===selId) makeDraggable(el,c);
+    scene.insertBefore(el,crt);
+  });
+  applySpotClasses();
+}
+
+function renderList(){
+  const list=document.getElementById('complist'); list.innerHTML='';
+  const parkedNow=comps.filter(c=>c.parked);
+  comps.forEach((c,i)=>{
+    if(c.parked) return;                                // parked list rendered below
+    const li=document.createElement('li');
+    li.className=c.id===selId?'sel':'';
+    const marks=(c.carry?'🔁':'')+(c.spot?'💡':'')+(c.carry||c.spot?' ':'');
+    li.innerHTML=`<span class="name">${marks}${i+1}. ${c.type} <span style="color:#3a5540">${String(c.props.text||c.props.title||c.props.label||'').slice(0,16)} · @${c.x},${c.y}</span></span>`;
+    const mk=(txt,title,fn,cls='')=>{ const b=document.createElement('button');
+      if(cls)b.className=cls; b.textContent=txt; b.title=title;
+      b.onclick=e=>{ e.stopPropagation(); fn(); };
+      return b; };
+    li.append(
+      mk('↑','move earlier in scene',()=>{ if(i>0){ [comps[i-1],comps[i]]=[comps[i],comps[i-1]]; render(); } }),
+      mk('↓','move later in scene',()=>{ if(i<comps.length-1){ [comps[i+1],comps[i]]=[comps[i],comps[i+1]]; render(); } }),
+      mk('⧉','duplicate',()=>{ const d=structuredClone(c); delete d._played; d.id=uid(); d.z=c.z+1;
+                               comps.splice(i+1,0,d); revealComp(d); render(); }),
+      mk('🗑','remove from recording scene',()=>{ comps=comps.filter(x=>x.id!==c.id); if(selId===c.id)selId=null; render(); },'danger')
+    );
+    li.onclick=()=>select(c.id);
+    list.appendChild(li);
+  });
+  if(!comps.length && !parkedNow.length) list.innerHTML='<div id="empty-msg" style="font-size:11px;color:#3a5540;padding:4px">empty — click a component above to begin</div>';
+  // 🅿 parked comps — hidden from the story, one click brings them back
+  if(parkedNow.length){
+    const hd=document.createElement('div');
+    hd.style.cssText='font-size:10px;color:#3a5540;padding:6px 2px 2px;border-top:1px solid #1E2A1E;margin-top:6px';
+    hd.textContent='🅿 parked ('+parkedNow.length+') — ▶ puts them back in the current beat';
+    list.appendChild(hd);
+    parkedNow.forEach(c=>{
+      const li=document.createElement('li');
+      li.style.cssText='opacity:.45';
+      li.innerHTML=`<span class="name">${c.type}</span>`;
+      const b=document.createElement('button'); b.className='mini'; b.textContent='▶'; b.title='put back into the current beat';
+      b.onclick=e=>{ e.stopPropagation(); c.parked=false; c.beat=curBeat; snap(); render(); };
+      li.appendChild(b); list.appendChild(li);
+    });
+  }
+}
+
+/* update scene + list + live position readouts, WITHOUT rebuilding the inspector
+   (rebuilding is what killed focus after every keystroke) */
+function renderLive(){
+  renderCanvas();
+  // refresh x/y/z shown in the list rows
+  document.querySelectorAll('#complist li').forEach((li,i)=>{
+    const c=comps[i];
+    if(c) li.querySelector('.name span').textContent=`@${c.x},${c.y}`;
+  });
+  // keep inspector transform inputs in sync (only if not focused)
+  const wrap=document.getElementById('fields');
+  wrap.querySelectorAll('[data-img]').forEach(inp=>{
+    inp.onchange=()=>{
+      const f=inp.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{ c.props[inp.dataset.img]=r.result; renderCanvas(); autosave(); };
+      r.readAsDataURL(f);
+    };
+  });
+  wrap.querySelectorAll('[data-p]').forEach(inp=>{
+    const c=comps.find(x=>x.id===selId); if(!c) return;
+    if(document.activeElement!==inp) inp.value=c[inp.dataset.p];
+  });
+  // keep paired number/slider twins consistent during drag
+  wrap.querySelectorAll('[data-p]').forEach(inp=>{
+    const c2=comps.find(x=>x.id===selId); if(!c2) return;
+    if(document.activeElement!==inp && inp.type==='range') inp.value=c2[inp.dataset.p];
+    if(document.activeElement!==inp && inp.type==='number') inp.value=c2[inp.dataset.p];
+  });
+  autosave();
+}
+
+function render(){
+  renderCanvas(); renderList(); renderInspector(); renderStrip();
+}
+
+/* ============ inspector ============ */
+function renderInspector(){
+  const wrap=document.getElementById('fields'), empty=document.getElementById('empty-msg');
+  const c=comps.find(x=>x.id===selId);
+  if(!c){
+    if(draft){ draft=null; }   // stale draft marker (comp was deleted) — nothing to render, clear it quietly
+    wrap.style.display='none'; empty.style.display='block'; return;
+  }
+  wrap.style.display='block'; empty.style.display='none';
+  const reg=REGISTRY[c.type];
+  let html=`<p style="font-size:11px;color:${c.draft?'#FFB000':'#5C8A66'};margin:0 0 10px">${c.draft?'PREVIEW (draft) · ':''}${reg.name}${reg.help?` — ${reg.help}`:''}</p>`;
+
+  // transform row — slider + number input side by side
+  const W=parseInt((typeof inW!=='undefined'&&inW.value))||1920, H=parseInt((typeof inH!=='undefined'&&inH.value))||1080;
+  const RANGES={ x:[0,W], y:[0,H], scale:[0.1,4], rot:[-180,180], opacity:[0,1], z:[0,200] };
+  const STEPS ={ x:1, y:1, scale:0.05, rot:1, opacity:0.05, z:1 };
+  const num=(id,lbl,val)=>{
+    const mn=RANGES[id][0], mx=RANGES[id][1], st=STEPS[id];
+    return `<div class="row"><label>${lbl}</label>
+      <input type="range" data-p="${id}" min="${mn}" max="${mx}" step="${st}" value="${val}" style="flex:2;min-width:0;accent-color:#39FF7A">
+      <input type="number" data-p="${id}" min="${mn}" max="${mx}" step="${st}" value="${val}" style="width:64px;flex:none"></div>`;
+  };
+    html+=num('x','x',c.x)+num('y','y',c.y)+num('scale','scale ×',c.scale)
+      +num('rot','rotate °',c.rot)+num('opacity','opacity',c.opacity)+num('z','z-index',c.z);
+
+  // explicit pixel size (auto until you slide/set it)
+  const szRow=(id,lbl,val,max)=>{
+    const has=(val!==undefined&&val!==null&&val!=='');
+    return `<div class="row"><label>${lbl}</label>
+      <input type="range" data-szr="${id}" min="20" max="${max}" step="2" value="${has?val:Math.round(max*0.4)}" style="flex:2;accent-color:#39FF7A">
+      <input type="number" data-szn="${id}" min="0" step="2" value="${has?val:''}" placeholder="auto" style="width:64px;flex:none">
+      ${has?`<button class="mini" data-szx="${id}" title="back to automatic size">auto</button>`
+           :`<button class="mini" data-szs="${id}" title="lock the current rendered size">set</button>`}</div>`;
+  };
+  html+=szRow('wpx','W px',c.wpx,(parseInt(inW.value)||1920))
+      +szRow('hpx','H px',c.hpx,(parseInt(inH.value)||1080));
+
+  // container attachment
+  const ctrs=comps.filter(x=>x.id!==c.id);
+  {
+    const opts=['<option value="">— loose —</option>'].concat(
+      ctrs.map(x=>{
+        const sn=String(x.props.text||x.props.title||x.props.label||x.props.sub||'').slice(0,14);
+        return `<option value="${x.id}" ${c.parentId===x.id?'selected':''}>${x.type}${sn?' · '+sn:''}</option>`;
+      })).join('');
+    html+=`<div class="row"><label>attached to</label><select data-parent>${opts}</select></div>`;
+  }
+
+  // font size multiplier (any component with text)
+  c.fscale=c.fscale||1;
+  html+=`<div class="row"><label>font ×</label>
+    <input type="range" data-fs min="0.4" max="3" step="0.05" value="${c.fscale}" style="flex:2;accent-color:#39FF7A">
+    <input type="number" data-fsn min="0.1" step="0.05" value="${c.fscale}" style="width:64px;flex:none"></div>`;
+  if(typeof c.animDelay==='number' && c.anim!=='none'){
+    html+=`<div class="row"><label>anim delay</label>
+      <input type="range" data-p="animDelay" min="0" max="5" step="0.1" value="${c.animDelay}" style="flex:2;accent-color:#39FF7A">
+      <input type="number" data-p="animDelay" min="0" step="0.1" value="${c.animDelay}" style="width:64px;flex:none"></div>`;
+  }
+
+  // color row — theme palette + custom hex (applies as --ca where the component supports it)
+  const THEME=[['#39FF7A','phos-green'],['#FFB000','amber'],['#FF5555','alert-red'],['#D3FFDE','mint'],
+               ['#57C7C0','cyan-dim'],['#5C8A66','text-dim'],['#1E2A1E','line-dim'],['#101710','panel'],['#0A0F0A','bg-deep']];
+  c.props.color=c.props.color||'';
+  html+=`<div class="row" style="margin-top:12px;padding-top:10px;border-top:1px solid #1E2A1E;flex-wrap:wrap">
+           <label>color</label>
+           <span id="swatches" style="display:flex;gap:4px;flex-wrap:wrap">
+             ${THEME.map(([hex,n])=>`<button data-hex="${hex}" title="${n}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${c.props.color===hex?'#fff':'transparent'};background:${hex};cursor:pointer"></button>`).join('')}
+           </span></div>
+         <div class="row"><label>custom hex</label>
+           <input type="color" id="pick-color" value="${c.props.color||'#39FF7A'}" style="width:40px;height:26px;padding:0;border:1px solid #1E2A1E;background:none">
+           <input type="text" id="hex-color" placeholder="#RRGGBB" value="${c.props.color}" style="flex:1">
+         </div>
+         <div class="row" style="flex-wrap:wrap">
+           <label>background</label>
+           <span id="bg-swatches" style="display:flex;gap:4px;flex-wrap:wrap">
+             ${THEME.map(([hex,n])=>`<button data-hex="${hex}" title="${n}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${c.props.bg===hex?'#fff':'transparent'};background:${hex};cursor:pointer"></button>`).join('')}
+           </span></div>
+         <div class="row"><label>bg hex</label>
+           <input type="text" id="hex-bg" placeholder="#RRGGBB — leave empty for default" value="${c.props.bg||''}" style="flex:1">
+         </div>`;
+
+  // animation row
+  c.animDur=(c.animDur!==undefined?c.animDur:0.6); c.animDelay=(c.animDelay!==undefined?c.animDelay:0);
+  const effAnim=c.anim || TK_DEFAULT_ANIM[c.type] || 'none';   // auto-default until you pick one (picking 'none' sticks)
+  const animOpts=Object.entries(ANIMS).map(([k,v])=>`<option value="${k}" ${effAnim===k?'selected':''}>${v}</option>`).join('');
+  html+=`<div class="row" style="margin-top:12px;padding-top:10px;border-top:1px solid #1E2A1E">
+           <label>animation</label>
+           <select id="anim-select">${animOpts}</select></div>
+         <div class="row"><label>duration s</label>
+           <input type="range" id="anim-dur" min="0.1" max="3" step="0.1" value="${c.animDur||0.6}" style="flex:2;accent-color:#39FF7A">
+           <input type="number" id="anim-dur-n" step="0.1" min="0.1" value="${c.animDur||0.6}" style="width:56px"></div>
+         <div class="row"><label>delay s</label>
+           <input type="range" id="anim-delay" min="0" max="5" step="0.1" value="${c.animDelay||0}" style="flex:2;accent-color:#39FF7A">
+           <input type="number" id="anim-delay-n" step="0.1" min="0" value="${c.animDelay||0}" style="width:56px"></div>
+         <div class="row"><button id="anim-replay" style="flex:1;font-family:inherit;font-size:11px;background:none;color:#39FF7A;border:1px solid #39FF7A;cursor:pointer;padding:5px">▶ replay on canvas</button></div>`;
+
+  // content props — every text field is an expandable textarea
+  reg.fields.forEach(f=>{
+    const t=(reg.fieldTypes&&reg.fieldTypes[f])||'text';
+    if(t==='check'){
+      html+=`<div class="row"><label>${f}</label><input type="checkbox" data-prop="${f}" ${c.props[f]?'checked':''}></div>`;
+    } else if(t==='select'){
+      const opts=(reg.options[f]||[]).map(o=>`<option ${c.props[f]===o?'selected':''}>${o}</option>`).join('');
+      html+=`<div class="row"><label>${f}</label><select data-prop="${f}">${opts}</select></div>`;
+    } else if(t==='image'){
+      html+=`<div class="row"><label>${f}</label><input type="file" accept="image/*" data-img="${f}" style="flex:1;font-size:11px;color:#7da88a"></div>`;
+    } else if(f.toLowerCase().includes('accent')){
+      html+=`<div class="row"><label>${f}</label><input type="color" data-prop="${f}" value="${c.props[f]}">
+             <select data-prop="${f}">${ACCENTS.map(a=>`<option value="${a}" ${c.props[f]===a?'selected':''}>${a}</option>`).join('')}</select></div>`;
+    } else {
+      const isNum=t==='number';
+      if(isNum){
+        html+=`<div class="row"><label>${f}</label><input type="number" data-prop="${f}" value="${String(c.props[f]).replace(/"/g,'&quot;')}"></div>`;
+      } else {
+        html+=`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">${f}</label><textarea data-prop="${f}" rows="2" style="width:100%;resize:vertical;min-height:40px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;font-size:12px;padding:4px 7px;">${String(c.props[f]).replace(/</g,'&lt;')}</textarea></div>`;
+      }
+    }
+  });
+  wrap.innerHTML=html;
+
+  // typing must NOT rebuild the inspector — update model + canvas only
+  wrap.querySelectorAll('[data-p]').forEach(inp=>{
+    inp.oninput=()=>{ const p=inp.dataset.p;
+      c[p]=(p==='scale'||p==='opacity')?parseFloat(inp.value)||1:parseInt(inp.value)||0;
+      if(lastUsed.hasOwnProperty(p)) lastUsed[p]=c[p];   // remember for next component
+      wrap.querySelectorAll('[data-p="'+p+'"]').forEach(t=>{ if(t!==inp && document.activeElement!==t) t.value=c[p]; });
+      renderCanvas(); autosave(); };
+  });
+  // pixel-size controls
+  function scaleChildTree(parent, sx, sy, seen){
+    seen=seen||new Set();
+    childrenOf(parent.id).forEach(ch=>{
+      if(seen.has(ch.id)) return; seen.add(ch.id);
+      ch.x=Math.round(parent.x+(ch.x-parent.x)*sx);
+      ch.y=Math.round(parent.y+(ch.y-parent.y)*sy);
+      if(ch.wpx!==undefined) ch.wpx=Math.max(20,Math.round(ch.wpx*sx));
+      else if(ch._rw) ch.wpx=Math.max(20,Math.round(ch._rw*sx));
+      if(ch.hpx!==undefined) ch.hpx=Math.max(20,Math.round(ch.hpx*sy));
+      else if(ch._rh) ch.hpx=Math.max(20,Math.round(ch._rh*sy));
+      ch.fscale=Math.max(0.1,+( ((ch.fscale||1)*( (sx+sy)/2 ) ).toFixed(2) ));
+      ch.scale=Math.max(0.1,+( (ch.scale||1)*Math.min(sx,sy) ).toFixed(2) );
+      scaleChildTree(ch,sx,sy,seen);
+    });
+  }
+  wrap.querySelectorAll('[data-szr]').forEach(r=>{
+    r.oninput=()=>{ const id=r.dataset.szr;
+      const oldWv=(c.wpx!==undefined)?c.wpx:(c._rw||220);
+      const oldHv=(c.hpx!==undefined)?c.hpx:(c._rh||140);
+      c[id]=parseInt(r.value)||0;
+      const newWv=c.wpx||oldWv, newHv=c.hpx||oldHv;
+      const sx=newWv/oldWv, sy=newHv/oldHv;
+      if(childrenOf(c.id).length) scaleChildTree(c,sx,sy);
+      const n=wrap.querySelector('[data-szn="'+id+'"]'); if(n && document.activeElement!==n) n.value=c[id];
+      renderCanvas(); autosave(); };
+    r.onchange=()=>renderInspector();   // swap set↔auto button once a size is locked
+  });
+  wrap.querySelectorAll('[data-szn]').forEach(n=>{
+    n.onchange=()=>{ const id=n.dataset.szn;
+      if(n.value===''){ delete c[id]; } else { c[id]=parseInt(n.value)||0; }
+      renderCanvas(); renderInspector(); autosave(); };
+  });
+  wrap.querySelectorAll('[data-szs]').forEach(b=>{
+    b.onclick=()=>{ const id=b.dataset.szs;
+      const node=[...scene.querySelectorAll('.comp')].find(x=>x.dataset.id===selId)||document.querySelector('.comp');
+      if(!node) return;
+      const r=node.getBoundingClientRect();
+      const px=Math.round((id==='wpx'?r.width:r.height)/(currentScale()*(c.scale||1)));
+      c[id]=Math.max(20,px);
+      renderCanvas(); renderInspector(); };
+  });
+  wrap.querySelectorAll('[data-szx]').forEach(b=>{
+    b.onclick=()=>{ delete c[b.dataset.szx]; renderCanvas(); renderInspector(); };
+  });
+
+  // font size
+  const fsr=wrap.querySelector('[data-fs]'), fsn=wrap.querySelector('[data-fsn]');
+  const setFS=v=>{ v=Math.max(0.1,parseFloat(v)||1); c.fscale=v;
+    fsr.value=v; fsn.value=v; renderCanvas(); autosave(); };
+  if(fsr){ fsr.oninput=e=>{ c.fscale=parseFloat(e.target.value)||1; fsn.value=c.fscale; renderCanvas(); autosave(); };
+           fsn.onchange=e=>setFS(e.target.value); }
+
+    const durR=wrap.querySelector('#anim-dur'), durN=wrap.querySelector('#anim-dur-n');
+  const delR=wrap.querySelector('#anim-delay'), delN=wrap.querySelector('#anim-delay-n');
+  if(durR){ durR.oninput=()=>{ c.animDur=parseFloat(durR.value)||0.6; durN.value=c.animDur; }; durN.onchange=()=>{ c.animDur=parseFloat(durN.value)||0.6; durR.value=c.animDur; }; }
+  if(delR){ delR.oninput=()=>{ c.animDelay=parseFloat(delR.value)||0; delN.value=c.animDelay; }; delN.onchange=()=>{ c.animDelay=parseFloat(delN.value)||0; delR.value=c.animDelay; }; }
+  wrap.querySelectorAll('[data-prop]').forEach(inp=>{
+    inp.oninput=()=>{
+      const f=inp.dataset.prop;
+      c.props[f]= inp.type==='checkbox'?inp.checked: inp.value;
+      renderCanvas(); autosave();
+    };
+    inp.onchange=()=>{
+      const f=inp.dataset.prop;
+      c.props[f]= inp.type==='checkbox'?inp.checked: inp.value;
+      if(inp.type==='color'){ // sync the paired hex select in place
+        const sel=inp.parentElement.querySelector('select[data-prop="'+f+'"]');
+        if(sel) sel.value=c.props[f];
+      }
+      renderCanvas(); autosave();
+    };
+  });
+
+  // animation controls
+  const animSel=wrap.querySelector('#anim-select');
+  if(animSel){
+    animSel.onchange=()=>{ c.anim=animSel.value; c._played=false; renderCanvas(); };
+
+    wrap.querySelector('#anim-replay').onclick=()=>{ delete c._played; renderCanvas(); };
+  }
+
+  const psel=wrap.querySelector('[data-parent]');
+  if(psel){ psel.onchange=()=>{ c.parentId=psel.value||undefined; render(); }; }
+
+  // color controls
+  const applyColor=hex=>{
+    c.props.color=/^#[0-9a-fA-F]{6}$/.test((hex||'').trim())?hex.trim():'';
+    renderCanvas(); autosave();
+  };
+  wrap.querySelectorAll('#swatches button').forEach(b=>{
+    b.onclick=()=>{ applyColor(b.dataset.hex); renderInspector(); };
+  });
+  const pick=wrap.querySelector('#pick-color'), hexIn=wrap.querySelector('#hex-color');
+  if(pick) pick.oninput=()=>{ c.props.color=pick.value; renderCanvas(); };
+  if(hexIn) hexIn.onchange=()=>applyColor(hexIn.value);
+
+  // background controls
+  const applyBg=hex=>{
+    c.props.bg=/^#[0-9a-fA-F]{6}$/.test((hex||'').trim())?hex.trim():'';
+    renderCanvas(); autosave();
+  };
+  wrap.querySelectorAll('#bg-swatches button').forEach(b=>{
+    b.onclick=()=>{ applyBg(b.dataset.hex); renderInspector(); };
+  });
+  const hexBg=wrap.querySelector('#hex-bg');
+  if(hexBg) hexBg.onchange=()=>applyBg(hexBg.value);
+
+  // line-reveal controls (stepped terminal / checklist)
+  if(c.props.stepped){
+    const __m=REGISTRY[c.type].markup(c.props).match(/tline|cline/g); const total=(__m&&__m.length)||0;
+    const cur=(typeof c.revealed==='number')?c.revealed:total;
+    const row=document.createElement('div');
+    row.className='row'; row.style.flexWrap='wrap';
+    row.innerHTML=`<label>lines</label><span class="linecount" style="flex:1;font-size:11px;color:#7da88a">${cur}/${total} shown</span>`;
+    const mk=(txt,ttl,fn)=>{ const b=document.createElement('button'); b.className='mini'; b.textContent=txt; b.title=ttl; b.onclick=e=>{ e.stopPropagation(); fn(); renderInspector(); }; return b; };
+    row.append(
+      mk('▸ next','reveal next line (or press Space with component selected)',()=>{ c.revealed=Math.min(total,(typeof c.revealed==='number'?c.revealed+1:1)); renderCanvas(); }),
+      mk('↺','hide all lines',()=>{ c.revealed=0; renderCanvas(); }),
+      mk('all','show every line',()=>{ delete c.revealed; renderCanvas(); })
+    );
+    wrap.appendChild(row);
+  }
+
+  // file-picker convenience for image components
+  if(c.type==='image'){
+    const frow=document.createElement('div');
+    frow.className='row';
+    frow.innerHTML=`<label>file</label><input type="file" accept="image/*" style="flex:1;font-size:11px;color:#7da88a">`;
+    frow.querySelector('input').onchange=e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=()=>{ c.props.src=r.result; renderCanvas(); autosave(); };
+      r.readAsDataURL(f);
+    };
+    wrap.appendChild(frow);
+  }
+
+  // spotlight membership — lit whenever 💡 spotlight is on
+  const sp=document.createElement('button');
+  sp.textContent=c.spot?'💡 in spotlight (click to remove)':'💡 add to spotlight';
+  sp.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:'+(c.spot?'#2A2409':'#101710')+';color:'+(c.spot?'#FFB000':'#7da88a')+';border:1px solid '+(c.spot?'#FFB000':'#1E2A1E')+';padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
+  sp.title='this component stays bright whenever the 💡 spotlight is on';
+  sp.onclick=()=>{ c.spot=!c.spot; render(); };
+  wrap.appendChild(sp);
+
+  // 🔁 recurring cast — survives 🧹 chapter breaks, lit in every beat
+  const cy=document.createElement('button');
+  cy.textContent=c.carry?'🔁 in every scene (click to remove)':'🔁 add to every scene';
+  cy.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:'+(c.carry?'#2A2409':'#101710')+';color:'+(c.carry?'#FFB000':'#7da88a')+';border:1px solid '+(c.carry?'#FFB000':'#1E2A1E')+';padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
+  cy.title='this component stays on screen in EVERY beat — even across 🧹 empty-screen chapters';
+  cy.onclick=()=>{ c.carry=!c.carry; render(); };
+  wrap.appendChild(cy);
+
+  // lock toggle
+  const lk=document.createElement('button');
+  lk.textContent=c.locked?'🔒 locked (click to unlock)':'🔓 unlocked (click to lock)';
+  lk.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:#101710;color:'+(c.locked?'#FFB000':'#7da88a')+';border:1px solid #1E2A1E;padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
+  lk.onclick=()=>{ c.locked=!c.locked; render(); };
+  wrap.appendChild(lk);
+
+  // save to library button
+  const save=document.createElement('button');
+  save.textContent='💾 3 · save to SAVED COMPONENTS';
+  save.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:#0F2417;color:#39FF7A;border:1px solid #1E4630;padding:7px 12px;cursor:pointer;width:100%;border-radius:4px';
+  save.title='copies this component (with all its config) into Saved Components — the copy on the scene is independent';
+  save.onclick=()=>saveComp(c);
+  wrap.appendChild(save);
+}
+
+/* ============ saved components (localStorage) ============ */
+const SKEY='phosphor-saved-v1';
+function loadSaved(){ try{ return JSON.parse(localStorage.getItem(SKEY))||[]; }catch{ return []; } }
+function storeSaved(s){ localStorage.setItem(SKEY, JSON.stringify(s)); }
+function saveComp(c){
+  const saved=loadSaved();
+  saved.push({ name:`${c.type} · ${String(c.props.text||c.props.title||c.props.label||'').slice(0,24)}`,
+               type:c.type, x:c.x, y:c.y, scale:c.scale, rot:c.rot, opacity:c.opacity,
+               anim:c.anim||'none', animDur:(c.animDur!==undefined?c.animDur:0.6), animDelay:(c.animDelay!==undefined?c.animDelay:0),
+               props:structuredClone(c.props) });
+  storeSaved(saved); renderSaved();
+}
+function renderSaved(){
+  const list=document.getElementById('savedlist'); list.innerHTML='';
+  const saved=loadSaved();
+  if(!saved.length){ list.innerHTML='<div id="empty-msg" style="font-size:11px;color:#3a5540;padding:4px">nothing saved yet — edit a component, then “save to SAVED COMPONENTS”</div>'; return; }
+  saved.forEach((s,i)=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<span class="name" title="${s.name}">${s.name}</span>`;
+    const add=document.createElement('button'); add.textContent='+ add'; add.title='place a duplicate on the recording scene';
+    add.onclick=e=>{ e.stopPropagation();
+      comps.push({ id:uid(), type:s.type, x:s.x, y:s.y, scale:s.scale, rot:s.rot,
+                   z:comps.length+10, opacity:s.opacity,
+                   anim:s.anim||'none', animDur:(s.animDur!==undefined?s.animDur:0.6), animDelay:(s.animDelay!==undefined?s.animDelay:0),
+                   props:structuredClone(s.props) });
+      render(); };
+    const del=document.createElement('button'); del.textContent='🗑'; del.className='danger'; del.title='delete from library';
+    del.onclick=e=>{ e.stopPropagation(); saved.splice(i,1); storeSaved(saved); renderSaved(); };
+    li.append(add,del); list.appendChild(li);
+  });
+}
+
+/* ============ story (beats) ============ */
+let currentSceneName=null;   // legacy name — kept so old project files load clean
+
+function addCompFrom(src){
+  const c=structuredClone(src);
+  delete c._played;
+  c.id=uid(); c.draft=false; c.z=comps.length+10; c.beat=curBeat;
+  comps.push(c);
+  revealComp(c);
+  beatStep[c.beat]=sibs.length;
+  return c;
+}
+document.getElementById('btn-scene-clear').onclick=()=>{
+  // wipe the whole story — snap() makes it undoable
+  snap(); comps=[]; selId=null; draft=null; curBeat=0;
+  render(); renderStrip();
+};
+/* 🔍 alignment debugger — compare builder coords vs popup reality */
+function debugPopupAlign(){
+  const lines=[];
+  if(!popup || popup.closed){ toastMsg('popout is closed'); return; }
+  const pels=[...popup.document.querySelectorAll('.comp')];
+  lines.push('popup comps: '+pels.length+' | builder comps: '+comps.length);
+  const sc=popup.document.getElementById('scene');
+  lines.push('popup scene size: '+Math.round(sc.getBoundingClientRect().width)+'x'+Math.round(sc.getBoundingClientRect().height)
+    +' | vars: '+sc.style.getPropertyValue('--scene-w')+' x '+sc.style.getPropertyValue('--scene-h'));
+  comps.slice(0,12).forEach(c=>{
+    const pel=pels.find(x=>x.dataset.id===c.id);
+    const pos=pel?pel.style.left+' '+pel.style.top:'MISSING';
+    const real=pel?(pel.getBoundingClientRect().left-popular(sc)) : null;
+    function popular(base){ return base.getBoundingClientRect().left; }
+    lines.push(c.type+' x='+c.x+' y='+c.y+' | popup style: '+pos);
+  });
+  const txt=lines.join('\n');
+  console.log(txt);
+  prompt('alignment report (copy):', txt);
+}
+window.__dbgAlign=debugPopupAlign;
+
+/* 🔍 alignment debugger — compare builder coords vs popup reality */
+function debugPopupAlign(){
+  if(typeof session==='undefined' || !popup || popup.closed){ toastMsg('popout is closed'); return; }
+  const pdoc=popup.document;
+  const sc=pdoc.getElementById('scene');
+  if(!sc){ toastMsg('popup has no scene'); return; }
+  const srect=sc.getBoundingClientRect();
+  const lines=[];
+  lines.push('window inner: '+popup.innerWidth+'x'+popup.innerHeight);
+  lines.push('scene rect: '+Math.round(srect.width)+'x'+Math.round(srect.height)
+    +' at '+Math.round(srect.left)+','+Math.round(srect.top)
+    +' | vars: '+sc.style.getPropertyValue('--scene-w')+' x '+sc.style.getPropertyValue('--scene-h'));
+  const pels=[...pdoc.querySelectorAll('.comp')];
+  lines.push('popup comps: '+pels.length+' | builder comps: '+comps.length);
+  comps.forEach(c=>{
+    const pel=pels.find(x=>x.dataset.id===c.id);
+    if(!pel){ lines.push(c.type+': MISSING in popup'); return; }
+    lines.push(c.type+' want('+c.x+','+c.y+') got('+Math.round(pel.offsetLeft)+','+Math.round(pel.offsetTop)+')');
+  });
+  const txt=lines.join('\n');
+  console.log(txt);
+  prompt('ALIGNMENT REPORT - copy this:', txt);
+}
+window.__dbgAlign=debugPopupAlign;
+const dbgBtn=document.createElement('button');
+dbgBtn.className='mini'; dbgBtn.textContent='🔍 align check';
+dbgBtn.title='compare builder coordinates with the popout';
+dbgBtn.onclick=function(){ try{ debugPopupAlign(); }catch(e){ alert('debug failed: '+e.message); } };
+document.querySelector('#sec-recording .sec-head span').appendChild(dbgBtn);
+
+/* ============ canvas drag + keyboard ============ */
+/* ============ component animations ============ */
+const ANIMS = { none:'none', 'pa-fade':'fade in', 'pa-left':'pan ← from left', 'pa-right':'pan → from right',
+                'pa-up':'slide ↑ from bottom', 'pa-down':'drop ↓ from top', 'pa-zoom':'zoom in',
+                'pa-zoomout':'zoom out', 'pa-glitchin':'glitch in', 'type':'typewriter (letters)' };
+
+/* default entrance per component type — used until the user picks one in the
+   inspector (picking 'none' sticks; undefined = still on auto) */
+/* default drop-scale per role — hierarchy: context small, entry mid, infra full,
+   groups/charts sized via their own w/h. Always overridable via the scale slider. */
+const TK_DSCALE={
+  user:.8, usericon:.8, clientdev:.8,
+  cloud:1.15, firewall:.9, gateway:1.05, lb:1.05, cdn:1,
+  server:1, vm:1, container:1, bootnode:1, knode:1, worker:1,
+  svc:1, svcblock:1, controlplane:1.05, kcp:1.05,
+  db:1, nosql:1, cache:1, vdb:1, bucket:1, warehouse:1.1, kv:1, doc:.9, logs:1,
+  model:1.15, embed:.9, tokens:.9, prompt:1, ctxwin:1, splitter:1, index:.9,
+  pod:.95, kpod:.95, crashpod:.95, statdot:1, health:1, chip:1, countbadg:1, region:1,
+  plate:1, lock:1, latency:1, warn:1, burst:1, spinner:1, scale:1, replicate:1,
+  wire:1, packet:1, arcwire:1, fanout:1, elbow:1, ws:1, retry:1, timeout:1, valve:1,
+  pipeline:1, breaker:1, consensus:1, fence:1, frame:1,
+  fproc:1, fdec:1, fterm:1, fio:1, lifeline:1, activation:1, selfcall:1,
+  dtitle:1, legend:.9, footnote:.9, chartline:1, chartbars:1, chartdonut:1,
+  terminal:1, hottake:1, toast:1, blame:1, comment:1, stamp:1, sticky:1, loopbox:1,
+  box:1, caption:1, progress:1, rec:1, diff:1, checklist:1, arrow:1, circle:1,
+  verdict:1, image:1, callout:1, kicker:1
+};
+
+const TK_DEFAULT_ANIM={
+  kicker:'pa-fade', title:'pa-glitchin', terminal:'pa-up', hottake:'pa-up', toast:'pa-down',
+  blame:'pa-left', comment:'pa-left', stamp:'pa-zoom', sticky:'pa-zoomout', loopbox:'pa-fade',
+  box:'pa-fade', caption:'pa-up', progress:'pa-fade', rec:'pa-zoom', diff:'pa-fade',
+  checklist:'pa-up', arrow:'pa-fade', circle:'pa-fade', verdict:'pa-zoom', image:'pa-fade', callout:'pa-fade',
+  user:'pa-right',
+  svc:'pa-left', server:'pa-up', vm:'pa-up', container:'pa-zoom', pod:'pa-up', bootnode:'pa-up',
+  controlplane:'pa-glitchin', boundary:'pa-zoom', lb:'pa-fade', gateway:'pa-left', cdn:'pa-zoom',
+  lambda:'pa-zoom', worker:'pa-up', firewall:'pa-left', cloud:'pa-zoom', crashpod:'pa-down', swarm:'pa-fade',
+  db:'pa-up', nosql:'pa-up', cache:'pa-zoom', queue:'pa-left', bucket:'pa-up', warehouse:'pa-up',
+  doc:'pa-fade', logs:'pa-left', kv:'pa-fade', stream:'pa-fade', gauge:'pa-fade',
+  embed:'pa-zoom', vdb:'pa-up', model:'pa-zoom', tokens:'pa-fade', prompt:'pa-left', ctxwin:'pa-fade',
+  splitter:'pa-fade', index:'pa-up',
+  wire:'pa-fade', packet:'pa-fade', arcwire:'pa-fade', fanout:'pa-fade', elbow:'pa-fade', ws:'pa-fade',
+  retry:'pa-fade', timeout:'pa-down', valve:'pa-fade', pipeline:'pa-left', breaker:'pa-fade', consensus:'pa-zoom',
+  fproc:'pa-left', fdec:'pa-zoom', fterm:'pa-zoom', fio:'pa-left',
+  lifeline:'pa-fade', activation:'pa-zoom', selfcall:'pa-fade',
+  dtitle:'pa-down', legend:'pa-fade', footnote:'pa-fade', frame:'pa-fade',
+  chartline:'pa-fade', chartbars:'pa-left', chartdonut:'pa-zoom',
+  usericon:'pa-right', clientdev:'pa-right', svcblock:'pa-left', loadbal:'pa-fade',
+  kcp:'pa-glitchin', knode:'pa-up', kpod:'pa-up', fence:'pa-zoom', cachetech:'pa-zoom',
+  dbtech:'pa-up', chip:'pa-fade', countbadg:'pa-zoom', latency:'pa-fade', lock:'pa-zoom',
+  plate:'pa-left', region:'pa-fade', replicate:'pa-fade', scale:'pa-fade', statdot:'pa-zoom',
+  health:'pa-fade', warn:'pa-zoom', burst:'pa-down', spinner:'pa-fade'
+};
+
+function applyAnimation(el, c, force=false){
+  const dur=c.animDur||0.6, delay=c.animDelay||0;
+  if(c.anim===undefined && TK_DEFAULT_ANIM[c.type]) c.anim=TK_DEFAULT_ANIM[c.type];   // auto: first render picks the type's default (user can change/disable after)
+  if(!c.anim || c.anim==='none'){ el.style.animation='none'; return; }
+  if(c._played && !force){ el.style.animation='none'; return; }  // already played — don't restart
+  c._played=true;
+  if(c.anim==='type'){
+    typewrite(el, dur, delay);
+  } else {
+    el.style.animation=`${c.anim} ${dur}s cubic-bezier(.2,.7,.3,1) ${delay}s both`;
+  }
+}
+/* letter-by-letter reveal across all text nodes */
+function typewrite(el, dur, delay){
+  el.classList.add('anim-typing');
+  const walker=document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  const spans=[];
+  while(walker.nextNode()){
+    const n=walker.currentNode;
+    if(!n.textContent.trim() || n.parentElement.closest('.term-title,.stage-label')) continue;
+    const frag=document.createDocumentFragment();
+    for(const ch of n.textContent){
+      const s=document.createElement('span'); s.className='pa-char'; s.textContent=ch;
+      frag.appendChild(s); if(ch.trim()) spans.push(s);
+    }
+    n.parentNode.replaceChild(frag, n);
+  }
+  const total=spans.length; if(!total) return;
+  setTimeout(()=>{
+    const per=Math.max(15,(dur*1000)/total);
+    spans.forEach((s,i)=>setTimeout(()=>{ s.classList.add('on'); if(i===total-1) el.classList.remove('anim-typing'); }, i*per));
+  }, delay*1000);
+}
+
+function makeDraggable(el,c){
+  el.addEventListener('mousedown', e=>{
+    if(c.locked) return;
+    e.preventDefault();
+    const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
+    const sx=e.clientX-c.x*(currentScale()), sy=e.clientY-c.y*currentScale();
+    const startx=c.x, starty=c.y;
+    const gv=document.getElementById('gv'), gh=document.getElementById('gh');
+    const xs=[0,64,W/2,W-64], ys=[0,H*0.33,H/2,H*0.67,H-64];
+    const mv=ev=>{
+      let nx=Math.round((ev.clientX-sx)/currentScale()), ny=Math.round((ev.clientY-sy)/currentScale());
+      const snapTo=(v,cands)=>{ for(const cd of cands){ if(Math.abs(v-cd)<12) return cd; } return null; };
+      const gx=snapTo(nx,xs), gy=snapTo(ny,ys);
+      if(gx!==null && !ev.altKey){ nx=gx; gv.style.display='block'; gv.style.left=gx+'px'; } else gv.style.display='none';
+      if(gy!==null && !ev.altKey){ ny=gy; gh.style.display='block'; gh.style.top=gy+'px'; } else gh.style.display='none';
+      const dx=nx-c.x, dy=ny-c.y;
+      if(childrenOf(c.id).length) moveGroup(c,dx,dy); else { c.x=nx; c.y=ny; }
+      renderLive();
+    };
+    const up=()=>{ removeEventListener('mousemove',mv); removeEventListener('mouseup',up);
+      gv.style.display='none'; gh.style.display='none';
+      const moved=c.x-startx || c.y-starty;
+      if(moved){
+      const ctr=containerAt(c.x+20,c.y+20,c.id);
+      if(ctr){ c.parentId=ctr.id; }
+      else { delete c.parentId; }
+      }
+      snap(); lastUsed.x=c.x; lastUsed.y=c.y; render(); };
+    addEventListener('mousemove',mv); addEventListener('mouseup',up);
+  });
+}
+document.getElementById('scene').addEventListener('mousedown',e=>{
+  const comp=e.target.closest('.comp');
+  select(comp ? comp.dataset.id : null);
+});
+
+/* double-click a component on canvas → jump straight into its first text field */
+document.getElementById('scene').addEventListener('dblclick',e=>{
+  const comp=e.target.closest('.comp'); if(!comp) return;
+  const c=comps.find(x=>x.id===comp.dataset.id); if(!c) return;
+  const reg=REGISTRY[c.type];
+  const textField=reg.fields.find(f=>{ const t=(reg.fieldTypes&&reg.fieldTypes[f])||'text'; return t==='text'||t==='textarea'; });
+  if(!textField) return;
+  const inp=document.querySelector(`#fields [data-prop="${textField}"]`);
+  if(inp){ inp.focus(); inp.select(); }
+});
+
+addEventListener('keydown',e=>{
+  if(REC.active){
+    // during a take: Esc stops; everything else falls through so Space keeps driving the session
+    if(e.key==='Escape' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); REC.stop(); return; }
+    if(!REC.liveSync) return;   // countdown/pre-roll stays locked
+  }
+  const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  // ---- global keys: work regardless of selection ----
+  if((e.key===' '||e.key==='PageDown'||(e.key==='ArrowRight'&&!selId)) && !typing){
+    e.preventDefault();
+    // 1. reveal next line of the stepped component you're focusing on
+    const c=comps.find(x=>x.id===selId);
+    if(e.key===' ' && c && c.props.stepped){
+      const total=(REGISTRY[c.type].markup(c.props).match(/tline|cline/g)||[]).length;
+      const cur=(typeof c.revealed==='number')?c.revealed:total;
+      if(cur<total){ c.revealed=cur+1; renderCanvas(); renderInspector(); return; }
+    }
+    // 2. reveal next non-carry component in this beat, or advance to next beat
+    const inBeat=comps.filter(c=>(c.beat==null?curBeat:c.beat)===curBeat && !c.parked);
+    const vis=(beatStep[curBeat]!==undefined?beatStep[curBeat]:0);
+    if(vis < inBeat.length){
+      beatStep[curBeat]=vis+1;
+      render(); renderStrip(); syncPopupSpot(); try{ camSyncForBeat(); }catch(_){}
+      return;
+    }
+    if(curBeat<beatTotal()-1){
+      const nxt=curBeat+1;
+      beatGo(nxt);
+      // entering a 🧹 chapter beat: screen starts EMPTY (carry comps only);
+      // a normal beat pre-reveals its first component
+      beatStep[nxt]=beatFresh[nxt]?0:1;
+      render(); renderStrip(); syncPopupSpot(); try{ camSyncForBeat(); }catch(_){}
+      return;
+    }
+    return;
+  }
+  if((e.key==='PageUp'||(e.key==='ArrowLeft'&&!selId)) && !typing){
+    e.preventDefault();
+    if(curBeat>0) beatGo(curBeat-1);
+    return;
+  }
+  if((e.key==='s'||e.key==='S') && !typing && !e.ctrlKey && !e.metaKey){ e.preventDefault(); setSpot(!SPOT.active); return; }
+  if(e.key==='Escape' && SPOT.active){ e.preventDefault(); setSpot(false); return; }   // Esc = back to regular canvas
+  if((e.ctrlKey||e.metaKey) && e.key==='z' && !typing){ undo(); e.preventDefault(); return; }
+
+  // ---- selection keys ----
+  const c=comps.find(x=>x.id===selId);
+  if(!c || typing) return;
+  const step=e.shiftKey?20:2;
+  if(e.key==='ArrowLeft'){c.x-=step;} else if(e.key==='ArrowRight'){c.x+=step;}
+  else if(e.key==='ArrowUp'){c.y-=step;} else if(e.key==='ArrowDown'){c.y+=step;}
+  else if(e.key==='Delete'){comps=comps.filter(x=>x.id!==c.id); selId=null;}
+  else return;
+  e.preventDefault(); render();
+});
+
+/* ============ recording session: Space pulls next queued component in ============ */
+
+/* ============ BEATS — the story strip (bottom bar) ============ */
+let beatLabels=[];    // optional per-beat names; sparse
+const beatFresh={};    // 🧹 beat -> chapter break: entering it wipes non-carry comps
+function compVisible(c){
+  if(c.parked) return false;                           // 🅿 picked out of the story — hidden but kept
+  const b=(c.beat==null)?curBeat:c.beat;
+  if(b>curBeat) return false;
+  return true;                                         // beats are cumulative: once in, always in
+}
+function beatTotal(){ return Math.max(curBeat+1, 1, ...comps.map(c=>(c.beat||0)+1)); }
+function beatName(i){
+  if(beatLabels[i]) return beatLabels[i];
+  const c=comps.find(x=>(x.beat||0)===i);
+  if(c){ const s=String(c.props.text||c.props.title||c.props.label||'').replace(/\[[^\]]*\]/g,'').trim();
+         return s? c.type+' · '+s.slice(0,14) : c.type; }
+  return 'beat '+(i+1);
+}
+function beatInsertAfter(parkedIds){
+  // insert a beat after the current one.
+  // ticked comps MOVE into it (revealed by Space); unticked ones get parked (hidden, kept safe)
+  snap();
+  comps.forEach(c=>{ if((c.beat||0)>curBeat) c.beat=(c.beat||0)+1; });
+  for(let i=beatLabels.length;i>curBeat;i--) beatLabels[i]=beatLabels[i-1];
+  const newBeat=curBeat+1;
+  const parkSet=new Set(parkedIds||[]);
+  comps.forEach(c=>{
+    const b=c.beat||0;
+    if(b<=curBeat){ c.beat=newBeat; c.parked=parkSet.has(c.id); c.carry=false; }
+  });
+  curBeat=newBeat;
+  delete beatStep[curBeat];                            // whole beat reveals via Space
+  render(); renderStrip(); syncPopupSpot();
+}
+function beatDel(){
+  const total=beatTotal(); if(total<=1){ toastMsg('the story needs at least one beat'); return; }
+  const gone=comps.filter(c=>(c.beat||0)===curBeat).length;
+  if(gone && !confirm('delete beat '+(curBeat+1)+' and its '+gone+' component'+(gone>1?'s':'')+'?')) return;
+  snap();
+  comps=comps.filter(c=>(c.beat||0)!==curBeat);
+  comps.forEach(c=>{ if((c.beat||0)>curBeat) c.beat--; });
+  beatLabels.splice(curBeat,1);
+  curBeat=Math.min(curBeat,total-2<0?0:total-2);
+  selId=null; render(); renderStrip(); syncPopupSpot();
+}
+function beatMove(d){              // swap this beat with its neighbour
+  const to=curBeat+d;
+  if(to<0 || to>=beatTotal()) return;
+  snap();
+  comps.forEach(c=>{ const b=c.beat||0;
+    if(b===curBeat) c.beat=to; else if(b===to) c.beat=curBeat; });
+  const l=beatLabels[curBeat]; beatLabels[curBeat]=beatLabels[to]; beatLabels[to]=l;
+  curBeat=to; render(); renderStrip(); syncPopupSpot();
+}
+function beatGo(i){
+  const prev=curBeat;
+  curBeat=Math.max(-1,Math.min(i,beatTotal()-1));
+  if(curBeat>=0 && prev<curBeat){
+    if(beatStep[curBeat]==null) beatStep[curBeat]=0;
+  } else if(curBeat>=0 && prev>curBeat){
+    beatStep[curBeat]=comps.filter(c=>(c.beat||0)===curBeat && !c.parked).length;
+  }
+  if(SPOT.active){ const incoming=comps.filter(c=>(c.beat||0)===curBeat); if(incoming.length) selId=incoming[incoming.length-1].id; }
+  render();
+  camSyncForBeat();                // per-beat camera moves, live during ⏺ REC too
+  syncPopupSpot();
+}
+function camSyncForBeat(){
+  try{
+    if(!popup || popup.closed) return;
+    const old=popup.document.getElementById('kkcamstyle'); if(old) old.remove();
+    const cam=comps.find(c=>c.type==='camera' && (c.beat||0)===curBeat);
+    if(cam){
+      const st=popup.document.createElement('style'); st.id='kkcamstyle';
+      st.textContent=`@keyframes kk-cam{from{transform:scale(${+cam.props.zoomFrom||1}) translate(${+cam.props.panX||0}px,${+cam.props.panY||0}px)}to{transform:scale(${+cam.props.zoomTo||1}) translate(0,0)}}
+        #scene{animation:kk-cam ${+cam.props.durS||6}s cubic-bezier(.3,.5,.25,1) both}`;
+      popup.document.head.appendChild(st);
+    }
+  }catch(err){ console.warn('camera:',err); }
+}
+function renderStrip(){
+  const strip=document.getElementById('strip'); if(!strip) return;
+  strip.innerHTML='';
+  for(let i=0;i<beatTotal();i++){
+    const active=i===curBeat;
+    const pill=document.createElement('span');
+    pill.style.cssText='display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:999px;cursor:pointer;font-family:JetBrains Mono,monospace;font-size:12px;white-space:nowrap;'
+      +(active?'background:#0F2417;border:2px solid #FFB000;color:#FFB000;'
+              :'background:#101710;border:2px solid #1E2A1E;color:#7da88a;');
+    pill.title='beat '+(i+1)+(beatStep[i]!=null?' · '+beatStep[i]+' shown':'')
+              +(active?' — you are here · ＋ adds next beat':' — click to jump');
+    pill.onclick=()=>beatGo(i);
+    if(comps.some(c=>(c.beat||0)===i && c.parked)){ const f=document.createElement('span'); f.textContent='🅿'; f.style.opacity=.5; pill.appendChild(f); }
+    const num=document.createElement('b');
+    num.style.cssText='font-family:VT323,monospace;font-size:15px;font-weight:400';
+    num.textContent=i+1;
+    pill.appendChild(num);
+    const name=document.createElement('span'); name.textContent=beatName(i); pill.appendChild(name);
+    if(active){
+      const mk=(t,ti,fn)=>{ const b=document.createElement('button'); b.className='mini';
+        b.textContent=t; b.title=ti; b.style.padding='2px 7px';
+        b.onclick=e=>{ e.stopPropagation(); fn(); }; return b; };
+      pill.append(mk('◀','move this beat earlier',()=>beatMove(-1)),
+                  mk('✕','delete this beat and everything in it (parked comps stay safe)',()=>beatDel()),
+                  mk('▶','move this beat later',()=>beatMove(1)));
+    }
+    strip.appendChild(pill);
+  }
+  const plus=document.createElement('button');
+  plus.className='mini primary'; plus.textContent='＋ beat';
+  plus.title='add a beat — choose which existing components carry over';
+  plus.onclick=()=>openBeatChooser(false);
+  strip.appendChild(plus);
+  const plusEmpty=document.createElement('button');
+  plusEmpty.className='mini'; plusEmpty.textContent='＋🧹';
+  plusEmpty.title='add a beat that starts from an EMPTY screen';
+  plusEmpty.onclick=()=>openBeatChooser(true);
+  strip.appendChild(plusEmpty);
+}
+
+/* carry picker — choose what survives into the next beat */
+let bcFresh=false;
+function openBeatChooser(fresh){
+  bcFresh=!!fresh;
+  const vis=comps.filter(c=>compVisible(c));
+  const list=document.getElementById('bc-list'); list.innerHTML='';
+  document.getElementById('bc-title').textContent=fresh?'＋🧹 empty-screen beat':'＋ next beat';
+  document.getElementById('bc-hint').textContent=fresh
+    ? 'starts EMPTY — tick only what should survive into it:'
+    : 'tick components that stay on screen in this beat:';
+  vis.forEach(c=>{
+    const row=document.createElement('label');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12px;color:#D3FFDE;cursor:pointer';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.dataset.id=c.id; cb.checked=!fresh;
+    row.appendChild(cb);
+    const nm=document.createElement('span');
+    const s=String(c.props.text||c.props.title||c.props.label||'').replace(/\[[^\]]*\]/g,'').trim();
+    nm.textContent=c.type+(s?' · '+s.slice(0,26):'');
+    row.appendChild(nm); list.appendChild(row);
+  });
+  if(!vis.length) list.innerHTML='<span style="color:#3a5540;font-size:11px">canvas is empty — the new beat starts blank</span>';
+  document.getElementById('beat-choose').style.display='block';
+}
+document.getElementById('bc-all').onclick=()=>{ document.querySelectorAll('#bc-list input').forEach(i=>i.checked=true); };
+document.getElementById('bc-none').onclick=()=>{ document.querySelectorAll('#bc-list input').forEach(i=>i.checked=false); };
+document.getElementById('bc-cancel').onclick=()=>{ document.getElementById('beat-choose').style.display='none'; };
+document.getElementById('bc-create').onclick=()=>{
+  const all=[...document.querySelectorAll('#bc-list input')];
+  const parked=all.filter(i=>!i.checked).map(i=>i.dataset.id);
+  document.getElementById('beat-choose').style.display='none';
+  beatInsertAfter(parked);
+};
+/* legacy v1 projects (comps + named scenes) → beats:
+   the old canvas frame becomes beat 1, every saved scene becomes one beat after it */
+function importProject(d){
+  const out={ comps:[], beats:1, curBeat:0, beatLabels:[], note:'' };
+  const spread=c=>({ scale:1, rot:0, opacity:1, z:10, ...c });
+  if(d.beats!=null){                                   // already a beats project
+    out.comps=(d.comps||[]).map(spread);
+    out.beats=Math.max(1,+d.beats||1);
+    out.curBeat=0;                                       // open at the TOP — recordings start at beat 1
+    out.beatLabels=Array.isArray(d.beatLabels)?d.beatLabels.slice():[];
+    out.spotlight=!!d.spotlight;
+    return out;
+  }
+  out.comps=(d.comps||[]).map(c=>{
+    const o=Object.assign(spread(c),{beat:0});
+    if(c.keep) o.carry=true;                 // old 📌 pin -> new 🔁 recurring cast
+    return o;
+  });
+  const names=Object.keys(d.scenes||{});
+  names.forEach((n,i)=>{
+    /* scenes are ACCUMULATIVE by default — earlier beats stay visible.
+       press 🧹 on a beat pill only when you actually want a clean screen */
+    (d.scenes[n]||[]).forEach(c=>{
+      const o=Object.assign(spread(c),{beat:i+1});
+      if(c.keep) o.carry=true;
+      out.comps.push(o);
+    });
+    out.beatLabels[i]=n;
+  });
+  out.beats=1+names.length;
+  out.curBeat=0;                                       // open at the TOP — recordings start at beat 1
+  if(names.length) out.note='imported '+names.length+' saved scene'+(names.length>1?'s':'')+' → '+out.beats+' beats';
+  return out;
+}
+function toastMsg(msg){
+  let t=document.getElementById('navtoast');
+  if(!t){ t=document.createElement('div'); t.id='navtoast';
+    t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#221616;color:#FFB000;border:1px solid #FFB000;padding:8px 18px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:13px;z-index:999;transition:opacity .5s';
+    document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.style.opacity='0', 1500);
+}
+/* ============ undo ============ */
+const undoStack=[];
+function snap(){ undoStack.push(JSON.stringify(comps)); if(undoStack.length>60) undoStack.shift(); }
+function undo(){
+  if(!undoStack.length){ alert('nothing to undo'); return; }
+  comps=JSON.parse(undoStack.pop()); selId=null; render();
+}
+
+/* ============ PNG snapshot of the recording canvas ============ */
+document.getElementById('btn-shot').onclick=async ()=>{
+  if(!window.htmlToImage && !window.htmlToImageLib && !window.htmlToImageNode){ /* lib global is htmlToImage */ }
+  if(typeof htmlToImage==='undefined'){ alert('snapshot library not loaded (offline?) — use DevTools node screenshot instead'); return; }
+  try{
+    hideChrome(true);
+    const dataUrl=await htmlToImage.toPng(document.getElementById('scene'),{pixelRatio:2});
+    hideChrome(false);
+    const a=document.createElement('a'); a.href=dataUrl; a.download='llmao-frame.png'; a.click();
+  }catch(err){ hideChrome(false); alert('snapshot failed: '+err.message+'\nUse DevTools node screenshot instead.'); }
+};
+function hideChrome(on){
+  document.getElementById('gv').style.display='none';
+  document.getElementById('gh').style.display='none';
+}
+
+/* remove popout comps that are no longer visible on the builder canvas
+   (deleted, or hidden by a beat change / chapter break) — runs on every
+   sync path so hidden components can never linger */
+function pruneHiddenFromPopup(){
+  try{
+    if(!popup || popup.closed || typeof compVisible!=='function') return;
+    const vis=new Set(comps.filter(c=>compVisible(c)).map(c=>c.id));
+    popup.document.querySelectorAll('#scene .comp').forEach(n=>{
+      if(n.dataset.id && !vis.has(n.dataset.id)){
+        if(n.dataset.fading) return;
+        n.dataset.fading='1';
+        n.style.transition='opacity .35s'; n.style.opacity='0';
+        setTimeout(()=>n.remove(), 380);
+      }
+    });
+  }catch(err){ console.warn('prune:',err); }
+}
+
+/* push one component into the recorded popout without restarting the take */
+function mirrorCompToPopup(c){
+  try{
+    if(!popup || popup.closed) return;
+    const pdoc=popup.document;
+    let pscene=pdoc.getElementById('scene');
+    if(!pscene) return;
+    let el=[...pscene.querySelectorAll('.comp')].find(x=>x.dataset.id===c.id);
+    const reg=REGISTRY[c.type];
+    if(!el){
+      el=pdoc.createElement('div');
+      el.className='comp fresh'; el.dataset.id=c.id; el.dataset.draft=c.draft?'1':'0';
+      el.style.cssText='position:absolute;';
+      // arm entrance animation on first appearance only
+      if(c.anim && c.anim!=='none'){
+        if(c.anim==='type'){ el.dataset.twdur=Math.round((c.animDur||0.6)*1000); }
+        else { el.style.animation=`${c.anim} ${(c.animDur||0.6)}s cubic-bezier(.2,.7,.3,1) ${(c.animDelay||0)}s both`; }
+      }
+      pscene.appendChild(el);
+    }
+    el.style.cssText+=`left:${c.x}px;top:${c.y}px;z-index:${c.z};transform:scale(${c.scale}) rotate(${c.rot}deg);opacity:${c.opacity};`;
+    if(c.wpx) el.style.width=c.wpx+'px';
+    if(c.hpx) el.style.height=c.hpx+'px';
+    el.style.setProperty('--fscale', c.fscale||1);
+    if(c.props&&c.props.color){ el.style.setProperty('--ca',c.props.color); el.style.setProperty('--cc',c.props.color); el.style.setProperty('--ct',c.props.color); }
+    if(c.props&&c.props.bg) el.style.setProperty('--cbg', c.props.bg);
+    // only rebuild the DOM when its content actually changed — otherwise we'd
+    // restart typewriters/CSS animations on every unrelated render
+    const sig=JSON.stringify(c.props)+(c.wpx||'')+(c.hpx||'');
+    const isNew=(el.dataset.rendered!==c.id);
+    if(isNew || el.dataset.sig!==sig){
+      el.innerHTML=reg.markup(c.props);
+      el.dataset.rendered=c.id; el.dataset.sig=sig;
+      el.querySelectorAll('svg').forEach(v=>{ v.style.width=(c.wpx&&c.hpx)?'100%':(c.wpx?'100%':'auto'); v.style.height=c.hpx?'100%':'auto'; });
+      if(isNew && c.anim==='type'){ el.classList.add('anim-typing'); }
+    }
+    if(c.wpx || c.hpx){
+      const both=c.wpx && c.hpx;
+      el.querySelectorAll('svg').forEach(v=>{ v.style.width=(both||c.wpx)?'100%':'auto'; v.style.height=c.hpx?'100%':'auto'; });
+    }
+    if(c.props.stepped){
+      const lines=el.querySelectorAll('.tline,.cline');
+      const n=(typeof c.revealed==='number')?c.revealed:lines.length;
+      lines.forEach((ln,i)=>{ ln.style.visibility = i<n ? 'visible':'hidden'; });
+    }
+    if(el.dataset.twdur){   // drive its typewriter
+      const spans=[...el.querySelectorAll('.pa-char:not(.on)')];
+      const per=Math.max(15,(+el.dataset.twdur)/Math.max(1,spans.length));
+      spans.forEach((sp,i)=>setTimeout(()=>sp.classList.add('on'), i*per));
+      delete el.dataset.twdur;
+    }
+  }catch(err){ console.warn('mirror:',err); }
+}
+
+/* ============ ⏺ REC — realtime capture of the popout window ============ */
+const REC={ active:false, liveSync:false, stream:null, recorder:null, timer:null };
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function setLiveSync(v){ REC.liveSync=v; document.body.classList.toggle('live', v); }
+
+function pickRecMime(){
+  if(!window.MediaRecorder) return '';
+  for(const m of ['video/mp4;codecs=avc1.42001f','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']){
+    try{ if(MediaRecorder.isTypeSupported(m)) return m; }catch(_){}
+  }
+  return '';
+}
+function setRecBtn(on){
+  const b=document.getElementById('btn-record');
+  b.textContent=on?'⏹ stop':'⏺ REC';
+  b.style.color=on?'#39FF7A':'#FF5555';
+  b.style.borderColor=on?'#39FF7A':'#552222';
+  document.body.classList.toggle('recording', on);
+}
+/* scene HTML with every entrance re-armed: CSS anims get their inline animation
+   back, typewriters get hidden chars — so the popup plays everything once */
+function sceneHtmlForRecord(){
+  const root=scene.cloneNode(true);
+  root.querySelectorAll('.comp').forEach(n=>{
+    n.classList.remove('sel-outline');
+    n.classList.add('fresh');   // trigger replays one-shot inner animations (entrance moment)
+    const c=comps.find(x=>x.id===n.dataset.id);
+    if(!c || !c.anim || c.anim==='none') return;
+    if(c.anim==='type'){
+      n.querySelectorAll('.pa-char').forEach(s=>s.classList.remove('on'));
+      n.classList.add('anim-typing');
+      n.dataset.twdur=Math.round((c.animDur||0.6)*1000);
+    }else{
+      n.style.animation=`${c.anim} ${(c.animDur||0.6)}s cubic-bezier(.2,.7,.3,1) ${(c.animDelay||0)}s both`;
+    }
+  });
+  return root.innerHTML;
+}
+/* reveal the popup's typewriter chars on its own clock — builder JS timers can't
+   reach another document (same max(15ms, dur/total) cadence as typewrite()) */
+function drivePopupTypewriters(win){
+  try{
+    win.document.querySelectorAll('.anim-typing').forEach(el=>{
+      const spans=[...el.querySelectorAll('.pa-char:not(.on)')];
+      if(!spans.length){ el.classList.remove('anim-typing'); return; }
+      const per=Math.max(15, (+el.dataset.twdur||600)/spans.length);   // respect per-component duration
+      spans.forEach((s,i)=>setTimeout(()=>{
+        s.classList.add('on');
+        if(i===spans.length-1) el.classList.remove('anim-typing');
+      }, i*per));
+    });
+  }catch(err){ console.warn('type driver:',err); }
+}
+function cleanupRec(){
+  clearInterval(REC.timer);
+  if(REC.stream){ REC.stream.getTracks().forEach(t=>t.stop()); REC.stream=null; }
+}
+REC.stop=()=>{
+  clearInterval(REC.timer);
+  setLiveSync(false);
+  const r=REC.recorder; REC.recorder=null;   // claim it — prevents double-stop races
+  if(r && r.state!=='inactive') r.stop();
+  else { cleanupRec(); REC.active=false; setRecBtn(false); }   // stopped before/at consent
+};
+
+document.getElementById('btn-record').onclick=()=>{
+  const p=document.getElementById('rec-pop');
+  p.style.display = p.style.display==='block' ? 'none' : 'block';
+};
+document.getElementById('rec-close').onclick=()=>{ document.getElementById('rec-pop').style.display='none'; };
+document.getElementById('rec-start').onclick=()=>{
+  if(REC.active){ REC.stop(); return; }
+  startRec();
+};
+
+async function startRec(){
+  const status=document.getElementById('rec-status');
+  // no hard 120s cap anymore — memory is the only real limit (~27MB/min @1080p30, ~90MB/min @4K)
+  const durRaw=document.getElementById('rec-dur').value.trim();
+  const durS=durRaw===''?Infinity:Math.min(7200, Math.max(1, parseFloat(durRaw)||5));   // blank → run until ⏹/Esc
+  // a story must exist — REC always walks it from the top
+  if(!comps.length){ alert('nothing to record — build a beat first (drop components from the palette)'); return; }
+  /* ⏺ REC always starts from the TOP of the story — wherever you were editing,
+     the take begins at beat 1 with a clean reveal state */
+  try{
+    snap();
+    curBeat=0;
+    // start BLANK: zero components of beat 1 revealed — Space brings them in one by one
+    for(const k in beatStep) delete beatStep[k];
+    beatStep[0]=0;
+    selId=null;
+    render(); renderStrip();
+  }catch(err){ console.warn('rewind:',err); toastMsg('⚠ rewind failed: '+err.message); }
+  const mime=pickRecMime();
+  if(!mime){ alert('MediaRecorder is not available in this browser'); return; }
+
+  openPopout();                    // fresh popout at exact size, carrying motion css
+  REC.active=true;                 // freezes updatePopout → entrances play exactly once
+  setRecBtn(true);
+
+  let stream;
+  try{
+    stream=await navigator.mediaDevices.getDisplayMedia({
+      video:{ displaySurface:'window', width:{ideal:3840}, height:{ideal:3840}, frameRate:{ideal:30} },
+      audio:false,
+      selfBrowserSurface:'exclude'
+    });
+  }catch(err){
+    REC.active=false; setRecBtn(false); cleanupRec();
+    if(!err || (err.name!=='AbortError' && err.name!=='NotAllowedError')) console.warn(err);
+    status.textContent='capture cancelled';
+    return;
+  }
+  /* everything past consent is guarded — a failure must never leave REC.active
+     stuck true, which would silently freeze the popout sync */
+  try{
+    REC.stream=stream;
+    stream.getVideoTracks()[0].addEventListener('ended', ()=>REC.stop());
+
+    const track=stream.getVideoTracks()[0];
+    const s=track.getSettings();
+    const W=s.width||1920, H=s.height||1080, fps=Math.round(s.frameRate)||30;
+    const bitrate=Math.min(50e6, Math.max(8e6, Math.round(W*H*fps*0.2)));
+
+    let t0=0;   // recording start stamp — onstop reports real elapsed time
+    const chunks=[];
+    const rec=new MediaRecorder(stream,{ mimeType:mime, videoBitsPerSecond:bitrate });
+    REC.recorder=rec;
+    rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    rec.onstop=()=>{
+      clearInterval(REC.timer);
+      stream.getTracks().forEach(t=>t.stop());
+      REC.active=false; REC.recorder=null; REC.stream=null;
+      setRecBtn(false); setLiveSync(false);
+      const ext=mime.includes('mp4')?'mp4':'webm';
+      const blob=new Blob(chunks,{type:mime.split(';')[0]});
+      const safe=(currentSceneName||'clip').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'')||'clip';
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=`llmao-${safe}.${ext}`; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      const secs=t0?((performance.now()-t0)/1000).toFixed(1):'0';
+      toastMsg(`✔ clip saved · ${secs}s · ${W}×${H} · ${ext}`);
+      status.textContent = ext==='webm'
+        ? "webm container — Resolve won't import directly.\nrename .webm→.mp4 (VP9) or remux with LosslessCut."
+        : '';
+      document.getElementById('rec-start').textContent='⏺ start';
+    };
+    if(!popup || popup.closed){ status.textContent='popout closed'; return; }
+
+    /* countdown lives here in the editor window — never inside the captured one */
+    for(let n=3;n>=1;n--){
+      status.textContent=`starting in ${n}…  (pick the "llmao-scene" window if asked)`;
+      await sleep(700);
+      if(!REC.active) return;        // stopped during countdown — recorder never started
+    }
+
+    status.textContent=`● recording — Space brings components in · ⏹/Esc stops`;
+    document.getElementById('rec-start').textContent='⏹ stop';
+    try{ await popup.document.fonts.ready; }catch(_){}   // settle glyph metrics before framing
+    popup.document.getElementById('scene').innerHTML=sceneHtmlForRecord();
+    drivePopupTypewriters(popup);
+    /* KK camera: a camera comp on THIS beat drives the popout's pan/zoom */
+    camSyncForBeat();
+    lastPushedHtml=sceneInner();   // ticks skip until the scene truly changes
+    setLiveSync(true);             // Space advances beats live — the mirror reveals them
+    rec.start(250);
+    t0=performance.now();
+    REC.timer=setInterval(()=>{
+      const e=((performance.now()-t0)/1000).toFixed(1);
+      status.textContent=`● recording ${e}s${isFinite(durS)?' / '+durS+'s':''} — Space pulls · ⏹/Esc stops`;
+    },100);
+    if(isFinite(durS)){
+      await sleep(durS*1000);
+      if(REC.recorder===rec) rec.stop();   // manual stop path already did it; onstop cleans up
+    }
+    /* no max set → keep rolling until you stop it */
+  }catch(err){
+    console.warn('record failed:',err);
+    status.textContent='⚠ record failed: '+err.message;
+    if(REC.recorder && REC.recorder.state==='recording') REC.recorder.stop();   // keep the partial clip
+  }finally{
+    if(REC.active && (!REC.recorder || REC.recorder.state==='inactive')) REC.stop();
+  }
+}
+
+/* adjustable canvas */
+function setSceneSize(w,h){
+  scene.style.setProperty('--scene-w', w+'px');
+  scene.style.setProperty('--scene-h', h+'px');
+  fit();
+}
+const inW=document.getElementById('scene-w'), inH=document.getElementById('scene-h');
+inW.oninput=()=>setSceneSize(parseInt(inW.value)||1920, parseInt(inH.value)||1080);
+inH.oninput=()=>setSceneSize(parseInt(inW.value)||1920, parseInt(inH.value)||1080);
+document.getElementById('preset-yt').onclick=()=>{inW.value=1920;inH.value=1080;setSceneSize(1920,1080);};
+document.getElementById('preset-shorts').onclick=()=>{inW.value=1080;inH.value=1920;setSceneSize(1080,1920);};
+
+/* fit canvas into available space */
+function currentScale(){ return parseFloat(document.getElementById('stage-scale').style.transform.replace('scale(',''))||0.5; }
+function fit(){
+  const wrap=document.querySelector('.stage-wrap');
+  const w=parseInt(inW.value)||1920, h=parseInt(inH.value)||1080;
+  const s=Math.min((wrap.clientWidth-60)/w,(wrap.clientHeight-60)/h,1);
+  document.getElementById('stage-scale').style.transform=`scale(${s})`;
+}
+addEventListener('resize',fit); fit();
+renderSaved();
+
+/* ============ resizable panels ============ */
+document.querySelectorAll('.rsz').forEach(h=>{
+  h.addEventListener('mousedown',e=>{
+    e.preventDefault();
+    const sec=document.getElementById(h.dataset.target);
+    const startY=e.clientY, startH=sec.offsetHeight;
+    const mv=ev=>{ sec.style.height=Math.max(70,startH-(ev.clientY-startY))+'px';
+                   sec.style.flex='none'; sec.style.overflowY='auto'; };
+    const up=()=>{ removeEventListener('mousemove',mv); removeEventListener('mouseup',up); };
+    addEventListener('mousemove',mv); addEventListener('mouseup',up);
+  });
+});
+(function(){
+  const bar=document.getElementById('sidebar-rsz'), aside=document.querySelector('aside');
+  bar.addEventListener('mousedown',e=>{
+    e.preventDefault();
+    const startX=e.clientX, startW=aside.offsetWidth;
+    const mv=ev=>{ aside.style.width=Math.max(260,startW-(ev.clientX-startX))+'px'; fit(); };
+    const up=()=>{ removeEventListener('mousemove',mv); removeEventListener('mouseup',up); };
+    addEventListener('mousemove',mv); addEventListener('mouseup',up);
+  });
+})();
+
+/* autosave to localStorage — survives refresh; file save/load for permanence */
+const AKEY='phosphor-autosave-v2';   // v2: beats migration no longer marks scenes as chapters
+function autosave(){
+  try{ // canvas state only — never overwrite saved scenes from here
+    localStorage.setItem(AKEY, JSON.stringify({ scene:{w:parseInt(inW.value),h:parseInt(inH.value)},
+       comps:comps.map(c=>({...c, draft:!!c.draft})), saved:loadSaved(), currentSceneName,
+       beats:beatTotal(), curBeat })); }catch{}
+}
+(function restore(){
+  try{
+    const d=JSON.parse(localStorage.getItem(AKEY));
+    if(d){ if(d.scene){ inW.value=d.scene.w; inH.value=d.scene.h; setSceneSize(d.scene.w,d.scene.h); }
+           comps=(d.comps||[]).map(c=>({scale:1,rot:0,opacity:1,z:10,...c}));
+           if(d.saved) { storeSaved(d.saved); renderSaved(); }
+           currentSceneName=d.currentSceneName||null;
+           if(d.beats!=null){ curBeat=Math.min(+d.curBeat||0, Math.max(0,+d.beats-1));
+                              (d.beatLabels||[]).forEach((l,i)=>{ if(l) beatLabels[i]=l; });
+ }
+           if(d.spotlight){ SPOT.active=true; document.body.classList.add('spotting'); } }
+  }catch{}
+})();
+setInterval(autosave, 2000);
+render(); renderStrip();
+
+document.getElementById('btn-export').onclick=()=>
+  alert(`Export:\n1. DevTools → inspect #scene → Cmd+Shift+P → "Capture node screenshot".\nFor animation: use ▶ present mode + OBS window capture.`);
+
+/* ============ project save / load (file) ============ */
+document.getElementById('btn-save').onclick=()=>{
+  const data={ version:1, scene:{ w:parseInt(inW.value)||1920, h:parseInt(inH.value)||1080 },
+               comps:comps.map(({draft,...rest})=>({...rest, draft:!!draft})), saved:loadSaved(),
+               beats:beatTotal(), curBeat, beatLabels:beatLabels.filter(Boolean),
+               currentSceneName:currentSceneName||undefined, spotlight:SPOT.active };
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download=`llmao-scene-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById('btn-open').onclick=()=>document.getElementById('file-open').click();
+document.getElementById('file-open').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(d.scene){ inW.value=d.scene.w; inH.value=d.scene.h; setSceneSize(d.scene.w,d.scene.h); }
+      const imp=importProject(d);
+      comps=imp.comps;
+      if(d.saved){ storeSaved(d.saved); renderSaved(); }
+      beatLabels.length=0; (imp.beatLabels||[]).forEach((l,i)=>{ if(l) beatLabels[i]=l; });
+      currentSceneName=d.currentSceneName||null;
+      selId=null; draft=null; SPOT.active=false; document.body.classList.remove('spotting');
+      curBeat=imp.curBeat;
+      if(d.spotlight || imp.spotlight){ SPOT.active=true; document.body.classList.add('spotting'); }
+      if(imp.note) toastMsg(imp.note);
+      render(); renderStrip();
+    }catch(err){ alert('Invalid project file'); }
+  };
+  r.readAsText(f); e.target.value='';
+};
+
+document.getElementById('btn-new-project').onclick=()=>{
+  if(!confirm('Start a new project?\nClears the canvas, saved components and saved scenes (autosave too). Exported .json files are NOT deleted.')) return;
+  comps=[]; selId=null; draft=null; currentSceneName=null;
+  SPOT.active=false; document.body.classList.remove('spotting');
+  curBeat=0; beatLabels.length=0;
+  storeSaved([]);
+  localStorage.removeItem(AKEY);
+  renderSaved(); render(); renderStrip();
+};
+
+/* popout: exact-size borderless window showing ONLY the scene.
+   Capture this window in OBS once — size never changes with your monitor. */
+let popup=null;
+function sceneInner(){
+  const c=scene.cloneNode(true);
+  c.querySelectorAll('.comp').forEach(n=>n.classList.remove('sel-outline'));
+  /* drafts INCLUDED — the popout is the recording truth: it must match the
+     builder canvas and 📸 PNG exactly, palette previews and all */
+  return c.innerHTML;
+}
+/* the popup only links tokens/phosphor css — structural rules live in THIS page's
+   <style>: .comp positioning, box-sizing reset, pa-* keyframes, typing rules.
+   Copy everything except html/body element rules (don't restyle the popup shell). */
+function motionCSSForPopup(){
+  const out=[];
+  for(const sheet of document.styleSheets){
+    let rules; try{ rules=sheet.cssRules; }catch(_){ continue; }   // cross-origin sheets throw
+    for(const r of rules){
+      if(r.selectorText && /^(html|body)([.{ ,:[]|$)/.test(r.selectorText)) continue;
+      if(r.cssText) out.push(r.cssText);
+    }
+  }
+  return out.join('\n');
+}
+function openPopout(){
+  const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
+  /* window = canvas scaled to fit the screen: no clamping, no black bars */
+  const availW=Math.max(400,(window.screen&&window.screen.availWidth||1280)-80);
+  const availH=Math.max(300,(window.screen&&window.screen.availHeight||800)-80);
+  let tw=W, th=H;
+  const fs=Math.min(availW/W, availH/H);
+  if(fs<1){ tw=Math.round(W*fs); th=Math.round(H*fs); }
+  if(popup && !popup.closed){ popup.close(); }
+  popup=window.open('','llmao-scene',`width=${tw+16},height=${th+16},menubar=no,toolbar=no,location=no,status=no`);
+  popup.document.write(`<!DOCTYPE html><html><head><title>llmao scene</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/tokens.css">
+    <link rel="stylesheet" href="css/phosphor.css">
+    <style>${motionCSSForPopup()}</style>
+    <style>html,body{margin:0;overflow:hidden;background:#0A0F0A}</style></head>
+    <body><div id="stage-scale"><div class="scene" id="scene" style="--scene-w:${W}px;--scene-h:${H}px">${sceneInner()}</div></div>
+    <script src="js/phosphor.js"><\/script><script src="js/themes.js"><\/script>
+    <script>
+      /* safety net: if the OS clamps the window smaller than the canvas
+         (screen too small), scale content to fit instead of cropping */
+      (function(){
+        var wrap=document.getElementById('stage-scale');
+        /* anchor TOP-LEFT: component coords are relative to the canvas, so the
+           canvas corner must sit exactly at the window corner — any centering
+           would shift every component */
+        wrap.style.position='absolute';
+        wrap.style.left='0';
+        wrap.style.top='0';
+        wrap.style.transformOrigin='top left';
+        function fit(){
+          var s=Math.min(window.innerWidth/${W}, window.innerHeight/${H});
+          if(s>1) s=1;
+          wrap.style.transform='scale('+s+')';
+        }
+        window.addEventListener('resize',fit); fit();
+      })();
+    <\/script>
+</body></html>`);
+  popup.document.close();
+  lastPushedHtml=sceneInner();   // change-detect baseline — idle ticks never rebuild the popup
+  /* force inner viewport to exactly W×H — window.open dims include chrome, and
+     ⏺ REC crops nothing: the captured frame must BE the canvas, edge to edge */
+  const fixSize=()=>{ try{
+    if(!popup || popup.closed){ clearInterval(window.__fixT); return; }
+    const dx=tw-popup.innerWidth, dy=th-popup.innerHeight;
+    if(Math.abs(dx)>1 || Math.abs(dy)>1) popup.resizeTo(popup.outerWidth+dx, popup.outerHeight+dy);
+  }catch(_){}}
+  fixSize();
+  window.__fixT=setInterval(fixSize,250);   // some browsers ignore one-shot resizeTo
+}
+let lastPushedHtml=null;
+function updatePopout(){
+  if(!popup || popup.closed) return;
+  if(REC.active){
+    if(!REC.liveSync) return;   // pre-roll frozen — the t=0 trigger owns the first push
+    pruneHiddenFromPopup();
+    return;
+  }
+  const html=sceneInner();
+  if(html===lastPushedHtml) return;         // unchanged — a rebuild would restart every animation
+  lastPushedHtml=html;
+  popup.document.getElementById('scene').innerHTML=html;
+}
+document.getElementById('btn-popout').onclick=openPopout;
+setInterval(updatePopout, 500); /* keep popout in sync while editing */
+
+/* present mode for OBS */
+document.getElementById('btn-present').onclick=()=>{
+  document.body.classList.add('present');
+};
+addEventListener('keydown',e=>{
+  if(REC.active){ if(e.key==='Escape' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); REC.stop(); } return; }
+  if(e.key==='Escape' && SPOT.active){ setSpot(false); }
+});
+</script>
+<script src="js/themes.js"></script>
+</body>
+</html>

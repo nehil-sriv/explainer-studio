@@ -1,0 +1,45 @@
+/* PHOSPHOR design tokens — single source of truth. Import this everywhere. */
+:root {
+  --bg-deep: #0A0F0A;
+  --panel: #101710;
+  --line-dim: #1E2A1E;
+  --text-primary: #D3FFDE;
+  --text-dim: #5C8A66;
+  --phos-green: #39FF7A;
+  --amber: #FFB000;
+  --alert-red: #FF5555;
+  --cyan-dim: #57C7C0;
+  --fill-green: #102E19;
+  --fill-amber: #2A2409;
+  --fill-red: #221616;
+  --ghost-fill: #0B170E;
+  --ghost-stroke: #0D1D11;
+
+  --font-display: 'VT323', monospace;
+  --font-body: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-hand: 'Caveat', cursive;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: transparent; /* export with transparent background */
+  font-family: var(--font-body);
+  color: var(--text-primary);
+}
+
+/* every element sits on a labelled export stage */
+.stage {
+  position: relative;
+  outline: 1px dashed rgba(255, 255, 255, 0.08); /* guide only — crop it off */
+}
+.stage-label {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  font-size: 14px;
+  color: #666;
+  font-family: sans-serif;
+}
+
+.glow-green { filter: drop-shadow(0 0 8px rgba(57, 255, 122, 0.3)); }
