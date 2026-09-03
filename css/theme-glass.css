@@ -1,0 +1,39 @@
+/* ============================================================
+   Explainer Studio · THEME OVERRIDE: LIQUID GLASS
+   Dormant unless #scene carries data-theme="glass" (set by
+   js/themes.js glass preset). Frosted cards over an aurora canvas.
+   Keep to skin (translucency / blur / light) — no layout.
+   Requires: assets/tokens.css + css/core.css before this file.
+   ============================================================ */
+
+#scene[data-theme="glass"] {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(56,130,255,0.22), transparent 60%),
+    radial-gradient(1000px 700px at 8% 110%, rgba(168,85,247,0.20), transparent 60%),
+    radial-gradient(820px 520px at 50% 52%, rgba(34,211,238,0.08), transparent 65%),
+    var(--bg-deep);
+}
+
+#scene[data-theme="glass"] .term,
+#scene[data-theme="glass"] .tk-svc,
+#scene[data-theme="glass"] .tk-prompt,
+#scene[data-theme="glass"] .tk-queue,
+#scene[data-theme="glass"] .gnode,
+#scene[data-theme="glass"] .nodebox,
+#scene[data-theme="glass"] .tk-gate,
+#scene[data-theme="glass"] .tk-cont,
+#scene[data-theme="glass"] .tk-cp,
+#scene[data-theme="glass"] .box-fill,
+#scene[data-theme="glass"] .tk-fproc,
+#scene[data-theme="glass"] .tk-term,
+#scene[data-theme="glass"] .toast-error,
+#scene[data-theme="glass"] .metric-card,
+#scene[data-theme="glass"] .tk-legend,
+#scene[data-theme="glass"] .tk-logs {
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  border-width: 1px;
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12);
+}

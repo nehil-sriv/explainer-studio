@@ -1,0 +1,29 @@
+/* ============================================================
+   Explainer Studio · THEME OVERRIDE: BRUTALIST
+   Dormant unless #scene carries data-theme="brutal" (set by
+   js/themes.js brutal preset). Thick lines + hard offset shadows.
+   Accent/border COLORS are untouched (user + semantic hues survive);
+   only weight + shadow change. Keep to skin — no layout.
+   Requires: assets/tokens.css + css/core.css before this file.
+   ============================================================ */
+
+#scene[data-theme="brutal"] .term,
+#scene[data-theme="brutal"] .tk-svc,
+#scene[data-theme="brutal"] .tk-prompt,
+#scene[data-theme="brutal"] .tk-queue,
+#scene[data-theme="brutal"] .gnode,
+#scene[data-theme="brutal"] .nodebox,
+#scene[data-theme="brutal"] .tk-gate,
+#scene[data-theme="brutal"] .tk-cont,
+#scene[data-theme="brutal"] .tk-cp,
+#scene[data-theme="brutal"] .box-fill,
+#scene[data-theme="brutal"] .tk-fproc,
+#scene[data-theme="brutal"] .tk-term,
+#scene[data-theme="brutal"] .toast-error,
+#scene[data-theme="brutal"] .metric-card,
+#scene[data-theme="brutal"] .tk-legend,
+#scene[data-theme="brutal"] .tk-logs {
+  border-width: 3px;
+  border-radius: 0;
+  box-shadow: 7px 7px 0 rgba(26,26,26,0.9);
+}

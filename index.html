@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>PHOSPHOR builder · build b249-beats</title>
-<link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="css/core.css">
 <link rel="stylesheet" href="css/theme-glass.css">
 <link rel="stylesheet" href="css/theme-brutal.css">
+<link rel="stylesheet" href="css/chrome-precision.css">
 <style id="tokens-inline">
 /* PHOSPHOR design tokens — single source of truth. Import this everywhere. */
 :root {
@@ -141,7 +142,6 @@ body {
   ul.clean li { display:flex; align-items:center; gap:6px; padding:6px 8px; font-size:12px;
                 border:1px solid transparent; border-radius:4px; margin-bottom:2px; }
   ul.clean li.sel { border-color:#264d33; background:#0F1F15; }
-  #complist li.sel { border-color:var(--phos-green); }
   ul.clean li .name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#BFE5C8; }
 
   /* inspector */
@@ -178,11 +178,9 @@ body {
 /* drag handles for resizable panels + sidebar edge */
   .rsz { height:6px; margin:-4px -16px 8px; cursor:ns-resize; background:transparent; }
   .rsz:hover { background:rgba(57,255,122,0.15); }
-  #sec-recording.collapsed { flex:0 0 auto !important; }
   /* whole sidebar scrolls as one — no per-section height caps */
   aside { overflow-y:auto; }
   section { overflow-y:visible; flex:none; }
-  #sec-recording { min-height:0; }
   #sidebar-rsz { width:5px; cursor:ew-resize; background:transparent; flex:none; }
   #sidebar-rsz:hover { background:rgba(57,255,122,0.25); }
 
@@ -207,29 +205,39 @@ body {
 </head>
 <body>
 
-<header>
-  <h1>$ ./builder</h1>
-  <span style="font-size:12px;color:#5C8A66">canvas</span>
-  <input type="number" id="scene-w" value="1920" min="200" step="10"
-         style="width:80px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:4px 6px;">
-  <span style="color:#3a5540">×</span>
-  <input type="number" id="scene-h" value="1080" min="200" step="10"
-         style="width:80px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:4px 6px;">
-  <button class="palette" id="preset-yt">1920×1080</button>
-  <button class="palette" id="preset-shorts">1080×1920</button>
-  <button class="palette" id="btn-present" style="border-color:#39FF7A;color:#39FF7A">▶ present</button>
-  <button class="palette" id="btn-popout" style="border-color:#39FF7A;color:#39FF7A">⧉ popout</button>
-  <button class="palette" id="btn-save">💾 save project</button>
-  <button class="palette" id="btn-open">📂 open project</button>
-  <button class="palette" id="btn-new-project" style="color:#FF5555;border-color:#552222">🆕 new project</button>
-  <input type="file" id="file-open" accept=".json" style="display:none">
-  <span class="spacer"></span>
-  <button class="mini primary" id="btn-record" title="record the popout window to a video clip · Space walks your beats" style="color:#FF5555;border-color:#552222">⏺ REC</button>
-  <button class="mini primary" id="btn-spot" title="spotlight: dim all except the selected component · S toggles · Esc exits">💡 spot</button>
-  <button class="mini primary" id="btn-shot">📸 PNG</button>
-  <button class="mini primary" id="btn-export-media" title="one-click export: SVG still · GIF · WebM video — renders each sequence step full-res, no screen capture">🎞 export</button>
-  <button class="palette" id="btn-export">help ↓</button>
-  <button class="mini primary" id="btn-help">❓ help</button>
+<header id="transport">
+  <div class="tp-group tp-brand">
+    <span class="tp-logo">▮ EXPLAINER</span>
+  </div>
+  <div class="tp-group tp-file">
+    <div class="tp-filemenu">
+      <button class="palette" id="btn-filemenu" title="project file operations">File ▾</button>
+      <div class="tp-menu" id="file-menu" hidden>
+        <button class="palette" id="btn-new-project">🆕 new project</button>
+        <button class="palette" id="btn-open">📂 open project</button>
+        <button class="palette" id="btn-save">💾 save project</button>
+      </div>
+    </div>
+    <input type="file" id="file-open" accept=".json" style="display:none">
+  </div>
+  <div class="tp-group tp-canvas">
+    <span class="tp-cap">Canvas</span>
+    <input type="number" id="scene-w" value="1920" min="200" step="10" style="display:none">
+    <input type="number" id="scene-h" value="1080" min="200" step="10" style="display:none">
+    <button class="palette" id="preset-yt" title="Landscape 1920×1080"><span class="ori-icon landscape"></span></button>
+    <button class="palette" id="preset-shorts" title="Portrait 1080×1920"><span class="ori-icon portrait"></span></button>
+  </div>
+  <div class="tp-group tp-transport">
+    <button class="palette" id="btn-popout">⧉ popout</button>
+    <button class="mini primary" id="t-play" title="play from blank — Space = next component">▶ play</button>
+    <button class="mini" id="t-auto" title="auto-play all with hold timing (no recording)">⏩ auto</button>
+    <label class="tp-hold" title="auto-play pause per step">hold <input id="t-hold" type="number" min="0" max="10" step="0.1" value="1.6">s</label>
+  </div>
+  <div class="tp-group tp-actions">
+    <button class="mini primary" id="btn-record" title="record the canvas to a video clip · Space walks your sequence">⏺ REC</button>
+    <button class="mini primary" id="btn-shot">📸 PNG</button>
+    <button class="mini primary" id="btn-export-media" title="one-click export: SVG still · GIF · WebM video — renders each sequence step full-res, no screen capture">🎞 export</button>
+  </div>
 </header>
 
 <main>
@@ -242,13 +250,13 @@ body {
     </div>
   </div></div>
 
-  <div id="sidebar-rsz"></div>
-  <aside>
+  <aside id="rail-left">
     <section id="sec-palette">
       <h2>1 · AVAILABLE COMPONENTS</h2>
       <p class="hint">click one → preview & edit → add to recording scene</p>
       <div class="pal-search">
-        <input type="text" id="pal-search" placeholder="search components…  (press / )" autocomplete="off" spellcheck="false">
+        <span class="pal-ico" aria-hidden="true">⌕</span>
+        <input type="text" id="pal-search" placeholder="grep stencils…" autocomplete="off" spellcheck="false">
         <button class="mini" id="pal-collapse" title="collapse all groups">⊟</button>
         <button class="mini" id="pal-expand" title="expand all groups">⊞</button>
         <button class="mini" id="pal-clear" title="clear search">✕</button>
@@ -256,29 +264,15 @@ body {
       <div class="palette" id="palette"></div>
     </section>
 
-    <section id="sec-recording">
-      <div class="sec-head"><h2>2 · STORY CANVAS · SEQUENCE</h2>
-      <span style="display:flex;gap:6px">
-        <button class="mini danger" id="btn-scene-clear" title="delete every component of the story">✕ clear all</button>
-      </span></div>
-      <p class="hint">list order = play order · ↑↓ reorders · Space plays next</p>
-      <ul id="complist" class="clean"></ul>
-    </section>
-
-    <section id="sec-edges">
-      <div class="rsz" data-target="sec-edges"></div>
-      <h2>🔗 EDGES</h2>
-      <p class="hint">links draw when both ends are visible · click to edit · drag 🔗 ports to add</p>
-      <ul id="edgelist" class="clean"></ul>
-    </section>
-
     <section id="sec-saved">
       <div class="rsz" data-target="sec-saved"></div>
       <h2>3 · SAVED COMPONENTS</h2>
       <ul id="savedlist" class="clean"></ul>
     </section>
+  </aside>
 
-
+  <div id="sidebar-rsz"></div>
+  <aside id="rail-right">
     <section id="inspector">
       <h2>EDIT SELECTED</h2>
       <div id="empty-msg">select a component…</div>
@@ -331,8 +325,8 @@ body {
   <div id="exp-pop">
     <div id="exp-pop-title">🎞 export clip</div>
     <p class="hint">renders every sequence step full-res — no screen capture, no picker. GIF/WebM play the steps with your hold timing.</p>
-    <div class="rec-row"><label>format</label><select id="exp-fmt" style="background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:4px 6px"><option value="svg">SVG still (current canvas)</option><option value="gif">GIF animated (all steps)</option><option value="webm">WebM video (all steps)</option></select></div>
-    <div class="rec-row"><label>scale</label><select id="exp-scale" style="background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:4px 6px"><option value="0.5">0.5× (small)</option><option value="1" selected>1×</option><option value="2">2× (sharp)</option></select><span class="hint" style="margin:0">GIF: 0.5× keeps size sane</span></div>
+    <div class="rec-row"><label>format</label><select id="exp-fmt"><option value="svg">SVG still (current canvas)</option><option value="gif">GIF animated (all steps)</option><option value="webm">WebM video (all steps)</option></select></div>
+    <div class="rec-row"><label>scale</label><select id="exp-scale"><option value="0.5">0.5× (small)</option><option value="1" selected>1×</option><option value="2">2× (sharp)</option></select><span class="hint" style="margin:0">GIF: 0.5× keeps size sane</span></div>
     <div id="exp-status"></div>
     <div class="rec-btns">
       <button class="mini primary" id="exp-start">↓ export</button>
@@ -356,7 +350,7 @@ body {
     <div id="rec-status"></div>
     <div class="rec-btns" style="flex-wrap:wrap">
       <button class="mini primary" id="rec-step">⏺ step · Space</button>
-      <button class="mini primary" id="rec-auto" style="color:#FFB000;border-color:#FFB000">⏩ auto · timed</button>
+      <button class="mini primary" id="rec-auto" style="color:var(--ch-amber);border-color:var(--ch-amber)">⏩ auto · timed</button>
       <span style="flex:1"></span>
       <button class="mini" id="rec-close">close</button>
     </div>
@@ -389,11 +383,11 @@ body {
 const TOUR=[
  {t:'Welcome, operator', x:'This is the <b>PHOSPHOR builder</b> — design every visual as HTML, then record narrated clips straight to MP4. No OBS, no After Effects.<br><br>Type text, press Space. That\'s 90% of it.', sel:null},
  {t:'1 · Available components', x:'Everything you can put on screen lives here — <b>terminals</b>, servers, pods, charts, fan-outs… 109 and counting.<br><br>Press <b>/</b> to search. Click one to drop it on the canvas.', sel:'#sec-palette'},
- {t:'The canvas', x:'What you see on this big dark canvas is <b>exactly what viewers see</b>.<br><br>Drag to move; click to edit text/colors/size in EDIT SELECTED below.', sel:'#sec-recording'},
+  {t:'The canvas', x:'What you see on this big dark canvas is <b>exactly what viewers see</b>.<br><br>Drag to move; click to edit text/colors/size in EDIT SELECTED below.', sel:'#inspector'},
  {t:'EDIT SELECTED', x:'Every component is editable: position (x/y), size, rotation, colors, entrance animations — even word-by-word color tags like <b>[r]word[/r]</b>.', sel:'#inspector'},
  {t:'SEQUENCE — the story strip', x:'The bottom bar is your story in play order. <b>↑↓</b> in STORY CANVAS reorders it. <b>▶ play</b> starts blank, <b>Space / →</b> shows next, <b>←</b> goes back, <b>Esc</b> exits to edit.<br><br>Components accumulate — or tick <b>🧹</b> on a step to clear the screen first (<b>📌</b> pins survivors, <b>⊘ hide</b> in EDIT retires specific comps).', sel:'#beatbar'},
- {t:'⏺ REC + 💡 spotlight', x:'<b>⏺ REC → step</b> records the ⧉ popout while YOU press Space. <b>⏩ auto</b> plays all with hold timing. <b>S</b> spotlights; <b>Esc</b> exits.', sel:'#sec-recording'},
- {t:"You're ready", x:'Open the example projects from 📂 to see full stories.<br><br>Start simple: kicker ＋ terminal, hit ⏺ REC, talk, Space. This help reopens via ❓.', sel:null},
+  {t:'⏺ REC + 💡 spotlight', x:'<b>⏺ REC → step</b> records the canvas while YOU press Space. <b>⏩ auto</b> plays all with hold timing. <b>S</b> spotlights; <b>Esc</b> exits.', sel:null},
+  {t:"You're ready", x:'Open the example projects from 📂 (File menu) to see full stories.<br><br>Start simple: kicker ＋ terminal, hit ⏺ REC, talk, Space.', sel:null},
 ];
 let ti=0;
 function tourShow(i){
@@ -408,7 +402,7 @@ function tourShow(i){
   document.querySelectorAll('aside section').forEach(s=>s.style.outline='');
   if(st.sel){
     const t=document.querySelector('aside '+st.sel);
-    if(t){ t.scrollIntoView({behavior:'smooth',block:'center'}); t.style.outline='2px solid #39FF7A'; }
+    if(t){ t.scrollIntoView({behavior:'smooth',block:'center'}); t.style.outline='2px solid var(--ch-focus)'; }
   }
 }
 function tourEnd(save){
@@ -416,7 +410,7 @@ function tourEnd(save){
   document.querySelectorAll('aside section').forEach(s=>s.style.outline='');
   if(save) try{ localStorage.setItem('phosphor-onboarded','1'); }catch(e){}
 }
-document.getElementById('btn-help').onclick=()=>{ ti=0; tourShow(0); };
+/* tour auto-shows on first run (no help button — keep chrome minimal) */
 document.getElementById('tour-next').onclick=()=>{ if(ti>=TOUR.length-1){ tourEnd(true); } else { ti++; tourShow(ti); } };
 document.getElementById('tour-back').onclick=()=>{ if(ti>0){ ti--; tourShow(ti); } };
 document.getElementById('tour-skip').onclick=()=>tourEnd(true);
@@ -442,7 +436,7 @@ document.addEventListener('click', e=>{
 });
 /* start with the working trio open — palette, story canvas, inspector */
 document.querySelectorAll('aside section').forEach(s=>{
-  const open=['sec-palette','sec-recording','sec-edges','inspector'].includes(s.id);
+  const open=['sec-palette','inspector'].includes(s.id);
   s.classList.toggle('collapsed', !open);
 });
 </script>
@@ -717,7 +711,7 @@ function edgeBuild(e,ov){
       cx.setAttribute('y',both?12:1); cx.setAttribute('text-anchor','middle');
       cx.setAttribute('dominant-baseline','middle');
       cx.setAttribute('font-family',"'JetBrains Mono',monospace"); cx.setAttribute('font-size',11);
-      cx.setAttribute('fill','#5C8A66'); cx.textContent=cap; t.appendChild(cx); }
+      cx.setAttribute('fill',themeHex('--text-dim','#5C8A66')); cx.textContent=cap; t.appendChild(cx); }
     g.appendChild(t);
     g._track=track; g._label=t;
   }
@@ -912,7 +906,7 @@ const REGISTRY = {
   kcp:      { name:'Control plane',
     props:{label:'control-plane'},
     fields:['label'],
-    markup:p=>`<div class="nodebox tech cpbadge" style="--amber:1"><div class="nodebox-head" style="background:#241d08"><span>${p.label}</span></div>
+    markup:p=>`<div class="nodebox tech cpbadge" style="--amber:1"><div class="nodebox-head" style="background:var(--fill-amber)"><span>${p.label}</span></div>
       <div class="nodebox-body" style="color:var(--text-dim);font-size:13px">apiserver · scheduler · etcd</div></div>` },
 
   fence:    { name:'Boundary (cluster / zone / VPC)',
@@ -988,7 +982,7 @@ const REGISTRY = {
   countbadg:{ name:'Count badge (×N)',
     props:{n:'×12', accent:'#FFB000'},
     fields:['n','accent'],
-    markup:p=>`<span class="tech" style="display:inline-block;background:${p.accent};color:#0A0F0A;font-weight:700;font-size:15px;padding:3px 10px;border-radius:99px">${p.n}</span>` },
+    markup:p=>`<span class="tech" style="display:inline-block;background:${p.accent};color:var(--ink-on-accent);font-weight:700;font-size:15px;padding:3px 10px;border-radius:99px">${p.n}</span>` },
 
   image:    { name:'Image / logo (PNG)',
     props:{src:'', w:400},
@@ -997,7 +991,7 @@ const REGISTRY = {
     markup:p=>p.src
       ?`<img src="${p.src}" style="width:${p.w}px;display:block" onerror="this.style.outline='3px solid #FF5555'; this.title='image failed to load'">`
       :`<div style="width:${p.w}px;padding:40px;border:3px dashed var(--line-dim);text-align:center;color:var(--text-dim);font-family:var(--font-body);font-size:20px;line-height:1.6">
-          🖼 IMAGE PLACEHOLDER<br><span style="font-size:14px;color:#5C8A66">select me →<br>choose a file or paste a URL<br>in EDIT SELECTED</span>
+          🖼 IMAGE PLACEHOLDER<br><span style="font-size:14px;color:var(--text-dim)">select me →<br>choose a file or paste a URL<br>in EDIT SELECTED</span>
         </div>` },
 
   callout:  { name:'Callout chip + leader',
@@ -1889,27 +1883,35 @@ function renderPalette(q){
     buckets[it.gid].push(it);
   });
   let shown=0;
+  const total=PAL_ITEMS.length;
   order.forEach(gid=>{
     const items=buckets[gid], it0=items[0];
     const closed=!filtering && palClosed.has(gid);
     const h=document.createElement('div');
-    h.className='pal-h'+(closed?' closed':'');
-    h.textContent=`${it0.glabel} · ${items.length}`;
-    h.title='click to '+(closed?'expand':'collapse');
+    h.className='pal-h pg-'+gid+(closed?' closed':'');
+    h.innerHTML=`<span class="gname">&gt; ${it0.glabel}</span><span class="gtag">${items.length}</span>`;
+    h.title=`${it0.glabel} · ${items.length} — click to `+(closed?'expand':'collapse');
     h.onclick=()=>{
       palClosed.has(gid)?palClosed.delete(gid):palClosed.add(gid);
       storePalClosed(); renderPalette(palSearch.value);
     };
     palette.appendChild(h);
     if(closed) return;                      // folded: header stays, buttons hide
+    const set=document.createElement('div');
+    set.className='pal-set pg-'+gid;
     items.forEach(it=>{
       const b=document.createElement('button');
-      b.textContent=it.key;
+      b.innerHTML=`<span class="pchip">${it.key.slice(0,2).toUpperCase()}</span><span class="plab">${it.key}</span>`;
       b.title=it.c.name + (it.c.help?`\n\n${it.c.help}`:'');
       b.onclick=()=>startDraft(it.key);
-      palette.appendChild(b); shown++;
+      set.appendChild(b); shown++;
     });
+    palette.appendChild(set);
   });
+  const foot=document.createElement('div');
+  foot.className='pal-foot';
+  foot.innerHTML=`<span>${filtering?shown+' / ':''}${total} STENCILS LOADED</span>`;
+  palette.appendChild(foot);
   if(!order.length || (!filtering && !shown)){
     const d=document.createElement('div'); d.className='pal-none';
     d.textContent = filtering ? `no components match “${q}”` : 'all groups collapsed — ⊞ expands · click a header';
@@ -1983,7 +1985,7 @@ function setSpot(on){
   if(on && !selId){ toastMsg('select a component to spotlight first'); return; }
   SPOT.active=on;
   const b=document.getElementById('btn-spot');
-  b.style.color=on?'#FFB000':''; b.style.borderColor=on?'#FFB000':'';
+  if(b){ b.style.color=on?'var(--ch-amber)':''; b.style.borderColor=on?'var(--ch-amber)':''; }
   applySpotClasses(); syncPopupSpot();
   toastMsg(on
     ? '💡 spotlight on — click elements to move focus · S/Esc exits'
@@ -2055,51 +2057,6 @@ function renderCanvas(){
   applySpotClasses();
 }
 
-function renderList(){
-  const list=document.getElementById('complist'); list.innerHTML='';
-  const parkedNow=comps.filter(c=>c.parked);
-  comps.forEach((c,i)=>{
-    if(c.parked) return;                                // parked list rendered below
-    const li=document.createElement('li');
-    li.className=c.id===selId?'sel':'';
-    const hideN=(Array.isArray(c.hides)?c.hides.length:0);
-    const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+(c.spot?'💡':'')+((c.clearBefore||c.pin||c.spot)?' ':'')+(hideN?`⊘${hideN} `:'');
-    li.innerHTML=`<span class="name">${marks}${i+1}. ${c.type} <span style="color:#3a5540">${String(c.props.text||c.props.title||c.props.label||'').slice(0,16)} · @${c.x},${c.y}</span></span>`;
-    const mk=(txt,title,fn,cls='',on=false)=>{ const b=document.createElement('button');
-      if(cls)b.className=cls; b.textContent=txt; b.title=title;
-      if(on){ b.style.color='#FFB000'; b.style.borderColor='#FFB000'; }
-      b.onclick=e=>{ e.stopPropagation(); fn(); };
-      return b; };
-    li.append(
-      mk('↑','move earlier in sequence — Space order',()=>{ if(i>0){ snap(); [comps[i-1],comps[i]]=[comps[i],comps[i-1]]; render(); renderStrip(); } }),
-      mk('↓','move later in sequence — Space order',()=>{ if(i<comps.length-1){ snap(); [comps[i+1],comps[i]]=[comps[i],comps[i+1]]; render(); renderStrip(); } }),
-      mk('🧹','clear screen before this step (earlier comps hide — 📌 pinned survive)',()=>{ snap(); c.clearBefore=!c.clearBefore; render(); renderStrip(); },'',!!c.clearBefore),
-      mk('📌','pin: stays on screen through clears',()=>{ snap(); c.pin=!c.pin; render(); renderStrip(); },'',!!c.pin),
-      mk('⧉','duplicate',()=>{ const d=structuredClone(c); delete d._played; d.id=uid(); d.z=c.z+1;
-                               comps.splice(i+1,0,d); render(); renderStrip(); }),
-      mk('🗑','remove from recording scene (attached edges go too)',()=>{ snap(); edges=edges.filter(x=>x.from!==c.id&&x.to!==c.id); comps=comps.filter(x=>x.id!==c.id); if(selId===c.id)selId=null; if(selEdge&&!edges.some(x=>x.id===selEdge))selEdge=null; render(); },'danger')
-    );
-    li.onclick=()=>select(c.id);
-    list.appendChild(li);
-  });
-  if(!comps.length && !parkedNow.length) list.innerHTML='<div id="empty-msg" style="font-size:11px;color:#3a5540;padding:4px">empty — click a component above to begin</div>';
-  // 🅿 parked comps — hidden from the story, one click brings them back
-  if(parkedNow.length){
-    const hd=document.createElement('div');
-    hd.style.cssText='font-size:10px;color:#3a5540;padding:6px 2px 2px;border-top:1px solid #1E2A1E;margin-top:6px';
-    hd.textContent='🅿 parked ('+parkedNow.length+') — ▶ puts them back at the end of the sequence';
-    list.appendChild(hd);
-    parkedNow.forEach(c=>{
-      const li=document.createElement('li');
-      li.style.cssText='opacity:.45';
-      li.innerHTML=`<span class="name">${c.type}</span>`;
-      const b=document.createElement('button'); b.className='mini'; b.textContent='▶'; b.title='put back at the end of the sequence';
-      b.onclick=e=>{ e.stopPropagation(); c.parked=false; delete c.beat; snap(); render(); };
-      li.appendChild(b); list.appendChild(li);
-    });
-  }
-}
-
 /* ============ 🔗 edges sidebar list ============ */
 function edgeShort(id){
   const c=comps.find(x=>x.id===id);
@@ -2107,41 +2064,11 @@ function edgeShort(id){
   const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
   return `${comps.indexOf(c)+1}.${c.type}${s?' · '+s.slice(0,12):''}`;
 }
-function renderEdgesList(){
-  const list=document.getElementById('edgelist'); if(!list) return;
-  list.innerHTML='';
-  if(!edges.length){
-    list.innerHTML='<div style="font-size:11px;color:#3a5540;padding:4px">no links yet — drag a 🔗 port from any selected component</div>';
-    return;
-  }
-  edges.forEach(e=>{
-    const li=document.createElement('li');
-    li.className=e.id===selEdge?'sel':'';
-    li.style.borderColor=e.id===selEdge?edgeColor(e):'';
-    const dot=document.createElement('span');
-    dot.style.cssText=`width:10px;height:10px;border-radius:50%;background:${edgeColor(e)};flex:none`;
-    const nm=document.createElement('span'); nm.className='name';
-    nm.textContent=`${edgeShort(e.from)} → ${edgeShort(e.to)}${edgeLabel(e)?' · '+edgeLabel(e):''}`;
-    nm.title=`${e.routing||'smooth'} · ${e.dir||'fwd'} · ${e.style||'dots'}${e.animate===false?' · static':''}`;
-    li.append(dot,nm);
-    const del=document.createElement('button'); del.textContent='🗑'; del.className='danger'; del.title='delete edge';
-    del.onclick=ev=>{ ev.stopPropagation(); snap(); edges=edges.filter(x=>x.id!==e.id);
-      if(selEdge===e.id) selEdge=null; render(); };
-    li.appendChild(del);
-    li.onclick=()=>selectEdge(e.id);
-    list.appendChild(li);
-  });
-}
 
-/* update scene + list + live position readouts, WITHOUT rebuilding the inspector
+/* update scene + inspector readouts WITHOUT rebuilding the inspector
    (rebuilding is what killed focus after every keystroke) */
 function renderLive(){
   renderCanvas();
-  // refresh x/y/z shown in the list rows
-  document.querySelectorAll('#complist li').forEach((li,i)=>{
-    const c=comps[i];
-    if(c) li.querySelector('.name span').textContent=`@${c.x},${c.y}`;
-  });
   // keep inspector transform inputs in sync (only if not focused)
   const wrap=document.getElementById('fields');
   wrap.querySelectorAll('[data-img]').forEach(inp=>{
@@ -2166,7 +2093,7 @@ function renderLive(){
 }
 
 function render(){
-  renderCanvas(); renderList(); renderEdgesList(); renderInspector(); renderStrip();
+  renderCanvas(); renderInspector(); renderStrip();
 }
 function selectEdge(id){ selEdge=id; selId=null; render(); }
 function clearSel(){ selId=null; selEdge=null; }
@@ -2181,28 +2108,28 @@ function renderEdgeInspector(wrap,empty){
   const seg=(key,opts,labels)=>{
     return `<span data-eseg="${key}" style="display:flex;gap:4px;flex:1;flex-wrap:wrap">`+opts.map(o=>{
       const on=cur[key]===o, lab=(labels&&labels[o])||o;
-      return `<button data-v="${o}" title="${lab}" style="flex:1;font-family:inherit;font-size:11px;padding:5px 4px;cursor:pointer;border-radius:4px;border:1px solid ${on?'#39FF7A':'#22301f'};background:${on?'#0F2417':'#0F1710'};color:${on?'#39FF7A':'#7da88a'}">${lab}</button>`; }).join('')+`</span>`;
+      return `<button data-v="${o}" title="${lab}" style="flex:1;font-family:var(--ch-mono);font-size:11px;padding:5px 4px;cursor:pointer;border-radius:4px;border:1px solid ${on?'var(--ch-cyan)':'var(--ch-line)'};background:${on?'rgba(6,182,212,0.15)':'var(--ch-bg3)'};color:${on?'var(--ch-cyan-soft)':'var(--ch-dim)'};font-weight:${on?'700':'400'}">${lab}</button>`; }).join('')+`</span>`;
   };
   const presets=Object.keys(EDGE_PRESETS);
   const presetChips=presets.map(p=>{
-    const col=(EDGE_PRESETS[p]||{}).color||'#5C8A66', on=cur.preset===p;
-    return `<button data-v="${p}" style="font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer;border-radius:99px;border:1px solid ${on?col:'#22301f'};background:${on?'#0F2417':'#0F1710'};color:${on?col:'#7da88a'}">${p==='none'?'none':EDGE_PRESETS[p].label}</button>`; }).join('');
+    const col=(EDGE_PRESETS[p]||{}).color||'var(--ch-dim)', on=cur.preset===p;
+    return `<button data-v="${p}" style="font-family:var(--ch-font);font-size:11px;padding:4px 10px;cursor:pointer;border-radius:99px;border:1px solid ${on?col:'var(--ch-line)'};background:${on?'var(--ch-bg3)':'var(--ch-bg3)'};color:${on?col:'var(--ch-dim)'}">${p==='none'?'none':EDGE_PRESETS[p].label}</button>`; }).join('');
   wrap.innerHTML=
-    `<p style="font-size:11px;color:#5C8A66;margin:0 0 10px">EDGE · ${edgeShort(e.from)} → ${edgeShort(e.to)}</p>`
-    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">label</label><textarea id="ee-label" rows="1" placeholder="optional" style="flex:1;resize:vertical;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;font-size:12px;padding:4px 7px;">${(e.label||'').replace(/</g,'&lt;')}</textarea></div>`
-    +`<div class="row"><label>quick</label><span id="ee-quick" style="flex:1;display:flex;gap:4px;flex-wrap:wrap">${['request','response','data','packets','event','error'].map(q=>`<button data-q="${q}" style="font-family:inherit;font-size:11px;padding:3px 10px;cursor:pointer;border-radius:99px;border:1px solid #22301f;background:#0F1710;color:#7da88a">${q}</button>`).join('')}</span></div>`
-    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">caption</label><textarea id="ee-cap" rows="1" placeholder="optional 2nd line" style="flex:1;resize:vertical;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;font-size:12px;padding:4px 7px;">${(e.caption||'').replace(/</g,'&lt;')}</textarea></div>`
+    `<p style="font-size:11px;color:var(--ch-dim);margin:0 0 10px">EDGE · ${edgeShort(e.from)} → ${edgeShort(e.to)}</p>`
+    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">label</label><textarea id="ee-label" rows="1" placeholder="optional" style="flex:1;resize:vertical;min-height:26px;font-size:12px;padding:4px 7px;">${(e.label||'').replace(/</g,'&lt;')}</textarea></div>`
+    +`<div class="row"><label>quick</label><span id="ee-quick" style="flex:1;display:flex;gap:4px;flex-wrap:wrap">${['request','response','data','packets','event','error'].map(q=>`<button data-q="${q}" style="font-family:var(--ch-font);font-size:11px;padding:3px 10px;cursor:pointer;border-radius:99px;border:1px solid var(--ch-line);background:var(--ch-bg3);color:var(--ch-dim)">${q}</button>`).join('')}</span></div>`
+    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">caption</label><textarea id="ee-cap" rows="1" placeholder="optional 2nd line" style="flex:1;resize:vertical;min-height:26px;font-size:12px;padding:4px 7px;">${(e.caption||'').replace(/</g,'&lt;')}</textarea></div>`
     +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">preset</label><span data-eseg="preset" style="flex:1;display:flex;gap:4px;flex-wrap:wrap">${presetChips}</span></div>`
     +`<div class="row"><label>routing</label>${seg('routing',['smooth','step','straight','curved'],{smooth:'Smooth',step:'Step',straight:'Straight',curved:'Curved'})}</div>`
     +`<div class="row"><label>branch</label>${seg('branch',['none','success','error'],{none:'None',success:'Success',error:'Error'})}</div>`
-    +`<div class="row"><label>weight</label><input type="range" id="ee-w" min="1" max="5" step="0.5" value="${+e.weight||2}" style="flex:2;accent-color:#39FF7A"><input type="number" id="ee-wn" min="1" max="5" step="0.5" value="${+e.weight||2}" style="width:56px;flex:none"></div>`
+    +`<div class="row"><label>weight</label><input type="range" id="ee-w" min="1" max="5" step="0.5" value="${+e.weight||2}" style="flex:2;accent-color:var(--ch-focus)"><input type="number" id="ee-wn" min="1" max="5" step="0.5" value="${+e.weight||2}" style="width:56px;flex:none"></div>`
     +`<div class="row"><label>from → to</label><select id="ee-fp">${['auto','top','right','bottom','left'].map(o=>`<option ${ (e.fromPort||'auto')===o?'selected':''}>${o}</option>`).join('')}</select><select id="ee-tp">${['auto','top','right','bottom','left'].map(o=>`<option ${ (e.toPort||'auto')===o?'selected':''}>${o}</option>`).join('')}</select></div>`
-    +`<div class="row"><label>animate</label><input type="checkbox" id="ee-anim" ${e.animate!==false?'checked':''} style="accent-color:#39FF7A"><span style="font-size:10px;color:#3a5540">direction shown by flow</span></div>`
+    +`<div class="row"><label>animate</label><input type="checkbox" id="ee-anim" ${e.animate!==false?'checked':''} style="accent-color:var(--ch-focus)"><span style="font-size:10px;color:var(--ch-mut)">direction shown by flow</span></div>`
     +`<div class="row"><label>direction</label>${seg('dir',['fwd','both','bwd'],{fwd:'→',both:'⇄',bwd:'←'})}</div>`
     +`<div class="row"><label>style</label>${seg('style',['dots','dash','pulse'],{dots:'◉ Dots',dash:'— Dash',pulse:'∿ Pulse'})}</div>`
-    +`<div class="row"><label>speed</label><input type="range" id="ee-s" min="0.25" max="3" step="0.25" value="${+e.speed||1}" style="flex:2;accent-color:#39FF7A"><input type="number" id="ee-sn" min="0.25" max="3" step="0.25" value="${+e.speed||1}" style="width:56px;flex:none"></div>`
-    +`<div class="row"><button id="ee-del" style="flex:1;font-family:inherit;font-size:11px;background:none;color:#FF5555;border:1px solid #552222;cursor:pointer;padding:6px;border-radius:4px">🗑 delete edge</button></div>`;
-  const rerender=()=>{ renderCanvas(); renderEdgesList(); autosave(); };
+    +`<div class="row"><label>speed</label><input type="range" id="ee-s" min="0.25" max="3" step="0.25" value="${+e.speed||1}" style="flex:2;accent-color:var(--ch-focus)"><input type="number" id="ee-sn" min="0.25" max="3" step="0.25" value="${+e.speed||1}" style="width:56px;flex:none"></div>`
+    +`<div class="row"><button id="ee-del" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-red);border:1px solid var(--ch-line);cursor:pointer;padding:6px;border-radius:4px">🗑 delete edge</button></div>`;
+  const rerender=()=>{ renderCanvas(); autosave(); };
   const lab=wrap.querySelector('#ee-label'), cap=wrap.querySelector('#ee-cap');
   if(lab) lab.oninput=()=>{ e.label=lab.value; rerender(); };
   if(cap) cap.oninput=()=>{ e.caption=cap.value; rerender(); };
@@ -2241,7 +2168,7 @@ function renderInspector(){
   }
   wrap.style.display='block'; empty.style.display='none';
   const reg=REGISTRY[c.type];
-  let html=`<p style="font-size:11px;color:${c.draft?'#FFB000':'#5C8A66'};margin:0 0 10px">${c.draft?'PREVIEW (draft) · ':''}${reg.name}${reg.help?` — ${reg.help}`:''}</p>`;
+  let html=`<p style="font-size:11px;color:${c.draft?'var(--ch-amber)':'var(--ch-dim)'};margin:0 0 10px">${c.draft?'PREVIEW (draft) · ':''}${reg.name}${reg.help?` — ${reg.help}`:''}</p>`;
 
   // transform row — slider + number input side by side
   const W=parseInt((typeof inW!=='undefined'&&inW.value))||1920, H=parseInt((typeof inH!=='undefined'&&inH.value))||1080;
@@ -2250,7 +2177,7 @@ function renderInspector(){
   const num=(id,lbl,val)=>{
     const mn=RANGES[id][0], mx=RANGES[id][1], st=STEPS[id];
     return `<div class="row"><label>${lbl}</label>
-      <input type="range" data-p="${id}" min="${mn}" max="${mx}" step="${st}" value="${val}" style="flex:2;min-width:0;accent-color:#39FF7A">
+      <input type="range" data-p="${id}" min="${mn}" max="${mx}" step="${st}" value="${val}" style="flex:2;min-width:0;accent-color:var(--ch-focus)">
       <input type="number" data-p="${id}" min="${mn}" max="${mx}" step="${st}" value="${val}" style="width:64px;flex:none"></div>`;
   };
     html+=num('x','x',c.x)+num('y','y',c.y)+num('scale','scale ×',c.scale)
@@ -2260,7 +2187,7 @@ function renderInspector(){
   const szRow=(id,lbl,val,max)=>{
     const has=(val!==undefined&&val!==null&&val!=='');
     return `<div class="row"><label>${lbl}</label>
-      <input type="range" data-szr="${id}" min="20" max="${max}" step="2" value="${has?val:Math.round(max*0.4)}" style="flex:2;accent-color:#39FF7A">
+      <input type="range" data-szr="${id}" min="20" max="${max}" step="2" value="${has?val:Math.round(max*0.4)}" style="flex:2;accent-color:var(--ch-focus)">
       <input type="number" data-szn="${id}" min="0" step="2" value="${has?val:''}" placeholder="auto" style="width:64px;flex:none">
       ${has?`<button class="mini" data-szx="${id}" title="back to automatic size">auto</button>`
            :`<button class="mini" data-szs="${id}" title="lock the current rendered size">set</button>`}</div>`;
@@ -2282,11 +2209,11 @@ function renderInspector(){
   // font size multiplier (any component with text)
   c.fscale=c.fscale||1;
   html+=`<div class="row"><label>font ×</label>
-    <input type="range" data-fs min="0.4" max="3" step="0.05" value="${c.fscale}" style="flex:2;accent-color:#39FF7A">
+    <input type="range" data-fs min="0.4" max="3" step="0.05" value="${c.fscale}" style="flex:2;accent-color:var(--ch-focus)">
     <input type="number" data-fsn min="0.1" step="0.05" value="${c.fscale}" style="width:64px;flex:none"></div>`;
   if(typeof c.animDelay==='number' && c.anim!=='none'){
     html+=`<div class="row"><label>anim delay</label>
-      <input type="range" data-p="animDelay" min="0" max="5" step="0.1" value="${c.animDelay}" style="flex:2;accent-color:#39FF7A">
+      <input type="range" data-p="animDelay" min="0" max="5" step="0.1" value="${c.animDelay}" style="flex:2;accent-color:var(--ch-focus)">
       <input type="number" data-p="animDelay" min="0" step="0.1" value="${c.animDelay}" style="width:64px;flex:none"></div>`;
   }
 
@@ -2294,14 +2221,14 @@ function renderInspector(){
   const THEME=[['#39FF7A','phos-green'],['#FFB000','amber'],['#FF5555','alert-red'],['#D3FFDE','mint'],
                ['#57C7C0','cyan-dim'],['#5C8A66','text-dim'],['#1E2A1E','line-dim'],['#101710','panel'],['#0A0F0A','bg-deep']];
   c.props.color=c.props.color||'';
-  html+=`<div class="row" style="margin-top:12px;padding-top:10px;border-top:1px solid #1E2A1E;flex-wrap:wrap">
+  html+=`<div class="row" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--ch-line);flex-wrap:wrap">
            <label>color</label>
            <span id="swatches" style="display:flex;gap:4px;flex-wrap:wrap">
              ${THEME.map(([hex,n])=>`<button data-hex="${hex}" title="${n}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${c.props.color===hex?'#fff':'transparent'};background:${hex};cursor:pointer"></button>`).join('')}
            </span></div>
          <div class="row"><label>custom hex</label>
-           <input type="color" id="pick-color" value="${c.props.color||'#39FF7A'}" style="width:40px;height:26px;padding:0;border:1px solid #1E2A1E;background:none">
-           <input type="text" id="hex-color" placeholder="#RRGGBB" value="${c.props.color}" style="flex:1">
+           <input type="color" id="pick-color" value="${c.props.color||themeHex('--phos-green','#39FF7A')}" style="width:40px;height:26px;padding:0;border:1px solid var(--ch-line);background:none">
+           <input type="text" id="hex-color" placeholder="#RRGGBB" value="${c.props.color}" style="flex:1;font-family:var(--ch-mono);font-size:12px;padding:4px 7px;">
          </div>
          <div class="row" style="flex-wrap:wrap">
            <label>background</label>
@@ -2309,32 +2236,35 @@ function renderInspector(){
              ${THEME.map(([hex,n])=>`<button data-hex="${hex}" title="${n}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${c.props.bg===hex?'#fff':'transparent'};background:${hex};cursor:pointer"></button>`).join('')}
            </span></div>
          <div class="row"><label>bg hex</label>
-           <input type="text" id="hex-bg" placeholder="#RRGGBB — leave empty for default" value="${c.props.bg||''}" style="flex:1">
+           <input type="text" id="hex-bg" placeholder="#RRGGBB — leave empty for default" value="${c.props.bg||''}" style="flex:1;font-family:var(--ch-mono);font-size:12px;padding:4px 7px;">
          </div>`;
 
   // animation row
   c.animDur=(c.animDur!==undefined?c.animDur:0.6); c.animDelay=(c.animDelay!==undefined?c.animDelay:0);
   const effAnim=c.anim || TK_DEFAULT_ANIM[c.type] || 'none';   // auto-default until you pick one (picking 'none' sticks)
   const animOpts=Object.entries(ANIMS).map(([k,v])=>`<option value="${k}" ${effAnim===k?'selected':''}>${v}</option>`).join('');
-  html+=`<div class="row" style="margin-top:12px;padding-top:10px;border-top:1px solid #1E2A1E">
+  html+=`<div class="row" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--ch-line)">
            <label>animation</label>
            <select id="anim-select">${animOpts}</select></div>
          <div class="row"><label>duration s</label>
-           <input type="range" id="anim-dur" min="0.1" max="3" step="0.1" value="${c.animDur||0.6}" style="flex:2;accent-color:#39FF7A">
+           <input type="range" id="anim-dur" min="0.1" max="3" step="0.1" value="${c.animDur||0.6}" style="flex:2;accent-color:var(--ch-focus)">
            <input type="number" id="anim-dur-n" step="0.1" min="0.1" value="${c.animDur||0.6}" style="width:56px"></div>
          <div class="row"><label>delay s</label>
-           <input type="range" id="anim-delay" min="0" max="5" step="0.1" value="${c.animDelay||0}" style="flex:2;accent-color:#39FF7A">
+           <input type="range" id="anim-delay" min="0" max="5" step="0.1" value="${c.animDelay||0}" style="flex:2;accent-color:var(--ch-focus)">
            <input type="number" id="anim-delay-n" step="0.1" min="0" value="${c.animDelay||0}" style="width:56px"></div>
-          <div class="row"><button id="anim-replay" style="flex:1;font-family:inherit;font-size:11px;background:none;color:#39FF7A;border:1px solid #39FF7A;cursor:pointer;padding:5px">▶ replay on canvas</button></div>
-          <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px solid #1E2A1E"><label>hold s</label>
+          <div class="row"><button id="anim-replay" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-accent);border:1px solid var(--ch-accent);cursor:pointer;padding:5px;border-radius:4px">▶ replay on canvas</button></div>
+          <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--ch-line)"><label>hold s</label>
             <input type="number" id="seq-hold-n" min="0" max="30" step="0.1" value="${c.seqHold!==undefined?c.seqHold:''}" placeholder="auto" style="width:64px;flex:none">
-            <span style="font-size:10px;color:#3a5540">auto-play pause after this · blank = global</span></div>
+            <span style="font-size:10px;color:var(--ch-mut)">auto-play pause after this · blank = global</span></div>
           <div class="row"><label>🧹 clear</label>
-            <input type="checkbox" id="seq-clear" ${c.clearBefore?'checked':''} style="accent-color:#FFB000">
-            <span style="font-size:10px;color:#3a5540">empty screen before this step</span></div>
+            <input type="checkbox" id="seq-clear" ${c.clearBefore?'checked':''} style="accent-color:var(--ch-amber)">
+            <span style="font-size:10px;color:var(--ch-mut)">empty screen before this step</span></div>
           <div class="row"><label>📌 pin</label>
-            <input type="checkbox" id="seq-pin" ${c.pin?'checked':''} style="accent-color:#FFB000">
-            <span style="font-size:10px;color:#3a5540">survives clears</span></div>
+            <input type="checkbox" id="seq-pin" ${c.pin?'checked':''} style="accent-color:var(--ch-amber)">
+            <span style="font-size:10px;color:var(--ch-mut)">survives clears</span></div>
+          <div class="row"><label>🅿 park</label>
+            <input type="checkbox" id="seq-park" ${c.parked?'checked':''} style="accent-color:var(--ch-amber)">
+            <span style="font-size:10px;color:var(--ch-mut)">hide from story (kept safe)</span></div>
           <div class="row" style="align-items:flex-start"><label style="padding-top:5px">⊘ hide</label>
             <span id="seq-hides" style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow-y:auto"></span></div>`;
 
@@ -2347,7 +2277,7 @@ function renderInspector(){
       const opts=(reg.options[f]||[]).map(o=>`<option ${c.props[f]===o?'selected':''}>${o}</option>`).join('');
       html+=`<div class="row"><label>${f}</label><select data-prop="${f}">${opts}</select></div>`;
     } else if(t==='image'){
-      html+=`<div class="row"><label>${f}</label><input type="file" accept="image/*" data-img="${f}" style="flex:1;font-size:11px;color:#7da88a"></div>`;
+      html+=`<div class="row"><label>${f}</label><input type="file" accept="image/*" data-img="${f}" style="flex:1;font-size:11px;color:var(--ch-dim)"></div>`;
     } else if(f.toLowerCase().includes('accent')){
       const av=c.props[f]||'';
       const isTheme=!av||av.startsWith('var(');
@@ -2359,7 +2289,7 @@ function renderInspector(){
       if(isNum){
         html+=`<div class="row"><label>${f}</label><input type="number" data-prop="${f}" value="${String(c.props[f]).replace(/"/g,'&quot;')}"></div>`;
       } else {
-        html+=`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">${f}</label><textarea data-prop="${f}" rows="2" style="width:100%;resize:vertical;min-height:40px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;font-size:12px;padding:4px 7px;">${String(c.props[f]).replace(/</g,'&lt;')}</textarea></div>`;
+        html+=`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">${f}</label><textarea data-prop="${f}" rows="2" style="width:100%;resize:vertical;min-height:40px;font-size:12px;padding:4px 7px;">${String(c.props[f]).replace(/</g,'&lt;')}</textarea></div>`;
       }
     }
   });
@@ -2462,21 +2392,24 @@ function renderInspector(){
   if(clr){ clr.onchange=()=>{ snap(); c.clearBefore=clr.checked||undefined; if(!c.clearBefore) delete c.clearBefore; render(); renderStrip(); }; }
   const pin=wrap.querySelector('#seq-pin');
   if(pin){ pin.onchange=()=>{ snap(); c.pin=pin.checked||undefined; if(!c.pin) delete c.pin; render(); renderStrip(); }; }
+  const park=wrap.querySelector('#seq-park');
+  if(park){ park.onchange=()=>{ snap(); c.parked=park.checked||undefined; if(!c.parked) delete c.parked;
+    if(c.parked) selId=null; render(); renderStrip(); }; }
   // ⊘ hide picker — tick earlier comps that retire when THIS step appears
   const hideBox=wrap.querySelector('#seq-hides');
   if(hideBox){
     c.hides=Array.isArray(c.hides)?c.hides.filter(id=>comps.some(x=>x.id===id && x.id!==c.id)):[];
     const others=comps.filter(x=>x.id!==c.id && !x.parked);
-    if(!others.length) hideBox.innerHTML='<span style="font-size:10px;color:#3a5540">nothing to hide — add more comps</span>';
+    if(!others.length) hideBox.innerHTML='<span style="font-size:10px;color:var(--ch-mut)">nothing to hide — add more comps</span>';
     others.forEach(o=>{
       const lab=document.createElement('label');
-      lab.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#7da88a;border:1px solid #22301f;border-radius:4px;padding:2px 6px;cursor:pointer';
-      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=c.hides.includes(o.id); cb.style.accentColor='#FFB000';
+      lab.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--ch-dim);border:1px solid var(--ch-line);border-radius:4px;padding:2px 6px;cursor:pointer';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=c.hides.includes(o.id); cb.style.accentColor='var(--ch-amber)';
       cb.onchange=()=>{ snap();
-        if(cb.checked){ if(!c.hides.includes(o.id)) c.hides.push(o.id); lab.style.color='#FFB000'; lab.style.borderColor='#FFB000'; }
+        if(cb.checked){ if(!c.hides.includes(o.id)) c.hides.push(o.id); lab.style.color='var(--ch-amber)'; lab.style.borderColor='var(--ch-amber)'; }
         else { c.hides=c.hides.filter(id=>id!==o.id); lab.style.color=''; lab.style.borderColor=''; }
-        renderList(); renderStrip(); autosave(); };
-      if(cb.checked){ lab.style.color='#FFB000'; lab.style.borderColor='#FFB000'; }
+        renderStrip(); autosave(); };
+      if(cb.checked){ lab.style.color='var(--ch-amber)'; lab.style.borderColor='var(--ch-amber)'; }
       lab.appendChild(cb);
       const nm=document.createElement('span');
       nm.textContent=`${comps.indexOf(o)+1}.${o.type}`;
@@ -2516,7 +2449,7 @@ function renderInspector(){
     const cur=(typeof c.revealed==='number')?c.revealed:total;
     const row=document.createElement('div');
     row.className='row'; row.style.flexWrap='wrap';
-    row.innerHTML=`<label>lines</label><span class="linecount" style="flex:1;font-size:11px;color:#7da88a">${cur}/${total} shown</span>`;
+    row.innerHTML=`<label>lines</label><span class="linecount" style="flex:1;font-size:11px;color:var(--ch-dim)">${cur}/${total} shown</span>`;
     const mk=(txt,ttl,fn)=>{ const b=document.createElement('button'); b.className='mini'; b.textContent=txt; b.title=ttl; b.onclick=e=>{ e.stopPropagation(); fn(); renderInspector(); }; return b; };
     row.append(
       mk('▸ next','reveal next line (or press Space with component selected)',()=>{ c.revealed=Math.min(total,(typeof c.revealed==='number'?c.revealed+1:1)); renderCanvas(); }),
@@ -2530,7 +2463,7 @@ function renderInspector(){
   if(c.type==='image'){
     const frow=document.createElement('div');
     frow.className='row';
-    frow.innerHTML=`<label>file</label><input type="file" accept="image/*" style="flex:1;font-size:11px;color:#7da88a">`;
+    frow.innerHTML=`<label>file</label><input type="file" accept="image/*" style="flex:1;font-size:11px;color:var(--ch-dim)">`;
     frow.querySelector('input').onchange=e=>{
       const f=e.target.files[0]; if(!f) return;
       const r=new FileReader();
@@ -2543,7 +2476,7 @@ function renderInspector(){
   // spotlight membership — lit whenever 💡 spotlight is on
   const sp=document.createElement('button');
   sp.textContent=c.spot?'💡 in spotlight (click to remove)':'💡 add to spotlight';
-  sp.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:'+(c.spot?'#2A2409':'#101710')+';color:'+(c.spot?'#FFB000':'#7da88a')+';border:1px solid '+(c.spot?'#FFB000':'#1E2A1E')+';padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
+  sp.style.cssText='margin-top:8px;font-family:var(--ch-font);font-size:12px;background:var(--ch-bg3);color:'+(c.spot?'var(--ch-amber)':'var(--ch-dim)')+';border:1px solid '+(c.spot?'var(--ch-amber)':'var(--ch-line)')+';padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
   sp.title='this component stays bright whenever the 💡 spotlight is on';
   sp.onclick=()=>{ c.spot=!c.spot; render(); };
   wrap.appendChild(sp);
@@ -2551,7 +2484,7 @@ function renderInspector(){
   // 🔁 recurring cast — survives 🧹 chapter breaks, lit in every beat
   const cy=document.createElement('button');
   cy.textContent=c.carry?'🔁 in every scene (click to remove)':'🔁 add to every scene';
-  cy.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:'+(c.carry?'#2A2409':'#101710')+';color:'+(c.carry?'#FFB000':'#7da88a')+';border:1px solid '+(c.carry?'#FFB000':'#1E2A1E')+';padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
+  cy.style.cssText='margin-top:8px;font-family:var(--ch-font);font-size:12px;background:var(--ch-bg3);color:'+(c.carry?'var(--ch-amber)':'var(--ch-dim)')+';border:1px solid '+(c.carry?'var(--ch-amber)':'var(--ch-line)')+';padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
   cy.title='this component stays on screen in EVERY beat — even across 🧹 empty-screen chapters';
   cy.onclick=()=>{ c.carry=!c.carry; render(); };
   wrap.appendChild(cy);
@@ -2559,14 +2492,14 @@ function renderInspector(){
   // lock toggle
   const lk=document.createElement('button');
   lk.textContent=c.locked?'🔒 locked (click to unlock)':'🔓 unlocked (click to lock)';
-  lk.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:#101710;color:'+(c.locked?'#FFB000':'#7da88a')+';border:1px solid #1E2A1E;padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
+  lk.style.cssText='margin-top:8px;font-family:var(--ch-font);font-size:12px;background:var(--ch-bg3);color:'+(c.locked?'var(--ch-amber)':'var(--ch-dim)')+';border:1px solid var(--ch-line);padding:6px 12px;cursor:pointer;width:100%;border-radius:4px';
   lk.onclick=()=>{ c.locked=!c.locked; render(); };
   wrap.appendChild(lk);
 
   // save to library button
   const save=document.createElement('button');
   save.textContent='💾 3 · save to SAVED COMPONENTS';
-  save.style.cssText='margin-top:8px;font-family:inherit;font-size:12px;background:#0F2417;color:#39FF7A;border:1px solid #1E4630;padding:7px 12px;cursor:pointer;width:100%;border-radius:4px';
+  save.style.cssText='margin-top:8px;font-family:var(--ch-font);font-size:12px;background:var(--ch-accent);color:#fff;border:1px solid var(--ch-accent);padding:7px 12px;cursor:pointer;width:100%;border-radius:4px';
   save.title='copies this component (with all its config) into Saved Components — the copy on the scene is independent';
   save.onclick=()=>saveComp(c);
   wrap.appendChild(save);
@@ -2619,11 +2552,11 @@ function addCompFrom(src){
   comps.push(c);
   return c;
 }
-document.getElementById('btn-scene-clear').onclick=()=>{
+function clearStory(){
   // wipe the whole story — snap() makes it undoable
   snap(); comps=[]; edges=[]; selId=null; selEdge=null; draft=null; seqExit(); curBeat=0;
   render(); renderStrip();
-};
+}
 /* 🔍 alignment debugger — compare builder coords vs popup reality */
 function debugPopupAlign(){
   const lines=[];
@@ -2670,11 +2603,7 @@ function debugPopupAlign(){
   prompt('ALIGNMENT REPORT - copy this:', txt);
 }
 window.__dbgAlign=debugPopupAlign;
-const dbgBtn=document.createElement('button');
-dbgBtn.className='mini'; dbgBtn.textContent='🔍 align check';
-dbgBtn.title='compare builder coordinates with the popout';
-dbgBtn.onclick=function(){ try{ debugPopupAlign(); }catch(e){ alert('debug failed: '+e.message); } };
-document.querySelector('#sec-recording .sec-head span').appendChild(dbgBtn);
+/* (align-check button removed from chrome — use __dbgAlign() in console) */
 
 /* ============ canvas drag + keyboard ============ */
 /* ============ component animations ============ */
@@ -2912,6 +2841,8 @@ addEventListener('keydown',e=>{
     return;
   }
   if(e.key==='Escape' && !typing){
+    const fm=document.getElementById('file-menu');
+    if(fm && !fm.hidden){ fm.hidden=true; e.preventDefault(); return; }
     if(connectPending){ cancelConnect(); e.preventDefault(); return; }
     if(nodeDrag){ cancelNodeDrag(); e.preventDefault(); return; }
     if(typeof EXP!=='undefined' && EXP.busy){ EXP.cancel=true; e.preventDefault(); return; }
@@ -2929,6 +2860,10 @@ addEventListener('keydown',e=>{
   }
   const c=comps.find(x=>x.id===selId);
   if(!c || typing) return;
+  if((e.key==='d'||e.key==='D')&&(e.ctrlKey||e.metaKey)){ seqDuplicateSel(); e.preventDefault(); return; }
+  if(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown')){
+    seqMoveSel(e.key==='ArrowUp'?-1:1); e.preventDefault(); return;
+  }
   const step=e.shiftKey?20:2;
   if(e.key==='ArrowLeft'){c.x-=step;} else if(e.key==='ArrowRight'){c.x+=step;}
   else if(e.key==='ArrowUp'){c.y-=step;} else if(e.key==='ArrowDown'){c.y+=step;}
@@ -3025,6 +2960,23 @@ function seqAutoPlay(){
   seqAutoStep();
 }
 function seqStopAuto(){ SEQ.auto=false; seqStopAutoTimer(); renderStrip(); }
+function seqMoveSel(d){   // reorder the SELECTED component in the play order
+  const i=comps.findIndex(x=>x.id===selId);
+  if(i<0){ toastMsg('select a component first — then ↑↓ reorders it'); return; }
+  const j=i+d;
+  if(j<0||j>=comps.length) return;
+  snap(); [comps[i],comps[j]]=[comps[j],comps[i]];
+  render(); renderStrip();
+}
+function seqDuplicateSel(){
+  const i=comps.findIndex(x=>x.id===selId);
+  if(i<0){ toastMsg('select a component first — then duplicate'); return null; }
+  snap();
+  const c=comps[i], d=structuredClone(c);
+  delete d._played; d.id=uid(); d.z=c.z+1;
+  comps.splice(i+1,0,d); selId=d.id; render(); renderStrip();
+  return d;
+}
 // legacy shims — old project files / old code paths call these
 function beatTotal(){ return Math.max(1, comps.length); }
 function beatName(i){ const c=comps[i]; if(!c) return 'step '+(i+1);
@@ -3062,12 +3014,19 @@ function renderStrip(){
     b.onclick=e=>{ e.stopPropagation(); fn(); }; return b; };
   // transport
   const mode=document.createElement('span');
-  mode.style.cssText='font-size:11px;color:'+(SEQ.active?(SEQ.auto?'#FFB000':'#39FF7A'):'#5C8A66')+';letter-spacing:1px;white-space:nowrap';
+  mode.className='sqmode'+(SEQ.active?(SEQ.auto?' auto':' on'):'');
   mode.textContent=SEQ.active? (SEQ.auto?`● AUTO ${SEQ.shown}/${comps.length}` : `▶ STEP ${SEQ.shown}/${comps.length}`) : `SEQUENCE · ${comps.length}`;
   strip.appendChild(mode);
+  // header transport buttons mirror playback state
+  const tPlay=document.getElementById('t-play'), tAuto=document.getElementById('t-auto');
+  if(tPlay) tPlay.style.display=SEQ.active?'none':'';
+  if(tAuto) tAuto.style.display=SEQ.active?'none':'';
+  const tHold=document.getElementById('t-hold');
+  if(tHold && document.activeElement!==tHold) tHold.value=SEQ.holdDefault;
   if(!SEQ.active){
-    strip.append(mkBtn('▶ play','play from blank — Space = next component',()=>seqPlay(0),true));
-    if(comps.length) strip.append(mkBtn('⏩ auto','auto-play all with hold timing (no recording)',()=>seqAutoPlay()));
+    strip.append(mkBtn('↑','move SELECTED component earlier in the sequence',()=>seqMoveSel(-1)));
+    strip.append(mkBtn('↓','move SELECTED component later in the sequence',()=>seqMoveSel(1)));
+    if(comps.length) strip.append(mkBtn('✕','delete every component (undoable)',()=>clearStory()));
   } else {
     strip.append(mkBtn('Space ⏭','show next (Space)',()=>seqNext(),true));
     strip.append(mkBtn('← back','show one less',()=>seqPrev()));
@@ -3075,23 +3034,13 @@ function renderStrip(){
     else strip.append(mkBtn('⏸ stop auto','stop auto-play, stay in step mode',()=>seqStopAuto()));
     strip.append(mkBtn('✕ exit','exit to edit mode (show all)',()=>seqExit()));
   }
-  // hold default
-  const hold=document.createElement('label');
-  hold.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#5C8A66;white-space:nowrap;margin-left:6px';
-  hold.innerHTML=`hold <input id="seq-hold" type="number" min="0" max="10" step="0.1" value="${SEQ.holdDefault}" style="width:52px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:3px 6px">s`;
-  strip.appendChild(hold);
-  const hi=hold.querySelector('#seq-hold');
-  hi.onclick=e=>e.stopPropagation();
-  hi.onchange=()=>{ const v=parseFloat(hi.value); if(isFinite(v)&&v>=0) SEQ.holdDefault=v; autosave(); };
   // sequence dots — click jumps to that step
   comps.forEach((c,i)=>{
     const shown=SEQ.active ? compVisible(c) : true;
     const pill=document.createElement('span');
-    pill.style.cssText='display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;cursor:pointer;font-size:11px;white-space:nowrap;'
-      +(SEQ.active?(shown?'background:#0F2417;border:1px solid #39FF7A;color:#39FF7A;':'background:#101710;border:1px solid #1E2A1E;color:#3a5540;')
-                  :'background:#101710;border:1px solid #1E2A1E;color:#7da88a;');
+    pill.className='sqpill'+(SEQ.active?(shown?' lit':' dim'):'');
     pill.title=`${i+1}. ${c.type}${c.clearBefore?' — 🧹 clears screen first':''}${c.pin?' — 📌 pinned':''} — click to ${SEQ.active?'jump here':'preview from here'}`;
-    const num=document.createElement('b'); num.textContent=i+1; num.style.cssText='font-family:VT323,monospace;font-size:14px;font-weight:400';
+    const num=document.createElement('b'); num.textContent=i+1;
     pill.appendChild(num);
     const nm=document.createElement('span');
     const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
@@ -3104,7 +3053,7 @@ function renderStrip(){
     strip.appendChild(pill);
   });
   if(!comps.length){
-    const d=document.createElement('span'); d.style.cssText='font-size:11px;color:#3a5540';
+    const d=document.createElement('span'); d.className='sqmode';
     d.textContent='empty — add components above, ↑↓ in STORY CANVAS sets the play order';
     strip.appendChild(d);
   }
@@ -3122,7 +3071,7 @@ function openBeatChooser(fresh){
     : 'tick components that stay on screen in this beat:';
   vis.forEach(c=>{
     const row=document.createElement('label');
-    row.style.cssText='display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12px;color:#D3FFDE;cursor:pointer';
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:12px;color:var(--ch-text);cursor:pointer';
     const cb=document.createElement('input'); cb.type='checkbox'; cb.dataset.id=c.id; cb.checked=!fresh;
     row.appendChild(cb);
     const nm=document.createElement('span');
@@ -3130,7 +3079,7 @@ function openBeatChooser(fresh){
     nm.textContent=c.type+(s?' · '+s.slice(0,26):'');
     row.appendChild(nm); list.appendChild(row);
   });
-  if(!vis.length) list.innerHTML='<span style="color:#3a5540;font-size:11px">canvas is empty — the new beat starts blank</span>';
+  if(!vis.length) list.innerHTML='<span style="color:var(--ch-mut);font-size:11px">canvas is empty — the new beat starts blank</span>';
   document.getElementById('beat-choose').style.display='block';
 }
 document.getElementById('bc-all').onclick=()=>{ document.querySelectorAll('#bc-list input').forEach(i=>i.checked=true); };
@@ -3197,7 +3146,7 @@ function importProject(d){
 function toastMsg(msg){
   let t=document.getElementById('navtoast');
   if(!t){ t=document.createElement('div'); t.id='navtoast';
-    t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#221616;color:#FFB000;border:1px solid #FFB000;padding:8px 18px;border-radius:4px;font-family:JetBrains Mono,monospace;font-size:13px;z-index:999;transition:opacity .5s';
+    t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999;transition:opacity .5s';
     document.body.appendChild(t); }
   t.textContent=msg; t.style.opacity='1';
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.style.opacity='0', 1500);
@@ -3464,8 +3413,9 @@ function pickRecMime(){
 function setRecBtn(on){
   const b=document.getElementById('btn-record');
   b.textContent=on?'⏹ stop':'⏺ REC';
-  b.style.color=on?'#39FF7A':'#FF5555';
-  b.style.borderColor=on?'#39FF7A':'#552222';
+  b.classList.toggle('rec-live',on);
+  const tc=document.getElementById('transport-tc');
+  if(tc && !on) tc.textContent='00:00.0';
   document.body.classList.toggle('recording', on);
   // header (with ⏺ REC) hides during cropped capture — the dialog buttons become the stop affordance
   const st=document.getElementById('rec-step'), au=document.getElementById('rec-auto');
@@ -3689,11 +3639,14 @@ async function startRec(autoMode){
     setLiveSync(true);             // Space advances the sequence live — crop follows the canvas
     rec.start(250);
     t0=performance.now();
+    const tcEl=document.getElementById('transport-tc');
+    const fmtT=s=>{ const m=Math.floor(s/60), ss=(s%60).toFixed(1).padStart(4,'0'); return `${String(m).padStart(2,'0')}:${ss}`; };
     REC.timer=setInterval(()=>{
-      const e=((performance.now()-t0)/1000).toFixed(1);
+      const e=(performance.now()-t0)/1000;
+      if(tcEl) tcEl.textContent=`● ${fmtT(e)}`;
       status.textContent= REC.autoMode
-        ? `● recording AUTO ${e}s${isFinite(durS)?' / '+durS+'s':''} — ${SEQ.shown}/${comps.length} shown · ⏹/Esc stops`
-        : `● recording STEP ${e}s${isFinite(durS)?' / '+durS+'s':''} — Space pulls (${SEQ.shown}/${comps.length}) · ⏹/Esc stops`;
+        ? `● recording AUTO ${e.toFixed(1)}s${isFinite(durS)?' / '+durS+'s':''} — ${SEQ.shown}/${comps.length} shown · ⏹/Esc stops`
+        : `● recording STEP ${e.toFixed(1)}s${isFinite(durS)?' / '+durS+'s':''} — Space pulls (${SEQ.shown}/${comps.length}) · ⏹/Esc stops`;
     },100);
     if(REC.autoMode) recAutoDrive();
     if(isFinite(durS)){
@@ -3729,6 +3682,19 @@ function fit(){
   const w=parseInt(inW.value)||1920, h=parseInt(inH.value)||1080;
   const s=Math.min((wrap.clientWidth-60)/w,(wrap.clientHeight-60)/h,1);
   document.getElementById('stage-scale').style.transform=`scale(${s})`;
+  centerStage();
+}
+/* measured centering: grid place-items can't be trusted with an oversized
+   scaled item (content drifts right, sliding under the sidebar) — so center
+   the painted scene in the viewport explicitly. Never fights manual pans:
+   only called from fit() (load / resize / canvas-size change). */
+function centerStage(){
+  try{
+    const wrap=document.querySelector('.stage-wrap');
+    const r=scene.getBoundingClientRect(), w=wrap.getBoundingClientRect();
+    wrap.scrollLeft+=Math.round((r.left+r.width/2)-(w.left+w.width/2));
+    wrap.scrollTop+=Math.round((r.top+r.height/2)-(w.top+w.height/2));
+  }catch(_){}
 }
 addEventListener('resize',fit); fit();
 renderSaved();
@@ -3746,7 +3712,7 @@ document.querySelectorAll('.rsz').forEach(h=>{
   });
 });
 (function(){
-  const bar=document.getElementById('sidebar-rsz'), aside=document.querySelector('aside');
+  const bar=document.getElementById('sidebar-rsz'), aside=document.getElementById('rail-right')||document.querySelector('aside');
   bar.addEventListener('mousedown',e=>{
     e.preventDefault();
     const startX=e.clientX, startW=aside.offsetWidth;
@@ -3790,8 +3756,7 @@ setInterval(autosave, 2000);
 SEQ.active=false; SEQ.shown=0;
 render(); renderStrip();
 
-document.getElementById('btn-export').onclick=()=>
-  alert(`Export:\n1. DevTools → inspect #scene → Cmd+Shift+P → "Capture node screenshot".\nFor animation: use ▶ present mode + OBS window capture.`);
+/* (old help-export button removed from chrome) */
 
 /* ============ project save / load (file) ============ */
 document.getElementById('btn-save').onclick=()=>{
@@ -3805,6 +3770,17 @@ document.getElementById('btn-save').onclick=()=>{
   a.click(); URL.revokeObjectURL(a.href);
 };
 document.getElementById('btn-open').onclick=()=>document.getElementById('file-open').click();
+/* File dropdown: toggle, close on outside click / Esc / after any action */
+document.getElementById('btn-filemenu').onclick=e=>{
+  e.stopPropagation();
+  document.getElementById('file-menu').hidden=!document.getElementById('file-menu').hidden;
+};
+document.getElementById('file-menu').addEventListener('click',()=>{
+  document.getElementById('file-menu').hidden=true;
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.tp-filemenu')) document.getElementById('file-menu').hidden=true;
+});
 document.getElementById('file-open').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
@@ -3874,11 +3850,12 @@ function openPopout(){
   if(popup && !popup.closed){ popup.close(); }
   popup=window.open('','llmao-scene',`width=${tw+16},height=${th+16},menubar=no,toolbar=no,location=no,status=no`);
   popup.document.write(`<!DOCTYPE html><html><head><title>llmao scene</title>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="css/core.css">
 <link rel="stylesheet" href="css/theme-glass.css">
 <link rel="stylesheet" href="css/theme-brutal.css">
+<link rel="stylesheet" href="css/chrome-precision.css">
     <link rel="stylesheet" href="css/phosphor.css">
     <style>${motionCSSForPopup()}</style>
     <style>html,body{margin:0;overflow:hidden;background:var(--bg-deep)}</style></head>
@@ -3933,10 +3910,7 @@ function updatePopout(){
 document.getElementById('btn-popout').onclick=openPopout;
 setInterval(updatePopout, 500); /* keep popout in sync while editing */
 
-/* present mode for OBS */
-document.getElementById('btn-present').onclick=()=>{
-  document.body.classList.add('present');
-};
+/* present mode for OBS (button removed from chrome — toggle via console if needed) */
 addEventListener('keydown',e=>{
   if(REC.active){ if(e.key==='Escape' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); REC.stop(); } return; }
   if(e.key==='Escape' && SPOT.active){ setSpot(false); }
