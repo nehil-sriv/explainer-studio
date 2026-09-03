@@ -211,6 +211,11 @@ body {
   /* present mode — everything hidden except the scene at 1:1, for OBS capture */
   body.present header, body.present aside, body.present footer { display:none; }
   body.present main { display:block; }
+  /* rec-crop mode — hide editor chrome so the canvas fills the tab during ⏺ REC.
+     The capture is cropped to #scene, so title bar / URL / UI never reach the clip. */
+  body.rec-crop header, body.rec-crop aside, body.rec-crop footer, body.rec-crop #sidebar-rsz { display:none; }
+  body.rec-crop main { display:block; }
+  body.rec-crop .stage-wrap { padding:0; overflow:hidden; height:100vh; }
   body.present .stage-wrap { padding:0; overflow:hidden; }
   body.present #stage-scale { transform:scale(1) !important; }
   body.present .scene.editing .comp { cursor:default; }
@@ -267,10 +272,11 @@ body {
     </section>
 
     <section id="sec-recording">
-      <div class="sec-head"><h2>2 · STORY CANVAS</h2>
+      <div class="sec-head"><h2>2 · STORY CANVAS · SEQUENCE</h2>
       <span style="display:flex;gap:6px">
         <button class="mini danger" id="btn-scene-clear" title="delete every component of the story">✕ clear all</button>
       </span></div>
+      <p class="hint">list order = play order · ↑↓ reorders · Space plays next</p>
       <ul id="complist" class="clean"></ul>
     </section>
 
@@ -332,14 +338,17 @@ body {
   </style>
   <div id="rec-pop">
     <div id="rec-pop-title">⏺ record clip</div>
-    <p class="hint">captures the ⧉ popout window in realtime — entrances play once, exactly as OBS would see them.</p>
+    <p class="hint">captures <b>only the canvas</b> (auto-cropped) — browser title, URL and editor UI never appear. Keep this tab visible during the take.</p>
     <div class="rec-row"><label>max s</label><input type="number" id="rec-dur" value="" min="1" max="7200" step="0.5" placeholder="∞ until ⏹"><span class="hint" style="margin:0">blank = run till you stop</span></div>
+    <div class="rec-row"><label>hold s</label><input type="number" id="rec-hold" value="1.6" min="0" max="10" step="0.1"><span class="hint" style="margin:0">auto mode pause / comp</span></div>
     <div id="rec-status"></div>
-    <div class="rec-btns">
-      <button class="mini primary" id="rec-start">⏺ start</button>
+    <div class="rec-btns" style="flex-wrap:wrap">
+      <button class="mini primary" id="rec-step">⏺ step · Space</button>
+      <button class="mini primary" id="rec-auto" style="color:#FFB000;border-color:#FFB000">⏩ auto · timed</button>
       <span style="flex:1"></span>
       <button class="mini" id="rec-close">close</button>
     </div>
+    <p class="hint" style="margin:8px 0 0">step = you press Space per component · auto = plays all with hold timing</p>
   </div>
   <style>
     #rec-pop { position:fixed; top:54px; right:14px; z-index:900; width:320px; background:#0F1710;
@@ -369,8 +378,8 @@ const TOUR=[
  {t:'1 · Available components', x:'Everything you can put on screen lives here — <b>terminals</b>, servers, pods, charts, fan-outs… 109 and counting.<br><br>Press <b>/</b> to search. Click one to drop it on the canvas.', sel:'#sec-palette'},
  {t:'The canvas', x:'What you see on this big dark canvas is <b>exactly what viewers see</b>.<br><br>Drag to move; click to edit text/colors/size in EDIT SELECTED below.', sel:'#sec-recording'},
  {t:'EDIT SELECTED', x:'Every component is editable: position (x/y), size, rotation, colors, entrance animations — even word-by-word color tags like <b>[r]word[/r]</b>.', sel:'#inspector'},
- {t:'BEATS — the story strip', x:'The bottom bar is your story, beat by beat. <b>＋</b> adds a beat; drop components there; <b>Space / →</b> advances, <b>←</b> goes back.<br><br>Older beats never disappear — the story accumulates while you talk.', sel:'#beatbar'},
- {t:'⏺ REC + 💡 spotlight', x:'<b>⏺ REC</b> records the ⧉ popout straight to MP4 — Space walks your beats live. <b>S</b> spotlights the selected component (dims everything else); <b>Esc</b> exits.', sel:'#sec-recording'},
+ {t:'SEQUENCE — the story strip', x:'The bottom bar is your story in play order. <b>↑↓</b> in STORY CANVAS reorders it. <b>▶ play</b> starts blank, <b>Space / →</b> shows next, <b>←</b> goes back, <b>Esc</b> exits to edit.<br><br>Components accumulate — the story builds while you talk.', sel:'#beatbar'},
+ {t:'⏺ REC + 💡 spotlight', x:'<b>⏺ REC → step</b> records the ⧉ popout while YOU press Space. <b>⏩ auto</b> plays all with hold timing. <b>S</b> spotlights; <b>Esc</b> exits.', sel:'#sec-recording'},
  {t:"You're ready", x:'Open the example projects from 📂 to see full stories.<br><br>Start simple: kicker ＋ terminal, hit ⏺ REC, talk, Space. This help reopens via ❓.', sel:null},
 ];
 let ti=0;
@@ -430,16 +439,18 @@ document.querySelectorAll('aside section').forEach(s=>{
 const ACCENTS = ['#39FF7A','#FFB000','#FF5555','#57C7C0','#D3FFDE'];
 
 // global runtime state — declared early because renderCanvas reads these
-let curBeat=-1;       // beats timeline: -1 = blank pre-roll, 0 = first beat
-let beatStep={};      // beat -> how many comps of that beat are revealed ≤ curBeat is visible
+let curBeat=-1;       // LEGACY beats timeline (kept for old project compat) — SEQ is the source of truth now
+let beatStep={};      // legacy — kept so old code paths don't crash
+/* ===== SEQUENCE (linear story order) =====
+   comps array order === show order. SEQ.active=false → edit mode (show all).
+   SEQ.active=true → playback/record: show first SEQ.shown comps. Space = next. */
+const SEQ={ active:false, shown:0, auto:false, autoTimer:null, holdDefault:1.6 };
 /* universal parenting: ANY component can attach to / hold any other */
 function childrenOf(id){ return comps.filter(c=>c.parentId===id); }
 function revealComp(c){
-  // new/duplicated comps must be VISIBLE immediately — otherwise they sit hidden
-  // until Space, which desyncs builder vs popout
-  const b=(c.beat==null)?curBeat:c.beat;
-  const sibs=comps.filter(x=>((x.beat==null)?curBeat:x.beat)===b);
-  beatStep[b]=Math.max(beatStep[b]||0, sibs.length);
+  // SEQ mode: edit canvas always shows everything — nothing to reveal.
+  // Playback decides visibility via SEQ.shown, so new comps just appear at the end.
+  if(SEQ && !SEQ.active) return;
 }
 function containerAt(px,py,excludeId){
   for(let i=comps.length-1;i>=0;i--){ const c=comps[i];
@@ -1581,10 +1592,9 @@ function startDraft(type){
             rot:0, z:comps.length+10,
             opacity:(lastUsed.opacity!==null)?lastUsed.opacity:1,
             props:structuredClone(REGISTRY[type].props),
-            draft:true, beat:curBeat };
+            draft:true };
+  if(SEQ.active) seqExit();   // adding while playing → back to edit so you see it
   comps.push(c);
-  const sibs0=comps.filter(x=>(x.beat||0)===c.beat);
-  beatStep[c.beat]=sibs0.length;
   draft=type; selId=c.id; render();
 }
 
@@ -1636,21 +1646,8 @@ function renderCanvas(){
   scene.querySelectorAll('.comp').forEach(n=>n.remove());
   const crt=scene.querySelector('.crt'), corners=scene.querySelector('.corners');
   comps.forEach(c=>{
-    // --- beat visibility: 🧹 chapters + 🔁 carry, then isolated vs accumulative ---
+    // --- SEQUENCE visibility: edit = show all; playback = first SEQ.shown ---
     if(!compVisible(c)) return;
-    const bidx=(c.beat==null)?curBeat:c.beat;
-    const accum=(localStorage.getItem('ph-accum')==='1');
-    const isCarry=!!c.carry;
-    const sibsAll=comps.filter(x=>((x.beat==null)?curBeat:x.beat)===bidx);
-    const sibs=sibsAll.filter(x=>!x.carry);           // carries are always lit, never stepped
-    const pos=sibs.indexOf(c);
-    if(accum){
-      if(bidx>curBeat) return;
-      if(bidx===curBeat && !isCarry && pos>=(beatStep[bidx]!==undefined?beatStep[bidx]:sibs.length)) return;
-    } else {
-      if(!isCarry && bidx!==curBeat) return;          // 🔁 cast stays lit in every beat
-      if(!isCarry && bidx===curBeat && pos>=(beatStep[bidx]!==undefined?beatStep[bidx]:sibs.length)) return;
-    }
     const reg=REGISTRY[c.type];
     const el=document.createElement('div');
     const isFirstRender=!freshTrack.has(c);
@@ -1705,10 +1702,10 @@ function renderList(){
       b.onclick=e=>{ e.stopPropagation(); fn(); };
       return b; };
     li.append(
-      mk('↑','move earlier in scene',()=>{ if(i>0){ [comps[i-1],comps[i]]=[comps[i],comps[i-1]]; render(); } }),
-      mk('↓','move later in scene',()=>{ if(i<comps.length-1){ [comps[i+1],comps[i]]=[comps[i],comps[i+1]]; render(); } }),
+      mk('↑','move earlier in sequence — Space order',()=>{ if(i>0){ snap(); [comps[i-1],comps[i]]=[comps[i],comps[i-1]]; render(); renderStrip(); } }),
+      mk('↓','move later in sequence — Space order',()=>{ if(i<comps.length-1){ snap(); [comps[i+1],comps[i]]=[comps[i],comps[i+1]]; render(); renderStrip(); } }),
       mk('⧉','duplicate',()=>{ const d=structuredClone(c); delete d._played; d.id=uid(); d.z=c.z+1;
-                               comps.splice(i+1,0,d); revealComp(d); render(); }),
+                               comps.splice(i+1,0,d); render(); renderStrip(); }),
       mk('🗑','remove from recording scene',()=>{ comps=comps.filter(x=>x.id!==c.id); if(selId===c.id)selId=null; render(); },'danger')
     );
     li.onclick=()=>select(c.id);
@@ -1719,14 +1716,14 @@ function renderList(){
   if(parkedNow.length){
     const hd=document.createElement('div');
     hd.style.cssText='font-size:10px;color:#3a5540;padding:6px 2px 2px;border-top:1px solid #1E2A1E;margin-top:6px';
-    hd.textContent='🅿 parked ('+parkedNow.length+') — ▶ puts them back in the current beat';
+    hd.textContent='🅿 parked ('+parkedNow.length+') — ▶ puts them back at the end of the sequence';
     list.appendChild(hd);
     parkedNow.forEach(c=>{
       const li=document.createElement('li');
       li.style.cssText='opacity:.45';
       li.innerHTML=`<span class="name">${c.type}</span>`;
-      const b=document.createElement('button'); b.className='mini'; b.textContent='▶'; b.title='put back into the current beat';
-      b.onclick=e=>{ e.stopPropagation(); c.parked=false; c.beat=curBeat; snap(); render(); };
+      const b=document.createElement('button'); b.className='mini'; b.textContent='▶'; b.title='put back at the end of the sequence';
+      b.onclick=e=>{ e.stopPropagation(); c.parked=false; delete c.beat; snap(); render(); };
       li.appendChild(b); list.appendChild(li);
     });
   }
@@ -1862,7 +1859,10 @@ function renderInspector(){
          <div class="row"><label>delay s</label>
            <input type="range" id="anim-delay" min="0" max="5" step="0.1" value="${c.animDelay||0}" style="flex:2;accent-color:#39FF7A">
            <input type="number" id="anim-delay-n" step="0.1" min="0" value="${c.animDelay||0}" style="width:56px"></div>
-         <div class="row"><button id="anim-replay" style="flex:1;font-family:inherit;font-size:11px;background:none;color:#39FF7A;border:1px solid #39FF7A;cursor:pointer;padding:5px">▶ replay on canvas</button></div>`;
+          <div class="row"><button id="anim-replay" style="flex:1;font-family:inherit;font-size:11px;background:none;color:#39FF7A;border:1px solid #39FF7A;cursor:pointer;padding:5px">▶ replay on canvas</button></div>
+          <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px solid #1E2A1E"><label>hold s</label>
+            <input type="number" id="seq-hold-n" min="0" max="30" step="0.1" value="${c.seqHold!==undefined?c.seqHold:''}" placeholder="auto" style="width:64px;flex:none">
+            <span style="font-size:10px;color:#3a5540">auto-play pause after this · blank = global</span></div>`;
 
   // content props — every text field is an expandable textarea
   reg.fields.forEach(f=>{
@@ -1977,6 +1977,10 @@ function renderInspector(){
 
     wrap.querySelector('#anim-replay').onclick=()=>{ delete c._played; renderCanvas(); };
   }
+  const holdN=wrap.querySelector('#seq-hold-n');
+  if(holdN){ holdN.onchange=()=>{ const v=holdN.value.trim();
+      if(v==='') delete c.seqHold; else { const f=parseFloat(v); if(isFinite(f)&&f>=0) c.seqHold=f; }
+      autosave(); }; }
 
   const psel=wrap.querySelector('[data-parent]');
   if(psel){ psel.onchange=()=>{ c.parentId=psel.value||undefined; render(); }; }
@@ -2075,6 +2079,7 @@ function saveComp(c){
   saved.push({ name:`${c.type} · ${String(c.props.text||c.props.title||c.props.label||'').slice(0,24)}`,
                type:c.type, x:c.x, y:c.y, scale:c.scale, rot:c.rot, opacity:c.opacity,
                anim:c.anim||'none', animDur:(c.animDur!==undefined?c.animDur:0.6), animDelay:(c.animDelay!==undefined?c.animDelay:0),
+               seqHold:c.seqHold,
                props:structuredClone(c.props) });
   storeSaved(saved); renderSaved();
 }
@@ -2085,13 +2090,15 @@ function renderSaved(){
   saved.forEach((s,i)=>{
     const li=document.createElement('li');
     li.innerHTML=`<span class="name" title="${s.name}">${s.name}</span>`;
-    const add=document.createElement('button'); add.textContent='+ add'; add.title='place a duplicate on the recording scene';
+    const add=document.createElement('button'); add.textContent='+ add'; add.title='place a duplicate at the end of the sequence';
     add.onclick=e=>{ e.stopPropagation();
+      if(SEQ.active) seqExit();
       comps.push({ id:uid(), type:s.type, x:s.x, y:s.y, scale:s.scale, rot:s.rot,
                    z:comps.length+10, opacity:s.opacity,
                    anim:s.anim||'none', animDur:(s.animDur!==undefined?s.animDur:0.6), animDelay:(s.animDelay!==undefined?s.animDelay:0),
+                   seqHold:s.seqHold,
                    props:structuredClone(s.props) });
-      render(); };
+      render(); renderStrip(); };
     const del=document.createElement('button'); del.textContent='🗑'; del.className='danger'; del.title='delete from library';
     del.onclick=e=>{ e.stopPropagation(); saved.splice(i,1); storeSaved(saved); renderSaved(); };
     li.append(add,del); list.appendChild(li);
@@ -2104,15 +2111,14 @@ let currentSceneName=null;   // legacy name — kept so old project files load c
 function addCompFrom(src){
   const c=structuredClone(src);
   delete c._played;
-  c.id=uid(); c.draft=false; c.z=comps.length+10; c.beat=curBeat;
+  c.id=uid(); c.draft=false; c.z=comps.length+10; delete c.beat;
+  if(SEQ.active) seqExit();
   comps.push(c);
-  revealComp(c);
-  beatStep[c.beat]=sibs.length;
   return c;
 }
 document.getElementById('btn-scene-clear').onclick=()=>{
   // wipe the whole story — snap() makes it undoable
-  snap(); comps=[]; selId=null; draft=null; curBeat=0;
+  snap(); comps=[]; selId=null; draft=null; seqExit(); curBeat=0;
   render(); renderStrip();
 };
 /* 🔍 alignment debugger — compare builder coords vs popup reality */
@@ -2309,39 +2315,33 @@ addEventListener('keydown',e=>{
     if(!REC.liveSync) return;   // countdown/pre-roll stays locked
   }
   const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-  // ---- global keys: work regardless of selection ----
+  // ---- SEQUENCE transport: Space = next, ← = back, Esc = exit ----
   if((e.key===' '||e.key==='PageDown'||(e.key==='ArrowRight'&&!selId)) && !typing){
     e.preventDefault();
-    // 1. reveal next line of the stepped component you're focusing on
-    const c=comps.find(x=>x.id===selId);
-    if(e.key===' ' && c && c.props.stepped){
-      const total=(REGISTRY[c.type].markup(c.props).match(/tline|cline/g)||[]).length;
-      const cur=(typeof c.revealed==='number')?c.revealed:total;
-      if(cur<total){ c.revealed=cur+1; renderCanvas(); renderInspector(); return; }
-    }
-    // 2. reveal next non-carry component in this beat, or advance to next beat
-    const inBeat=comps.filter(c=>(c.beat==null?curBeat:c.beat)===curBeat && !c.parked);
-    const vis=(beatStep[curBeat]!==undefined?beatStep[curBeat]:0);
-    if(vis < inBeat.length){
-      beatStep[curBeat]=vis+1;
-      render(); renderStrip(); syncPopupSpot(); try{ camSyncForBeat(); }catch(_){}
+    if(REC.active && REC.autoMode){
+      toastMsg('auto-recording — Space disabled, ⏹ stops');
       return;
     }
-    if(curBeat<beatTotal()-1){
-      const nxt=curBeat+1;
-      beatGo(nxt);
-      // entering a 🧹 chapter beat: screen starts EMPTY (carry comps only);
-      // a normal beat pre-reveals its first component
-      beatStep[nxt]=beatFresh[nxt]?0:1;
-      render(); renderStrip(); syncPopupSpot(); try{ camSyncForBeat(); }catch(_){}
-      return;
+    // edit-mode selected stepped comp: Space reveals its next line first
+    if(e.key===' ' && !SEQ.active){
+      const c=comps.find(x=>x.id===selId);
+      if(c && c.props.stepped){
+        const total=(REGISTRY[c.type].markup(c.props).match(/tline|cline/g)||[]).length;
+        const cur=(typeof c.revealed==='number')?c.revealed:total;
+        if(cur<total){ c.revealed=cur+1; renderCanvas(); renderInspector(); return; }
+      }
     }
+    seqNext();
     return;
   }
   if((e.key==='PageUp'||(e.key==='ArrowLeft'&&!selId)) && !typing){
     e.preventDefault();
-    if(curBeat>0) beatGo(curBeat-1);
+    seqPrev();
     return;
+  }
+  if(e.key==='Escape' && !typing){
+    if(SEQ.auto){ seqStopAuto(); toastMsg('auto-play stopped — Space steps, Esc exits'); e.preventDefault(); return; }
+    if(SEQ.active){ seqExit(); e.preventDefault(); return; }
   }
   if((e.key==='s'||e.key==='S') && !typing && !e.ctrlKey && !e.metaKey){ e.preventDefault(); setSpot(!SPOT.active); return; }
   if(e.key==='Escape' && SPOT.active){ e.preventDefault(); setSpot(false); return; }   // Esc = back to regular canvas
@@ -2360,78 +2360,100 @@ addEventListener('keydown',e=>{
 
 /* ============ recording session: Space pulls next queued component in ============ */
 
-/* ============ BEATS — the story strip (bottom bar) ============ */
-let beatLabels=[];    // optional per-beat names; sparse
-const beatFresh={};    // 🧹 beat -> chapter break: entering it wipes non-carry comps
+/* ============ SEQUENCE — linear story order (replaces beats) ============ */
+let beatLabels=[];    // legacy — kept for old project files
+const beatFresh={};    // legacy — unused
+function seqIndex(c){ return comps.indexOf(c); }
 function compVisible(c){
-  if(c.parked) return false;                           // 🅿 picked out of the story — hidden but kept
-  const b=(c.beat==null)?curBeat:c.beat;
-  if(b>curBeat) return false;
-  return true;                                         // beats are cumulative: once in, always in
+  if(c.parked) return false;                           // 🅿 out of the story — hidden but kept
+  if(!SEQ.active) return true;                         // edit mode: show everything
+  return seqIndex(c) < SEQ.shown;                      // playback: first N in list order
 }
-function beatTotal(){ return Math.max(curBeat+1, 1, ...comps.map(c=>(c.beat||0)+1)); }
-function beatName(i){
-  if(beatLabels[i]) return beatLabels[i];
-  const c=comps.find(x=>(x.beat||0)===i);
-  if(c){ const s=String(c.props.text||c.props.title||c.props.label||'').replace(/\[[^\]]*\]/g,'').trim();
-         return s? c.type+' · '+s.slice(0,14) : c.type; }
-  return 'beat '+(i+1);
+function seqHoldFor(c){
+  const per=parseFloat(c.seqHold);
+  if(isFinite(per) && per>=0) return per;
+  return SEQ.holdDefault;
 }
-function beatInsertAfter(parkedIds){
-  // insert a beat after the current one.
-  // ticked comps MOVE into it (revealed by Space); unticked ones get parked (hidden, kept safe)
+function seqPlay(from=0){
+  if(!comps.filter(c=>!c.parked).length){ toastMsg('nothing to play — add components first'); return; }
   snap();
-  comps.forEach(c=>{ if((c.beat||0)>curBeat) c.beat=(c.beat||0)+1; });
-  for(let i=beatLabels.length;i>curBeat;i--) beatLabels[i]=beatLabels[i-1];
-  const newBeat=curBeat+1;
-  const parkSet=new Set(parkedIds||[]);
-  comps.forEach(c=>{
-    const b=c.beat||0;
-    if(b<=curBeat){ c.beat=newBeat; c.parked=parkSet.has(c.id); c.carry=false; }
-  });
-  curBeat=newBeat;
-  delete beatStep[curBeat];                            // whole beat reveals via Space
+  SEQ.active=true; SEQ.auto=false; seqStopAutoTimer();
+  SEQ.shown=Math.max(0, Math.min(from, comps.length));
+  selId=null;
+  // re-arm entrance of the first shown comp so ▶ always plays it
+  comps.forEach(c=>{ delete c._played; if(typeof c.revealed!=='undefined' && c.props.stepped) c.revealed=0; });
+  render(); renderStrip(); syncPopupSpot(); try{ camSyncForSeq(); }catch(_){}
+  toastMsg(SEQ.shown===0 ? '▶ from blank — Space = next component · Esc = exit' : `▶ from ${SEQ.shown+1}/${comps.length} — Space continues`);
+}
+function seqNext(){
+  if(!SEQ.active){ seqPlay(0); return; }
+  // stepped terminal/checklist: reveal next line first
+  const visible=comps.filter(c=>compVisible(c));
+  const last=[...visible].reverse().find(c=>c.props.stepped);
+  if(last){
+    const total=(REGISTRY[last.type].markup(last.props).match(/tline|cline/g)||[]).length;
+    const cur=(typeof last.revealed==='number')?last.revealed:total;
+    if(cur<total){ last.revealed=cur+1; renderCanvas(); renderInspector(); renderStrip(); syncPopupSpot(); return; }
+  }
+  if(SEQ.shown < comps.length){
+    const nxt=comps[SEQ.shown];
+    if(nxt){ delete nxt._played; if(nxt.props.stepped) nxt.revealed=1; }
+    SEQ.shown++;
+    render(); renderStrip(); syncPopupSpot(); try{ camSyncForSeq(); }catch(_){}
+  } else {
+    toastMsg('end of sequence — Esc to edit');
+  }
+}
+function seqPrev(){
+  if(!SEQ.active) return;
+  SEQ.shown=Math.max(0, SEQ.shown-1);
   render(); renderStrip(); syncPopupSpot();
 }
-function beatDel(){
-  const total=beatTotal(); if(total<=1){ toastMsg('the story needs at least one beat'); return; }
-  const gone=comps.filter(c=>(c.beat||0)===curBeat).length;
-  if(gone && !confirm('delete beat '+(curBeat+1)+' and its '+gone+' component'+(gone>1?'s':'')+'?')) return;
-  snap();
-  comps=comps.filter(c=>(c.beat||0)!==curBeat);
-  comps.forEach(c=>{ if((c.beat||0)>curBeat) c.beat--; });
-  beatLabels.splice(curBeat,1);
-  curBeat=Math.min(curBeat,total-2<0?0:total-2);
-  selId=null; render(); renderStrip(); syncPopupSpot();
+function seqExit(){
+  seqStopAutoTimer();
+  SEQ.active=false; SEQ.auto=false; SEQ.shown=comps.length;
+  render(); renderStrip(); syncPopupSpot();
+  toastMsg('edit mode — all components visible · ↑↓ in list = sequence order');
 }
-function beatMove(d){              // swap this beat with its neighbour
-  const to=curBeat+d;
-  if(to<0 || to>=beatTotal()) return;
-  snap();
-  comps.forEach(c=>{ const b=c.beat||0;
-    if(b===curBeat) c.beat=to; else if(b===to) c.beat=curBeat; });
-  const l=beatLabels[curBeat]; beatLabels[curBeat]=beatLabels[to]; beatLabels[to]=l;
-  curBeat=to; render(); renderStrip(); syncPopupSpot();
+function seqStopAutoTimer(){ if(SEQ.autoTimer){ clearTimeout(SEQ.autoTimer); SEQ.autoTimer=null; } }
+function seqAutoStep(done){
+  if(!SEQ.active || !SEQ.auto) return;
+  if(SEQ.shown >= comps.length){ SEQ.auto=false; if(done) done(); else { toastMsg('✔ auto-play done — Esc to edit'); renderStrip(); } return; }
+  seqNext();
+  const cur=comps[SEQ.shown-1];
+  const hold=cur?seqHoldFor(cur):SEQ.holdDefault;
+  const anim=(cur&&(cur.animDelay||0)+(cur.animDur||0.6))||0.6;
+  SEQ.autoTimer=setTimeout(()=>seqAutoStep(done), Math.round((anim+hold)*1000));
 }
-function beatGo(i){
-  const prev=curBeat;
-  curBeat=Math.max(-1,Math.min(i,beatTotal()-1));
-  if(curBeat>=0 && prev<curBeat){
-    if(beatStep[curBeat]==null) beatStep[curBeat]=0;
-  } else if(curBeat>=0 && prev>curBeat){
-    beatStep[curBeat]=comps.filter(c=>(c.beat||0)===curBeat && !c.parked).length;
-  }
-  if(SPOT.active){ const incoming=comps.filter(c=>(c.beat||0)===curBeat); if(incoming.length) selId=incoming[incoming.length-1].id; }
-  render();
-  camSyncForBeat();                // per-beat camera moves, live during ⏺ REC too
-  syncPopupSpot();
+function seqAutoPlay(){
+  if(!comps.length){ toastMsg('nothing to play'); return; }
+  seqPlay(0);
+  SEQ.auto=true;
+  renderStrip();
+  seqAutoStep();
 }
-function camSyncForBeat(){
+function seqStopAuto(){ SEQ.auto=false; seqStopAutoTimer(); renderStrip(); }
+// legacy shims — old project files / old code paths call these
+function beatTotal(){ return Math.max(1, comps.length); }
+function beatName(i){ const c=comps[i]; if(!c) return 'step '+(i+1);
+  const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
+  return (s? c.type+' · '+s.slice(0,14) : c.type); }
+function beatInsertAfter(){ toastMsg('beats retired — ↑↓ in STORY CANVAS sets the order'); }
+function beatDel(){ toastMsg('beats retired — delete components from STORY CANVAS'); }
+function beatMove(){ toastMsg('beats retired — use ↑↓ on components'); }
+function beatGo(i){ // map old beat jump → sequence jump
+  if(!SEQ.active) seqPlay(0);
+  SEQ.shown=Math.max(0, Math.min(comps.length, (i+1)));
+  render(); renderStrip(); syncPopupSpot();
+}
+function camSyncForBeat(){ try{ camSyncForSeq(); }catch(_){} }
+function camSyncForSeq(){
   try{
     if(!popup || popup.closed) return;
     const old=popup.document.getElementById('kkcamstyle'); if(old) old.remove();
-    const cam=comps.find(c=>c.type==='camera' && (c.beat||0)===curBeat);
-    if(cam){
+    const vis=comps.filter(c=>compVisible(c));
+    const cam=[...vis].reverse().find(c=>c.type==='camera') || comps.find(c=>c.type==='camera' && seqIndex(c) < SEQ.shown+1);
+    if(cam && compVisible(cam)){
       const st=popup.document.createElement('style'); st.id='kkcamstyle';
       st.textContent=`@keyframes kk-cam{from{transform:scale(${+cam.props.zoomFrom||1}) translate(${+cam.props.panX||0}px,${+cam.props.panY||0}px)}to{transform:scale(${+cam.props.zoomTo||1}) translate(0,0)}}
         #scene{animation:kk-cam ${+cam.props.durS||6}s cubic-bezier(.3,.5,.25,1) both}`;
@@ -2442,41 +2464,58 @@ function camSyncForBeat(){
 function renderStrip(){
   const strip=document.getElementById('strip'); if(!strip) return;
   strip.innerHTML='';
-  for(let i=0;i<beatTotal();i++){
-    const active=i===curBeat;
-    const pill=document.createElement('span');
-    pill.style.cssText='display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:999px;cursor:pointer;font-family:JetBrains Mono,monospace;font-size:12px;white-space:nowrap;'
-      +(active?'background:#0F2417;border:2px solid #FFB000;color:#FFB000;'
-              :'background:#101710;border:2px solid #1E2A1E;color:#7da88a;');
-    pill.title='beat '+(i+1)+(beatStep[i]!=null?' · '+beatStep[i]+' shown':'')
-              +(active?' — you are here · ＋ adds next beat':' — click to jump');
-    pill.onclick=()=>beatGo(i);
-    if(comps.some(c=>(c.beat||0)===i && c.parked)){ const f=document.createElement('span'); f.textContent='🅿'; f.style.opacity=.5; pill.appendChild(f); }
-    const num=document.createElement('b');
-    num.style.cssText='font-family:VT323,monospace;font-size:15px;font-weight:400';
-    num.textContent=i+1;
-    pill.appendChild(num);
-    const name=document.createElement('span'); name.textContent=beatName(i); pill.appendChild(name);
-    if(active){
-      const mk=(t,ti,fn)=>{ const b=document.createElement('button'); b.className='mini';
-        b.textContent=t; b.title=ti; b.style.padding='2px 7px';
-        b.onclick=e=>{ e.stopPropagation(); fn(); }; return b; };
-      pill.append(mk('◀','move this beat earlier',()=>beatMove(-1)),
-                  mk('✕','delete this beat and everything in it (parked comps stay safe)',()=>beatDel()),
-                  mk('▶','move this beat later',()=>beatMove(1)));
-    }
-    strip.appendChild(pill);
+  const mkBtn=(t,ti,fn,primary)=>{
+    const b=document.createElement('button'); b.className='mini'+(primary?' primary':'');
+    b.textContent=t; b.title=ti; b.style.padding='5px 10px';
+    b.onclick=e=>{ e.stopPropagation(); fn(); }; return b; };
+  // transport
+  const mode=document.createElement('span');
+  mode.style.cssText='font-size:11px;color:'+(SEQ.active?(SEQ.auto?'#FFB000':'#39FF7A'):'#5C8A66')+';letter-spacing:1px;white-space:nowrap';
+  mode.textContent=SEQ.active? (SEQ.auto?`● AUTO ${SEQ.shown}/${comps.length}` : `▶ STEP ${SEQ.shown}/${comps.length}`) : `SEQUENCE · ${comps.length}`;
+  strip.appendChild(mode);
+  if(!SEQ.active){
+    strip.append(mkBtn('▶ play','play from blank — Space = next component',()=>seqPlay(0),true));
+    if(comps.length) strip.append(mkBtn('⏩ auto','auto-play all with hold timing (no recording)',()=>seqAutoPlay()));
+  } else {
+    strip.append(mkBtn('Space ⏭','show next (Space)',()=>seqNext(),true));
+    strip.append(mkBtn('← back','show one less',()=>seqPrev()));
+    if(!SEQ.auto) strip.append(mkBtn('⏩ auto','switch to auto-play',()=>{ SEQ.auto=true; renderStrip(); seqAutoStep(); }));
+    else strip.append(mkBtn('⏸ stop auto','stop auto-play, stay in step mode',()=>seqStopAuto()));
+    strip.append(mkBtn('✕ exit','exit to edit mode (show all)',()=>seqExit()));
   }
-  const plus=document.createElement('button');
-  plus.className='mini primary'; plus.textContent='＋ beat';
-  plus.title='add a beat — choose which existing components carry over';
-  plus.onclick=()=>openBeatChooser(false);
-  strip.appendChild(plus);
-  const plusEmpty=document.createElement('button');
-  plusEmpty.className='mini'; plusEmpty.textContent='＋🧹';
-  plusEmpty.title='add a beat that starts from an EMPTY screen';
-  plusEmpty.onclick=()=>openBeatChooser(true);
-  strip.appendChild(plusEmpty);
+  // hold default
+  const hold=document.createElement('label');
+  hold.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#5C8A66;white-space:nowrap;margin-left:6px';
+  hold.innerHTML=`hold <input id="seq-hold" type="number" min="0" max="10" step="0.1" value="${SEQ.holdDefault}" style="width:52px;background:#0A0F0A;border:1px solid #1E2A1E;color:#D3FFDE;font-family:inherit;padding:3px 6px">s`;
+  strip.appendChild(hold);
+  const hi=hold.querySelector('#seq-hold');
+  hi.onclick=e=>e.stopPropagation();
+  hi.onchange=()=>{ const v=parseFloat(hi.value); if(isFinite(v)&&v>=0) SEQ.holdDefault=v; autosave(); };
+  // sequence dots — click jumps to that step
+  comps.forEach((c,i)=>{
+    const shown=SEQ.active ? i<SEQ.shown : true;
+    const pill=document.createElement('span');
+    pill.style.cssText='display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;cursor:pointer;font-size:11px;white-space:nowrap;'
+      +(SEQ.active?(shown?'background:#0F2417;border:1px solid #39FF7A;color:#39FF7A;':'background:#101710;border:1px solid #1E2A1E;color:#3a5540;')
+                  :'background:#101710;border:1px solid #1E2A1E;color:#7da88a;');
+    pill.title=`${i+1}. ${c.type} — click to ${SEQ.active?'jump here':'preview from here'}`;
+    const num=document.createElement('b'); num.textContent=i+1; num.style.cssText='font-family:VT323,monospace;font-size:14px;font-weight:400';
+    pill.appendChild(num);
+    const nm=document.createElement('span');
+    const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
+    nm.textContent=(c.parked?'🅿 ':'')+c.type+(s?' · '+s.slice(0,12):'');
+    pill.appendChild(nm);
+    pill.onclick=()=>{
+      if(!SEQ.active) seqPlay(i);
+      else { SEQ.shown=i+1; render(); renderStrip(); syncPopupSpot(); }
+    };
+    strip.appendChild(pill);
+  });
+  if(!comps.length){
+    const d=document.createElement('span'); d.style.cssText='font-size:11px;color:#3a5540';
+    d.textContent='empty — add components above, ↑↓ in STORY CANVAS sets the play order';
+    strip.appendChild(d);
+  }
 }
 
 /* carry picker — choose what survives into the next beat */
@@ -2511,38 +2550,21 @@ document.getElementById('bc-create').onclick=()=>{
   document.getElementById('beat-choose').style.display='none';
   beatInsertAfter(parked);
 };
-/* legacy v1 projects (comps + named scenes) → beats:
-   the old canvas frame becomes beat 1, every saved scene becomes one beat after it */
+/* legacy projects → linear sequence: sort by old beat index, keep creation order.
+   Old beats/scenes flatten into one list — Space order = old story order. */
 function importProject(d){
-  const out={ comps:[], beats:1, curBeat:0, beatLabels:[], note:'' };
-  const spread=c=>({ scale:1, rot:0, opacity:1, z:10, ...c });
-  if(d.beats!=null){                                   // already a beats project
-    out.comps=(d.comps||[]).map(spread);
-    out.beats=Math.max(1,+d.beats||1);
-    out.curBeat=0;                                       // open at the TOP — recordings start at beat 1
-    out.beatLabels=Array.isArray(d.beatLabels)?d.beatLabels.slice():[];
-    out.spotlight=!!d.spotlight;
-    return out;
-  }
-  out.comps=(d.comps||[]).map(c=>{
-    const o=Object.assign(spread(c),{beat:0});
-    if(c.keep) o.carry=true;                 // old 📌 pin -> new 🔁 recurring cast
-    return o;
-  });
+  const out={ comps:[], note:'' };
+  const spread=c=>{ const o={ scale:1, rot:0, opacity:1, z:10, ...c }; delete o.beat; return o; };
+  // base canvas comps first (sorted by old beat), then legacy named scenes in order
+  const base=(d.comps||[]).map((c,i)=>({ c, i }));
+  base.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
+  base.forEach(({c})=>out.comps.push(spread(c)));
   const names=Object.keys(d.scenes||{});
-  names.forEach((n,i)=>{
-    /* scenes are ACCUMULATIVE by default — earlier beats stay visible.
-       press 🧹 on a beat pill only when you actually want a clean screen */
-    (d.scenes[n]||[]).forEach(c=>{
-      const o=Object.assign(spread(c),{beat:i+1});
-      if(c.keep) o.carry=true;
-      out.comps.push(o);
-    });
-    out.beatLabels[i]=n;
-  });
-  out.beats=1+names.length;
-  out.curBeat=0;                                       // open at the TOP — recordings start at beat 1
-  if(names.length) out.note='imported '+names.length+' saved scene'+(names.length>1?'s':'')+' → '+out.beats+' beats';
+  names.forEach((n)=>{ (d.scenes[n]||[]).forEach(c=>{ out.comps.push(spread(c)); }); });
+  if(d.seqHoldDefault!=null){ const v=parseFloat(d.seqHoldDefault); if(isFinite(v)) SEQ.holdDefault=v; }
+  if(d.holdDefault!=null){ const v=parseFloat(d.holdDefault); if(isFinite(v)) SEQ.holdDefault=v; }
+  out.spotlight=!!(d.spotlight||d.spot);
+  if((d.beats!=null && +d.beats>1) || names.length) out.note='imported old project → flattened to sequence ('+out.comps.length+' steps)';
   return out;
 }
 function toastMsg(msg){
@@ -2650,7 +2672,7 @@ function mirrorCompToPopup(c){
 }
 
 /* ============ ⏺ REC — realtime capture of the popout window ============ */
-const REC={ active:false, liveSync:false, stream:null, recorder:null, timer:null };
+const REC={ active:false, liveSync:false, autoMode:false, autoTimer:null, stream:null, recorder:null, timer:null };
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function setLiveSync(v){ REC.liveSync=v; document.body.classList.toggle('live', v); }
 
@@ -2667,7 +2689,12 @@ function setRecBtn(on){
   b.style.color=on?'#39FF7A':'#FF5555';
   b.style.borderColor=on?'#39FF7A':'#552222';
   document.body.classList.toggle('recording', on);
+  // header (with ⏺ REC) hides during cropped capture — the dialog buttons become the stop affordance
+  const st=document.getElementById('rec-step'), au=document.getElementById('rec-auto');
+  if(st) st.textContent=on?'⏹ stop':'⏺ step · Space';
+  if(au) au.textContent=on?'⏹ stop':'⏩ auto · timed';
 }
+function exitRecCrop(){ document.body.classList.remove('rec-crop'); try{ fit(); }catch(_){} }
 /* scene HTML with every entrance re-armed: CSS anims get their inline animation
    back, typewriters get hidden chars — so the popup plays everything once */
 function sceneHtmlForRecord(){
@@ -2704,58 +2731,113 @@ function drivePopupTypewriters(win){
 }
 function cleanupRec(){
   clearInterval(REC.timer);
+  if(REC.autoTimer){ clearTimeout(REC.autoTimer); REC.autoTimer=null; }
   if(REC.stream){ REC.stream.getTracks().forEach(t=>t.stop()); REC.stream=null; }
+  exitRecCrop();
 }
 REC.stop=()=>{
   clearInterval(REC.timer);
+  if(REC.autoTimer){ clearTimeout(REC.autoTimer); REC.autoTimer=null; }
   setLiveSync(false);
   const r=REC.recorder; REC.recorder=null;   // claim it — prevents double-stop races
   if(r && r.state!=='inactive') r.stop();
-  else { cleanupRec(); REC.active=false; setRecBtn(false); }   // stopped before/at consent
+  else { cleanupRec(); REC.active=false; REC.autoMode=false; setRecBtn(false); seqExit(); }   // stopped before/at consent
 };
 
 document.getElementById('btn-record').onclick=()=>{
+  if(REC.active){ REC.stop(); return; }
   const p=document.getElementById('rec-pop');
   p.style.display = p.style.display==='block' ? 'none' : 'block';
 };
 document.getElementById('rec-close').onclick=()=>{ document.getElementById('rec-pop').style.display='none'; };
-document.getElementById('rec-start').onclick=()=>{
+document.getElementById('rec-step').onclick=()=>{
   if(REC.active){ REC.stop(); return; }
-  startRec();
+  startRec(false);
+};
+document.getElementById('rec-auto').onclick=()=>{
+  if(REC.active){ REC.stop(); return; }
+  startRec(true);
 };
 
-async function startRec(){
+function recAutoDrive(){
+  if(!REC.active || !REC.autoMode) return;
+  if(SEQ.shown >= comps.length){
+    // hold the final frame briefly, then stop — keeps tail from cutting off
+    REC.autoTimer=setTimeout(()=>{ if(REC.recorder && REC.recorder.state==='recording') REC.recorder.stop(); }, 1200);
+    return;
+  }
+  seqNext();
+  const cur=comps[SEQ.shown-1];
+  const hold=cur?seqHoldFor(cur):SEQ.holdDefault;
+  const anim=(cur&&(cur.animDelay||0)+(cur.animDur||0.6))||0.6;
+  REC.autoTimer=setTimeout(recAutoDrive, Math.round((anim+hold)*1000));
+}
+
+async function startRec(autoMode){
   const status=document.getElementById('rec-status');
   // no hard 120s cap anymore — memory is the only real limit (~27MB/min @1080p30, ~90MB/min @4K)
   const durRaw=document.getElementById('rec-dur').value.trim();
   const durS=durRaw===''?Infinity:Math.min(7200, Math.max(1, parseFloat(durRaw)||5));   // blank → run until ⏹/Esc
   // a story must exist — REC always walks it from the top
-  if(!comps.length){ alert('nothing to record — build a beat first (drop components from the palette)'); return; }
-  /* ⏺ REC always starts from the TOP of the story — wherever you were editing,
-     the take begins at beat 1 with a clean reveal state */
+  if(!comps.length){ alert('nothing to record — add components from the palette first'); return; }
+  const holdInput=parseFloat((document.getElementById('rec-hold')||{}).value);
+  if(isFinite(holdInput) && holdInput>=0) SEQ.holdDefault=holdInput;
+  /* ⏺ REC always starts from blank — wherever you were editing,
+     the take begins at step 1 with a clean reveal state */
   try{
     snap();
-    curBeat=0;
-    // start BLANK: zero components of beat 1 revealed — Space brings them in one by one
-    for(const k in beatStep) delete beatStep[k];
-    beatStep[0]=0;
+    seqStopAutoTimer();
+    SEQ.active=true; SEQ.auto=false; SEQ.shown=0;
+    REC.autoMode=!!autoMode;
+    comps.forEach(c=>{ delete c._played; if(c.props.stepped) c.revealed=0; });
     selId=null;
     render(); renderStrip();
   }catch(err){ console.warn('rewind:',err); toastMsg('⚠ rewind failed: '+err.message); }
   const mime=pickRecMime();
   if(!mime){ alert('MediaRecorder is not available in this browser'); return; }
 
-  openPopout();                    // fresh popout at exact size, carrying motion css
+  /* Capture strategy: cropped tab capture of the builder canvas.
+     Region Capture crops the stream to #scene, so the window title bar, the
+     file:// URL and all editor UI are structurally unable to reach the clip.
+     Legacy popout-window capture is the fallback when CropTarget is missing. */
+  let usePopup=false;
+  document.body.classList.add('rec-crop'); fit();
+  await sleep(300);   // let layout settle — crop region + canvas scale must be final
+  let cropTarget=null;
+  try{
+    if('CropTarget' in window) cropTarget=await CropTarget.fromElement(scene);
+  }catch(err){ console.warn('crop target:',err); }
+  if(!cropTarget) usePopup=true;
+
   REC.active=true;                 // freezes updatePopout → entrances play exactly once
   setRecBtn(true);
 
   let stream;
   try{
-    stream=await navigator.mediaDevices.getDisplayMedia({
-      video:{ displaySurface:'window', width:{ideal:3840}, height:{ideal:3840}, frameRate:{ideal:30} },
-      audio:false,
-      selfBrowserSurface:'exclude'
-    });
+    if(!usePopup){
+      stream=await navigator.mediaDevices.getDisplayMedia({
+        video:{ displaySurface:'browser', width:{ideal:3840}, height:{ideal:3840}, frameRate:{ideal:30} },
+        audio:false,
+        preferCurrentTab:true,
+        selfBrowserSurface:'include'
+      });
+      try{
+        await stream.getVideoTracks()[0].cropTo(cropTarget);
+      }catch(err){
+        console.warn('cropTo failed, falling back to popout capture:',err);
+        stream.getTracks().forEach(t=>t.stop());
+        usePopup=true;
+      }
+    }
+    if(usePopup){
+      exitRecCrop();
+      openPopout();                    // fresh popout at exact size, carrying motion css
+      stream=await navigator.mediaDevices.getDisplayMedia({
+        video:{ displaySurface:'window', width:{ideal:3840}, height:{ideal:3840}, frameRate:{ideal:30} },
+        audio:false,
+        selfBrowserSurface:'exclude'
+      });
+    }
   }catch(err){
     REC.active=false; setRecBtn(false); cleanupRec();
     if(!err || (err.name!=='AbortError' && err.name!=='NotAllowedError')) console.warn(err);
@@ -2770,7 +2852,10 @@ async function startRec(){
 
     const track=stream.getVideoTracks()[0];
     const s=track.getSettings();
-    const W=s.width||1920, H=s.height||1080, fps=Math.round(s.frameRate)||30;
+    // cropped capture: bill by canvas size (the clip IS the canvas); popup fallback: bill by capturer size
+    const W=usePopup?(s.width||1920):(parseInt(inW.value)||1920);
+    const H=usePopup?(s.height||1080):(parseInt(inH.value)||1080);
+    const fps=Math.round(s.frameRate)||30;
     const bitrate=Math.min(50e6, Math.max(8e6, Math.round(W*H*fps*0.2)));
 
     let t0=0;   // recording start stamp — onstop reports real elapsed time
@@ -2780,9 +2865,12 @@ async function startRec(){
     rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
     rec.onstop=()=>{
       clearInterval(REC.timer);
+      if(REC.autoTimer){ clearTimeout(REC.autoTimer); REC.autoTimer=null; }
       stream.getTracks().forEach(t=>t.stop());
-      REC.active=false; REC.recorder=null; REC.stream=null;
+      REC.active=false; REC.autoMode=false; REC.recorder=null; REC.stream=null;
       setRecBtn(false); setLiveSync(false);
+      exitRecCrop();
+      seqExit();
       const ext=mime.includes('mp4')?'mp4':'webm';
       const blob=new Blob(chunks,{type:mime.split(';')[0]});
       const safe=(currentSceneName||'clip').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'')||'clip';
@@ -2794,32 +2882,42 @@ async function startRec(){
       status.textContent = ext==='webm'
         ? "webm container — Resolve won't import directly.\nrename .webm→.mp4 (VP9) or remux with LosslessCut."
         : '';
-      document.getElementById('rec-start').textContent='⏺ start';
     };
-    if(!popup || popup.closed){ status.textContent='popout closed'; return; }
+    if(usePopup && (!popup || popup.closed)){ status.textContent='popout closed'; return; }
 
-    /* countdown lives here in the editor window — never inside the captured one */
+    /* countdown lives in the dialog — cropped out of the clip, never inside the captured canvas */
     for(let n=3;n>=1;n--){
-      status.textContent=`starting in ${n}…  (pick the "llmao-scene" window if asked)`;
+      status.textContent= usePopup
+        ? `starting in ${n}…  (pick the "llmao-scene" window if asked)`
+        : `starting in ${n}…  (pick THIS tab — only the canvas is captured)`;
       await sleep(700);
       if(!REC.active) return;        // stopped during countdown — recorder never started
     }
 
-    status.textContent=`● recording — Space brings components in · ⏹/Esc stops`;
-    document.getElementById('rec-start').textContent='⏹ stop';
-    try{ await popup.document.fonts.ready; }catch(_){}   // settle glyph metrics before framing
-    popup.document.getElementById('scene').innerHTML=sceneHtmlForRecord();
-    drivePopupTypewriters(popup);
-    /* KK camera: a camera comp on THIS beat drives the popout's pan/zoom */
-    camSyncForBeat();
-    lastPushedHtml=sceneInner();   // ticks skip until the scene truly changes
-    setLiveSync(true);             // Space advances beats live — the mirror reveals them
+    status.textContent= REC.autoMode
+      ? `● recording (AUTO) — playing all ${comps.length} in order · ⏹/Esc stops`
+      : `● recording (STEP) — Space brings next component in · ⏹/Esc stops`;
+    if(usePopup){
+      try{ await popup.document.fonts.ready; }catch(_){}   // settle glyph metrics before framing
+      popup.document.getElementById('scene').innerHTML=sceneHtmlForRecord();
+      drivePopupTypewriters(popup);
+      /* KK camera: a camera comp in view drives the popout's pan/zoom */
+      camSyncForSeq();
+      lastPushedHtml=sceneInner();   // ticks skip until the scene truly changes
+    } else {
+      // cropped path records the builder canvas directly — it already shows step 0 (blank)
+      lastPushedHtml=sceneInner();
+    }
+    setLiveSync(true);             // Space advances the sequence live — crop follows the canvas
     rec.start(250);
     t0=performance.now();
     REC.timer=setInterval(()=>{
       const e=((performance.now()-t0)/1000).toFixed(1);
-      status.textContent=`● recording ${e}s${isFinite(durS)?' / '+durS+'s':''} — Space pulls · ⏹/Esc stops`;
+      status.textContent= REC.autoMode
+        ? `● recording AUTO ${e}s${isFinite(durS)?' / '+durS+'s':''} — ${SEQ.shown}/${comps.length} shown · ⏹/Esc stops`
+        : `● recording STEP ${e}s${isFinite(durS)?' / '+durS+'s':''} — Space pulls (${SEQ.shown}/${comps.length}) · ⏹/Esc stops`;
     },100);
+    if(REC.autoMode) recAutoDrive();
     if(isFinite(durS)){
       await sleep(durS*1000);
       if(REC.recorder===rec) rec.stop();   // manual stop path already did it; onstop cleans up
@@ -2881,27 +2979,32 @@ document.querySelectorAll('.rsz').forEach(h=>{
 })();
 
 /* autosave to localStorage — survives refresh; file save/load for permanence */
-const AKEY='phosphor-autosave-v2';   // v2: beats migration no longer marks scenes as chapters
+const AKEY='phosphor-autosave-v3';   // v3: linear sequence (no beats)
 function autosave(){
   try{ // canvas state only — never overwrite saved scenes from here
     localStorage.setItem(AKEY, JSON.stringify({ scene:{w:parseInt(inW.value),h:parseInt(inH.value)},
        comps:comps.map(c=>({...c, draft:!!c.draft})), saved:loadSaved(), currentSceneName,
-       beats:beatTotal(), curBeat })); }catch{}
+       seqHoldDefault:SEQ.holdDefault })); }catch{}
 }
 (function restore(){
   try{
-    const d=JSON.parse(localStorage.getItem(AKEY));
+    // migrate v2 autosave (beats) → sequence order once
+    const raw=localStorage.getItem(AKEY) || localStorage.getItem('phosphor-autosave-v2');
+    const d=JSON.parse(raw);
     if(d){ if(d.scene){ inW.value=d.scene.w; inH.value=d.scene.h; setSceneSize(d.scene.w,d.scene.h); }
-           comps=(d.comps||[]).map(c=>({scale:1,rot:0,opacity:1,z:10,...c}));
+           const list=(d.comps||[]).map((c,i)=>({ c, i }));
+           list.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
+           comps=list.map(({c})=>{ const o={scale:1,rot:0,opacity:1,z:10,...c}; delete o.beat; return o; });
            if(d.saved) { storeSaved(d.saved); renderSaved(); }
            currentSceneName=d.currentSceneName||null;
-           if(d.beats!=null){ curBeat=Math.min(+d.curBeat||0, Math.max(0,+d.beats-1));
-                              (d.beatLabels||[]).forEach((l,i)=>{ if(l) beatLabels[i]=l; });
- }
+           if(d.seqHoldDefault!=null) SEQ.holdDefault=+d.seqHoldDefault||1.6;
+           else if(d.holdDefault!=null) SEQ.holdDefault=+d.holdDefault||1.6;
+           SEQ.active=false; SEQ.shown=comps.length; curBeat=0;
            if(d.spotlight){ SPOT.active=true; document.body.classList.add('spotting'); } }
   }catch{}
 })();
 setInterval(autosave, 2000);
+SEQ.active=false; SEQ.shown=0;
 render(); renderStrip();
 
 document.getElementById('btn-export').onclick=()=>
@@ -2909,9 +3012,9 @@ document.getElementById('btn-export').onclick=()=>
 
 /* ============ project save / load (file) ============ */
 document.getElementById('btn-save').onclick=()=>{
-  const data={ version:1, scene:{ w:parseInt(inW.value)||1920, h:parseInt(inH.value)||1080 },
-               comps:comps.map(({draft,...rest})=>({...rest, draft:!!draft})), saved:loadSaved(),
-               beats:beatTotal(), curBeat, beatLabels:beatLabels.filter(Boolean),
+  const data={ version:2, scene:{ w:parseInt(inW.value)||1920, h:parseInt(inH.value)||1080 },
+               comps:comps.map(({draft,...rest})=>{ const o={...rest}; delete o.beat; o.draft=!!draft; return o; }),
+               saved:loadSaved(), seqHoldDefault:SEQ.holdDefault,
                currentSceneName:currentSceneName||undefined, spotlight:SPOT.active };
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
@@ -2929,10 +3032,10 @@ document.getElementById('file-open').onchange=e=>{
       const imp=importProject(d);
       comps=imp.comps;
       if(d.saved){ storeSaved(d.saved); renderSaved(); }
-      beatLabels.length=0; (imp.beatLabels||[]).forEach((l,i)=>{ if(l) beatLabels[i]=l; });
+      if(d.seqHoldDefault!=null) SEQ.holdDefault=+d.seqHoldDefault||SEQ.holdDefault;
       currentSceneName=d.currentSceneName||null;
       selId=null; draft=null; SPOT.active=false; document.body.classList.remove('spotting');
-      curBeat=imp.curBeat;
+      SEQ.active=false; SEQ.shown=comps.length; curBeat=0;
       if(d.spotlight || imp.spotlight){ SPOT.active=true; document.body.classList.add('spotting'); }
       if(imp.note) toastMsg(imp.note);
       render(); renderStrip();
@@ -2943,11 +3046,13 @@ document.getElementById('file-open').onchange=e=>{
 
 document.getElementById('btn-new-project').onclick=()=>{
   if(!confirm('Start a new project?\nClears the canvas, saved components and saved scenes (autosave too). Exported .json files are NOT deleted.')) return;
+  seqStopAutoTimer();
   comps=[]; selId=null; draft=null; currentSceneName=null;
   SPOT.active=false; document.body.classList.remove('spotting');
-  curBeat=0; beatLabels.length=0;
+  SEQ.active=false; SEQ.auto=false; SEQ.shown=0; curBeat=0; beatLabels.length=0;
   storeSaved([]);
   localStorage.removeItem(AKEY);
+  localStorage.removeItem('phosphor-autosave-v2');
   renderSaved(); render(); renderStrip();
 };
 
