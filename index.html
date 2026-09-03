@@ -378,7 +378,7 @@ const TOUR=[
  {t:'1 · Available components', x:'Everything you can put on screen lives here — <b>terminals</b>, servers, pods, charts, fan-outs… 109 and counting.<br><br>Press <b>/</b> to search. Click one to drop it on the canvas.', sel:'#sec-palette'},
  {t:'The canvas', x:'What you see on this big dark canvas is <b>exactly what viewers see</b>.<br><br>Drag to move; click to edit text/colors/size in EDIT SELECTED below.', sel:'#sec-recording'},
  {t:'EDIT SELECTED', x:'Every component is editable: position (x/y), size, rotation, colors, entrance animations — even word-by-word color tags like <b>[r]word[/r]</b>.', sel:'#inspector'},
- {t:'SEQUENCE — the story strip', x:'The bottom bar is your story in play order. <b>↑↓</b> in STORY CANVAS reorders it. <b>▶ play</b> starts blank, <b>Space / →</b> shows next, <b>←</b> goes back, <b>Esc</b> exits to edit.<br><br>Components accumulate — the story builds while you talk.', sel:'#beatbar'},
+ {t:'SEQUENCE — the story strip', x:'The bottom bar is your story in play order. <b>↑↓</b> in STORY CANVAS reorders it. <b>▶ play</b> starts blank, <b>Space / →</b> shows next, <b>←</b> goes back, <b>Esc</b> exits to edit.<br><br>Components accumulate — or tick <b>🧹</b> on a step to clear the screen first (<b>📌</b> pins survivors, <b>⊘ hide</b> in EDIT retires specific comps).', sel:'#beatbar'},
  {t:'⏺ REC + 💡 spotlight', x:'<b>⏺ REC → step</b> records the ⧉ popout while YOU press Space. <b>⏩ auto</b> plays all with hold timing. <b>S</b> spotlights; <b>Esc</b> exits.', sel:'#sec-recording'},
  {t:"You're ready", x:'Open the example projects from 📂 to see full stories.<br><br>Start simple: kicker ＋ terminal, hit ⏺ REC, talk, Space. This help reopens via ❓.', sel:null},
 ];
@@ -1695,15 +1695,19 @@ function renderList(){
     if(c.parked) return;                                // parked list rendered below
     const li=document.createElement('li');
     li.className=c.id===selId?'sel':'';
-    const marks=(c.carry?'🔁':'')+(c.spot?'💡':'')+(c.carry||c.spot?' ':'');
+    const hideN=(Array.isArray(c.hides)?c.hides.length:0);
+    const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+(c.spot?'💡':'')+((c.clearBefore||c.pin||c.spot)?' ':'')+(hideN?`⊘${hideN} `:'');
     li.innerHTML=`<span class="name">${marks}${i+1}. ${c.type} <span style="color:#3a5540">${String(c.props.text||c.props.title||c.props.label||'').slice(0,16)} · @${c.x},${c.y}</span></span>`;
-    const mk=(txt,title,fn,cls='')=>{ const b=document.createElement('button');
+    const mk=(txt,title,fn,cls='',on=false)=>{ const b=document.createElement('button');
       if(cls)b.className=cls; b.textContent=txt; b.title=title;
+      if(on){ b.style.color='#FFB000'; b.style.borderColor='#FFB000'; }
       b.onclick=e=>{ e.stopPropagation(); fn(); };
       return b; };
     li.append(
       mk('↑','move earlier in sequence — Space order',()=>{ if(i>0){ snap(); [comps[i-1],comps[i]]=[comps[i],comps[i-1]]; render(); renderStrip(); } }),
       mk('↓','move later in sequence — Space order',()=>{ if(i<comps.length-1){ snap(); [comps[i+1],comps[i]]=[comps[i],comps[i+1]]; render(); renderStrip(); } }),
+      mk('🧹','clear screen before this step (earlier comps hide — 📌 pinned survive)',()=>{ snap(); c.clearBefore=!c.clearBefore; render(); renderStrip(); },'',!!c.clearBefore),
+      mk('📌','pin: stays on screen through clears',()=>{ snap(); c.pin=!c.pin; render(); renderStrip(); },'',!!c.pin),
       mk('⧉','duplicate',()=>{ const d=structuredClone(c); delete d._played; d.id=uid(); d.z=c.z+1;
                                comps.splice(i+1,0,d); render(); renderStrip(); }),
       mk('🗑','remove from recording scene',()=>{ comps=comps.filter(x=>x.id!==c.id); if(selId===c.id)selId=null; render(); },'danger')
@@ -1862,7 +1866,15 @@ function renderInspector(){
           <div class="row"><button id="anim-replay" style="flex:1;font-family:inherit;font-size:11px;background:none;color:#39FF7A;border:1px solid #39FF7A;cursor:pointer;padding:5px">▶ replay on canvas</button></div>
           <div class="row" style="margin-top:8px;padding-top:8px;border-top:1px solid #1E2A1E"><label>hold s</label>
             <input type="number" id="seq-hold-n" min="0" max="30" step="0.1" value="${c.seqHold!==undefined?c.seqHold:''}" placeholder="auto" style="width:64px;flex:none">
-            <span style="font-size:10px;color:#3a5540">auto-play pause after this · blank = global</span></div>`;
+            <span style="font-size:10px;color:#3a5540">auto-play pause after this · blank = global</span></div>
+          <div class="row"><label>🧹 clear</label>
+            <input type="checkbox" id="seq-clear" ${c.clearBefore?'checked':''} style="accent-color:#FFB000">
+            <span style="font-size:10px;color:#3a5540">empty screen before this step</span></div>
+          <div class="row"><label>📌 pin</label>
+            <input type="checkbox" id="seq-pin" ${c.pin?'checked':''} style="accent-color:#FFB000">
+            <span style="font-size:10px;color:#3a5540">survives clears</span></div>
+          <div class="row" style="align-items:flex-start"><label style="padding-top:5px">⊘ hide</label>
+            <span id="seq-hides" style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow-y:auto"></span></div>`;
 
   // content props — every text field is an expandable textarea
   reg.fields.forEach(f=>{
@@ -1981,6 +1993,31 @@ function renderInspector(){
   if(holdN){ holdN.onchange=()=>{ const v=holdN.value.trim();
       if(v==='') delete c.seqHold; else { const f=parseFloat(v); if(isFinite(f)&&f>=0) c.seqHold=f; }
       autosave(); }; }
+  const clr=wrap.querySelector('#seq-clear');
+  if(clr){ clr.onchange=()=>{ snap(); c.clearBefore=clr.checked||undefined; if(!c.clearBefore) delete c.clearBefore; render(); renderStrip(); }; }
+  const pin=wrap.querySelector('#seq-pin');
+  if(pin){ pin.onchange=()=>{ snap(); c.pin=pin.checked||undefined; if(!c.pin) delete c.pin; render(); renderStrip(); }; }
+  // ⊘ hide picker — tick earlier comps that retire when THIS step appears
+  const hideBox=wrap.querySelector('#seq-hides');
+  if(hideBox){
+    c.hides=Array.isArray(c.hides)?c.hides.filter(id=>comps.some(x=>x.id===id && x.id!==c.id)):[];
+    const others=comps.filter(x=>x.id!==c.id && !x.parked);
+    if(!others.length) hideBox.innerHTML='<span style="font-size:10px;color:#3a5540">nothing to hide — add more comps</span>';
+    others.forEach(o=>{
+      const lab=document.createElement('label');
+      lab.style.cssText='display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#7da88a;border:1px solid #22301f;border-radius:4px;padding:2px 6px;cursor:pointer';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=c.hides.includes(o.id); cb.style.accentColor='#FFB000';
+      cb.onchange=()=>{ snap();
+        if(cb.checked){ if(!c.hides.includes(o.id)) c.hides.push(o.id); lab.style.color='#FFB000'; lab.style.borderColor='#FFB000'; }
+        else { c.hides=c.hides.filter(id=>id!==o.id); lab.style.color=''; lab.style.borderColor=''; }
+        renderList(); renderStrip(); autosave(); };
+      if(cb.checked){ lab.style.color='#FFB000'; lab.style.borderColor='#FFB000'; }
+      lab.appendChild(cb);
+      const nm=document.createElement('span');
+      nm.textContent=`${comps.indexOf(o)+1}.${o.type}`;
+      lab.appendChild(nm); hideBox.appendChild(lab);
+    });
+  }
 
   const psel=wrap.querySelector('[data-parent]');
   if(psel){ psel.onchange=()=>{ c.parentId=psel.value||undefined; render(); }; }
@@ -2079,7 +2116,8 @@ function saveComp(c){
   saved.push({ name:`${c.type} · ${String(c.props.text||c.props.title||c.props.label||'').slice(0,24)}`,
                type:c.type, x:c.x, y:c.y, scale:c.scale, rot:c.rot, opacity:c.opacity,
                anim:c.anim||'none', animDur:(c.animDur!==undefined?c.animDur:0.6), animDelay:(c.animDelay!==undefined?c.animDelay:0),
-               seqHold:c.seqHold,
+               seqHold:c.seqHold, clearBefore:c.clearBefore, pin:c.pin,
+               hides:Array.isArray(c.hides)?[...c.hides]:undefined,
                props:structuredClone(c.props) });
   storeSaved(saved); renderSaved();
 }
@@ -2096,7 +2134,7 @@ function renderSaved(){
       comps.push({ id:uid(), type:s.type, x:s.x, y:s.y, scale:s.scale, rot:s.rot,
                    z:comps.length+10, opacity:s.opacity,
                    anim:s.anim||'none', animDur:(s.animDur!==undefined?s.animDur:0.6), animDelay:(s.animDelay!==undefined?s.animDelay:0),
-                   seqHold:s.seqHold,
+                   seqHold:s.seqHold, clearBefore:s.clearBefore, pin:s.pin,
                    props:structuredClone(s.props) });
       render(); renderStrip(); };
     const del=document.createElement('button'); del.textContent='🗑'; del.className='danger'; del.title='delete from library';
@@ -2367,7 +2405,19 @@ function seqIndex(c){ return comps.indexOf(c); }
 function compVisible(c){
   if(c.parked) return false;                           // 🅿 out of the story — hidden but kept
   if(!SEQ.active) return true;                         // edit mode: show everything
-  return seqIndex(c) < SEQ.shown;                      // playback: first N in list order
+  const k=SEQ.shown, i=seqIndex(c);
+  if(i<0 || i>=k) return false;                        // not reached yet
+  // 🧹 clear: the nearest shown clear-step hides everything before it (📌 pinned survive)
+  for(let j=k-1;j>=0;j--){
+    const s=comps[j];
+    if(s && s.clearBefore){ if(i<j && !c.pin) return false; break; }
+  }
+  // ⊘ hides: any shown step can retire specific earlier comps
+  for(let j=0;j<k;j++){
+    const s=comps[j];
+    if(s && Array.isArray(s.hides) && s.hides.includes(c.id)) return false;
+  }
+  return true;
 }
 function seqHoldFor(c){
   const per=parseFloat(c.seqHold);
@@ -2493,17 +2543,17 @@ function renderStrip(){
   hi.onchange=()=>{ const v=parseFloat(hi.value); if(isFinite(v)&&v>=0) SEQ.holdDefault=v; autosave(); };
   // sequence dots — click jumps to that step
   comps.forEach((c,i)=>{
-    const shown=SEQ.active ? i<SEQ.shown : true;
+    const shown=SEQ.active ? compVisible(c) : true;
     const pill=document.createElement('span');
     pill.style.cssText='display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;cursor:pointer;font-size:11px;white-space:nowrap;'
       +(SEQ.active?(shown?'background:#0F2417;border:1px solid #39FF7A;color:#39FF7A;':'background:#101710;border:1px solid #1E2A1E;color:#3a5540;')
                   :'background:#101710;border:1px solid #1E2A1E;color:#7da88a;');
-    pill.title=`${i+1}. ${c.type} — click to ${SEQ.active?'jump here':'preview from here'}`;
+    pill.title=`${i+1}. ${c.type}${c.clearBefore?' — 🧹 clears screen first':''}${c.pin?' — 📌 pinned':''} — click to ${SEQ.active?'jump here':'preview from here'}`;
     const num=document.createElement('b'); num.textContent=i+1; num.style.cssText='font-family:VT323,monospace;font-size:14px;font-weight:400';
     pill.appendChild(num);
     const nm=document.createElement('span');
     const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
-    nm.textContent=(c.parked?'🅿 ':'')+c.type+(s?' · '+s.slice(0,12):'');
+    nm.textContent=(c.parked?'🅿 ':'')+(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+c.type+(s?' · '+s.slice(0,12):'');
     pill.appendChild(nm);
     pill.onclick=()=>{
       if(!SEQ.active) seqPlay(i);
@@ -2554,7 +2604,8 @@ document.getElementById('bc-create').onclick=()=>{
    Old beats/scenes flatten into one list — Space order = old story order. */
 function importProject(d){
   const out={ comps:[], note:'' };
-  const spread=c=>{ const o={ scale:1, rot:0, opacity:1, z:10, ...c }; delete o.beat; return o; };
+  const spread=c=>{ const o={ scale:1, rot:0, opacity:1, z:10, ...c }; delete o.beat;
+    if(o.carry && !o.pin){ o.pin=true; } delete o.carry; return o; };
   // base canvas comps first (sorted by old beat), then legacy named scenes in order
   const base=(d.comps||[]).map((c,i)=>({ c, i }));
   base.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
@@ -2994,7 +3045,8 @@ function autosave(){
     if(d){ if(d.scene){ inW.value=d.scene.w; inH.value=d.scene.h; setSceneSize(d.scene.w,d.scene.h); }
            const list=(d.comps||[]).map((c,i)=>({ c, i }));
            list.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
-           comps=list.map(({c})=>{ const o={scale:1,rot:0,opacity:1,z:10,...c}; delete o.beat; return o; });
+           comps=list.map(({c})=>{ const o={scale:1,rot:0,opacity:1,z:10,...c}; delete o.beat;
+             if(o.carry && !o.pin) o.pin=true; delete o.carry; return o; });
            if(d.saved) { storeSaved(d.saved); renderSaved(); }
            currentSceneName=d.currentSceneName||null;
            if(d.seqHoldDefault!=null) SEQ.holdDefault=+d.seqHoldDefault||1.6;

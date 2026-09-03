@@ -58,6 +58,7 @@ SHOW (video)
 
 - **Order = list order.** `↑`/`↓` in STORY CANVAS sets the play order. Clicking a dot in the footer jumps there.
 - **Space / PageDown / →** → next component. **← / PageUp** → back. **Esc** → exit to edit (show all).
+- **Clear / retire:** `🧹` on a step clears the screen before it appears; `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. Edit mode always shows everything.
 - **Stepped terminals/checklists:** tick `stepped` → Space reveals one line at a time before the next component.
 - **Hold timing (auto mode):** footer `hold s` = global default; EDIT SELECTED `hold s` = per-component override.
 
