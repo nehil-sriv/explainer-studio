@@ -5,6 +5,9 @@
 <title>PHOSPHOR builder · build b249-beats</title>
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="css/core.css">
+<link rel="stylesheet" href="css/theme-glass.css">
+<link rel="stylesheet" href="css/theme-brutal.css">
 <style id="tokens-inline">
 /* PHOSPHOR design tokens — single source of truth. Import this everywhere. */
 :root {
@@ -22,6 +25,11 @@
   --fill-red: #221616;
   --ghost-fill: #0B170E;
   --ghost-stroke: #0D1D11;
+
+  /* mirrors assets/tokens.css — file:// fallback when the <link> can't load */
+  --shadow: rgba(0,0,0,0.6);
+  --glow: rgba(57,255,122,0.3);
+  --crash-ink: #FFC9C9;
 
   --font-display: 'VT323', monospace;
   --font-body: 'JetBrains Mono', 'IBM Plex Mono', monospace;
@@ -60,8 +68,8 @@ body {
   body { margin:0; background:#060906; color:#cfe; font-family:'JetBrains Mono',monospace;
          display:flex; flex-direction:column; height:100vh; overflow:hidden; }
 
-  header { display:flex; align-items:center; gap:16px; padding:10px 18px; border-bottom:1px solid #1E2A1E; }
-  header h1 { font-family:'VT323'; font-size:28px; color:#39FF7A; margin:0; }
+  header { display:flex; align-items:center; gap:16px; padding:10px 18px; border-bottom:1px solid var(--line-dim); }
+  header h1 { font-family:'VT323'; font-size:28px; color:var(--phos-green); margin:0; }
   header .spacer { flex:1; }
 
   main { flex:1; display:flex; min-height:0; }
@@ -74,9 +82,9 @@ body {
   .comp { position:absolute; } /* every placed component is absolutely positioned */
 
   /* right sidebar */
-  aside { width:400px; border-left:1px solid #1E2A1E; display:flex; flex-direction:column; min-height:0; }
-  section { padding:12px 14px; border-bottom:1px solid #1E2A1E; overflow-y:auto; }
-  section h2 { margin:0 0 8px; font-size:11px; letter-spacing:2px; color:#39FF7A; opacity:.75;
+  aside { width:400px; border-left:1px solid var(--line-dim); display:flex; flex-direction:column; min-height:0; }
+  section { padding:12px 14px; border-bottom:1px solid var(--line-dim); overflow-y:auto; }
+  section h2 { margin:0 0 8px; font-size:11px; letter-spacing:2px; color:var(--phos-green); opacity:.75;
                cursor:pointer; user-select:none; }
   section h2::before { content:'▾ '; }
   section.collapsed h2::before { content:'▸ '; }
@@ -91,27 +99,27 @@ body {
 
   .palette { display:flex; flex-wrap:wrap; gap:6px; }
   .palette button {
-    font-family:inherit; font-size:12px; background:#101710; color:#D3FFDE;
-    border:1px solid #1E2A1E; padding:5px 9px; cursor:pointer; border-radius:4px;
+    font-family:inherit; font-size:12px; background:var(--panel); color:var(--text-primary);
+    border:1px solid var(--line-dim); padding:5px 9px; cursor:pointer; border-radius:4px;
   }
-  .palette button:hover { border-color:#39FF7A; color:#39FF7A; background:#0F2015; }
+  .palette button:hover { border-color:var(--phos-green); color:var(--phos-green); background:#0F2015; }
   /* palette role-group headers (SCENE BASICS / NODES / FLOW …) */
-  .pal-h { width:100%; margin:12px 0 3px; font-size:10px; letter-spacing:2px; color:#5C8A66;
-           border-bottom:1px solid #1E2A1E; padding-bottom:3px; cursor:pointer; user-select:none; }
+  .pal-h { width:100%; margin:12px 0 3px; font-size:10px; letter-spacing:2px; color:var(--text-dim);
+           border-bottom:1px solid var(--line-dim); padding-bottom:3px; cursor:pointer; user-select:none; }
   .pal-h::before { content:'▾ '; }
   .pal-h.closed { color:#3a5540; }
   .pal-h.closed::before { content:'▸ '; }
   .palette .pal-h:first-child { margin-top:0; }
   .pal-set { display:contents; }
   .pal-search { display:flex; gap:6px; margin-bottom:8px; }
-  .pal-search input { flex:1; min-width:0; background:#0A0F0A; border:1px solid #1E2A1E; color:#D3FFDE;
+  .pal-search input { flex:1; min-width:0; background:var(--bg-deep); border:1px solid var(--line-dim); color:var(--text-primary);
                       font-family:inherit; font-size:12px; padding:5px 9px; }
-  .pal-search input:focus { outline:none; border-color:#39FF7A; }
+  .pal-search input:focus { outline:none; border-color:var(--phos-green); }
   /* ⏱ beat strip */
-  footer#beatbar { display:flex; align-items:center; padding:8px 16px; border-top:1px solid #1E2A1E;
+  footer#beatbar { display:flex; align-items:center; padding:8px 16px; border-top:1px solid var(--line-dim);
                    overflow-x:auto; overflow-y:hidden; }
   footer#beatbar::-webkit-scrollbar { height:6px; }
-  footer#beatbar::-webkit-scrollbar-thumb { background:#1E2A1E; border-radius:3px; }
+  footer#beatbar::-webkit-scrollbar-thumb { background:var(--line-dim); border-radius:3px; }
   .pal-none { font-size:11px; color:#3a5540; padding:6px 2px; }
   /* 💡 spotlight — dim all but the story focus */
   body.spotting .comp.dim { opacity:.13 !important; filter:saturate(.25); }
@@ -124,27 +132,27 @@ body {
     padding:5px 8px; cursor:pointer; border-radius:4px; transition:all .12s;
     white-space:nowrap;
   }
-  ul.clean button:hover { color:#39FF7A; border-color:#39FF7A; background:#10291a; }
-  ul.clean button.danger:hover, button.mini.danger:hover { color:#FF5555; border-color:#FF5555; background:#221010; }
-  button.mini.primary { color:#39FF7A; border-color:#1E4630; background:#0F2417; }
+  ul.clean button:hover { color:var(--phos-green); border-color:var(--phos-green); background:#10291a; }
+  ul.clean button.danger:hover, button.mini.danger:hover { color:var(--alert-red); border-color:var(--alert-red); background:#221010; }
+  button.mini.primary { color:var(--phos-green); border-color:#1E4630; background:#0F2417; }
   button.mini.primary:hover { background:#123420; }
 
   ul.clean { list-style:none; margin:0; padding:0; }
   ul.clean li { display:flex; align-items:center; gap:6px; padding:6px 8px; font-size:12px;
                 border:1px solid transparent; border-radius:4px; margin-bottom:2px; }
   ul.clean li.sel { border-color:#264d33; background:#0F1F15; }
-  #complist li.sel { border-color:#39FF7A; }
+  #complist li.sel { border-color:var(--phos-green); }
   ul.clean li .name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#BFE5C8; }
 
   /* inspector */
   #inspector .row { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px; }
-  #inspector label { width:78px; flex:none; color:#5C8A66; }
+  #inspector label { width:78px; flex:none; color:var(--text-dim); }
   #inspector input[type=text], #inspector input[type=number], #inspector select, #inspector textarea {
-    flex:1; min-width:0; background:#0A0F0A; border:1px solid #1E2A1E; color:#D3FFDE;
+    flex:1; min-width:0; background:var(--bg-deep); border:1px solid var(--line-dim); color:var(--text-primary);
     font-family:inherit; font-size:12px; padding:4px 7px;
   }
   #inspector textarea { resize:vertical; min-height:54px; }
-  #inspector input[type=color] { width:40px; height:26px; padding:0; border:1px solid #1E2A1E; background:none; }
+  #inspector input[type=color] { width:40px; height:26px; padding:0; border:1px solid var(--line-dim); background:none; }
   #empty-msg { color:#3a5540; font-size:12px; padding:4px 0; }
   footer { padding:8px 16px; font-size:11px; color:#3a5540; }
 
@@ -165,37 +173,7 @@ body {
   #gv { width:1px; top:0; bottom:0; } #gh { height:1px; left:0; right:0; }
   .comp.lockedbadge::after { content:'🔒'; position:absolute; top:-26px; right:-4px; font-size:16px; }
 
-  /* ===== tech-explainer components (KUBEKLLOUD set) ===== */
-.tech { font-family:var(--font-body); }
-.svc {
-  background:var(--panel); border:2px solid var(--stroke,var(--phos-green));
-  border-radius:10px; padding:10px 16px; position:relative; min-width:170px;
-}
-.svc-name { color:var(--text-primary); font-weight:700; font-size:20px; }
-.svc-sub { color:var(--text-dim); font-size:13px; margin-top:2px; }
-.svc-dot { position:absolute; top:-7px; right:-7px; width:14px; height:14px;
-  border-radius:50%; background:var(--dotc,var(--phos-green)); border:2px solid #0A0F0A; }
-.podbox { border:2px dashed var(--stroke,var(--cyan-dim)); border-radius:14px;
-  padding:10px 14px; display:inline-flex; align-items:center; gap:8px;
-  background:var(--fill-green); }
-.nodebox { border:2px solid var(--line-dim); border-radius:8px; overflow:hidden;
-  background:var(--panel); min-width:220px; }
-.nodebox-head { background:#16220f; color:var(--text-primary); font-size:14px;
-  padding:5px 12px; border-bottom:1px solid var(--line-dim); display:flex; justify-content:space-between; }
-.nodebox-body { padding:14px; display:flex; gap:12px; flex-wrap:wrap; }
-.cpbadge { background:var(--fill-amber); border-color:var(--amber); }
-.clusterfence { border:2px dashed var(--stroke,var(--line-dim)); border-radius:10px;
-  padding:26px 22px 18px; position:relative; background:transparent; }
-.clusterfence.tint { background:var(--cbgtint,var(--fill-green)); }
-.fence-label { position:absolute; top:-12px; left:16px; background:var(--bg-deep);
-  padding:0 8px; color:var(--text-dim); font-size:14px; letter-spacing:1px; }
-.wire { stroke-linecap:round; fill:none; }
-@keyframes flowdash { to { stroke-dashoffset:-24; } }
-.flow { stroke-dasharray:10 14; animation:flowdash 0.9s linear infinite; }
-@keyframes techpulse { 0%,100%{ filter:drop-shadow(0 0 2px var(--dotc,var(--phos-green))); } 50%{ filter:drop-shadow(0 0 9px var(--dotc,var(--phos-green))); } }
-.tpulse { animation:techpulse 1.6s ease-in-out infinite; }
-@keyframes techshake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
-.tshake { animation:techshake 0.15s linear 3; }
+  /* ===== component visuals live in css/core.css (structure) + css/phosphor.css (theme) ===== */
 
 /* drag handles for resizable panels + sidebar edge */
   .rsz { height:6px; margin:-4px -16px 8px; cursor:ns-resize; background:transparent; }
@@ -218,9 +196,9 @@ body {
   body.rec-crop .stage-wrap { padding:0; overflow:hidden; height:100vh; }
   /* 🔗 connection ports — dots on the selected component; drag one to any component to link */
   .comp .portdot { position:absolute; width:14px; height:14px; border-radius:50%;
-    background:#0A0F0A; border:2px solid #39FF7A; z-index:90; cursor:crosshair;
+    background:var(--bg-deep); border:2px solid var(--phos-green); z-index:90; cursor:crosshair;
     transform:translate(-50%,-50%); }
-  .comp .portdot:hover { background:#39FF7A; box-shadow:0 0 12px rgba(57,255,122,.8); }
+  .comp .portdot:hover { background:var(--phos-green); box-shadow:0 0 12px rgba(57,255,122,.8); }
   #connect-wire { position:absolute; left:0; top:0; pointer-events:none; z-index:95; }
   body.present .stage-wrap { padding:0; overflow:hidden; }
   body.present #stage-scale { transform:scale(1) !important; }
@@ -324,11 +302,11 @@ body {
   </div>
   <style>
     #tour { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; display:flex; align-items:center; justify-content:center; }
-    #tour-card { width:460px; max-width:92vw; background:#0F1710; border:1px solid #39FF7A; border-radius:8px; padding:22px 24px; font-family:'JetBrains Mono',monospace; }
-    #tour-stepnum { font-size:11px; color:#5C8A66; letter-spacing:2px; margin-bottom:8px; }
-    #tour-title { font-family:'VT323'; font-size:30px; color:#39FF7A; margin-bottom:10px; }
-    #tour-text { font-size:13px; line-height:1.7; color:#D3FFDE; margin-bottom:18px; }
-    #tour-text b { color:#39FF7A; }
+    #tour-card { width:460px; max-width:92vw; background:#0F1710; border:1px solid var(--phos-green); border-radius:8px; padding:22px 24px; font-family:'JetBrains Mono',monospace; }
+    #tour-stepnum { font-size:11px; color:var(--text-dim); letter-spacing:2px; margin-bottom:8px; }
+    #tour-title { font-family:'VT323'; font-size:30px; color:var(--phos-green); margin-bottom:10px; }
+    #tour-text { font-size:13px; line-height:1.7; color:var(--text-primary); margin-bottom:18px; }
+    #tour-text b { color:var(--phos-green); }
     #tour-btns { display:flex; gap:6px; }
   </style>
   </div>
@@ -342,11 +320,11 @@ body {
   <style>
     #beat-choose { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:950;
                    width:420px; max-width:92vw; max-height:80vh; overflow-y:auto; display:none;
-                   background:#0F1710; border:2px solid #FFB000; border-radius:10px; padding:18px 20px;
+                   background:#0F1710; border:2px solid var(--amber); border-radius:10px; padding:18px 20px;
                    font-family:'JetBrains Mono',monospace; }
-    #bc-title { font-family:'VT323'; font-size:26px; color:#FFB000; margin-bottom:4px; }
+    #bc-title { font-family:'VT323'; font-size:26px; color:var(--amber); margin-bottom:4px; }
     #bc-list { display:flex; flex-direction:column; gap:2px; margin:6px 0;
-               border-top:1px solid #1E2A1E; border-bottom:1px solid #1E2A1E; padding:8px 0; }
+               border-top:1px solid var(--line-dim); border-bottom:1px solid var(--line-dim); padding:8px 0; }
     .bc-row { display:flex; gap:6px; align-items:center; }
     #beat-choose .mini { padding:3px 9px; }
   </style>
@@ -364,11 +342,11 @@ body {
   </div>
   <style>
     #exp-pop { position:fixed; top:54px; right:14px; z-index:900; width:340px; background:#0F1710;
-               border:1px solid #39FF7A; border-radius:8px; padding:14px 16px; display:none;
+               border:1px solid var(--phos-green); border-radius:8px; padding:14px 16px; display:none;
                font-family:'JetBrains Mono',monospace; }
-    #exp-pop-title { font-family:'VT323'; font-size:24px; color:#39FF7A; margin-bottom:6px; }
+    #exp-pop-title { font-family:'VT323'; font-size:24px; color:var(--phos-green); margin-bottom:6px; }
     #exp-pop .hint { margin:0 0 10px; }
-    #exp-status { font-size:12px; color:#FFB000; min-height:15px; margin-bottom:10px; white-space:pre-wrap; line-height:1.5; }
+    #exp-status { font-size:12px; color:var(--amber); min-height:15px; margin-bottom:10px; white-space:pre-wrap; line-height:1.5; }
   </style>
   <div id="rec-pop">
     <div id="rec-pop-title">⏺ record clip</div>
@@ -386,14 +364,14 @@ body {
   </div>
   <style>
     #rec-pop { position:fixed; top:54px; right:14px; z-index:900; width:320px; background:#0F1710;
-               border:1px solid #FF5555; border-radius:8px; padding:14px 16px; display:none;
+               border:1px solid var(--alert-red); border-radius:8px; padding:14px 16px; display:none;
                font-family:'JetBrains Mono',monospace; }
-    #rec-pop-title { font-family:'VT323'; font-size:24px; color:#FF5555; margin-bottom:6px; }
+    #rec-pop-title { font-family:'VT323'; font-size:24px; color:var(--alert-red); margin-bottom:6px; }
     #rec-pop .hint { margin:0 0 10px; }
-    .rec-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:12px; color:#D3FFDE; }
-    .rec-row label { color:#5C8A66; letter-spacing:1px; }
-    .rec-row input { width:70px; background:#0A0F0A; border:1px solid #1E2A1E; color:#D3FFDE; font-family:inherit; padding:4px 6px; }
-    #rec-status { font-size:12px; color:#FFB000; min-height:15px; margin-bottom:10px; white-space:pre-wrap; line-height:1.5; }
+    .rec-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:12px; color:var(--text-primary); }
+    .rec-row label { color:var(--text-dim); letter-spacing:1px; }
+    .rec-row input { width:70px; background:var(--bg-deep); border:1px solid var(--line-dim); color:var(--text-primary); font-family:inherit; padding:4px 6px; }
+    #rec-status { font-size:12px; color:var(--amber); min-height:15px; margin-bottom:10px; white-space:pre-wrap; line-height:1.5; }
     .rec-btns { display:flex; gap:6px; }
     /* while recording: lock the editor except the REC controls */
     body.recording header :not(#btn-record) { pointer-events:none; }
@@ -474,6 +452,23 @@ document.querySelectorAll('aside section').forEach(s=>{
    Components are independent: they render inside a positioned wrapper div. */
 
 const ACCENTS = ['#39FF7A','#FFB000','#FF5555','#57C7C0','#D3FFDE'];
+
+/* Live theme value as real hex — for SVG attributes (no var() there) and
+   native color inputs. '' / non-hex props fall back to the theme default. */
+function themeHex(name, fb){
+  try{
+    const sc=document.getElementById('scene');
+    const v=getComputedStyle(sc||document.documentElement).getPropertyValue(name).trim();
+    if(/^#[0-9a-fA-F]{6}$/.test(v)) return v;
+  }catch(_){}
+  return fb||'#39FF7A';
+}
+/* Resolve a stored accent/color for SVG attributes: explicit hex passes through,
+   theme-relative var() (or empty) resolves to the live theme hex. */
+function liveHex(v){
+  v=String(v||'');
+  return (v && !v.startsWith('var(') && /^#[0-9a-fA-F]{3,8}$/.test(v)) ? v : themeHex('--phos-green','#39FF7A');
+}
 
 // global runtime state — declared early because renderCanvas reads these
 let curBeat=-1;       // LEGACY beats timeline (kept for old project compat) — SEQ is the source of truth now
@@ -596,7 +591,7 @@ function edgeColor(e){
   if(e.branch==='error') return '#FF5555';
   const p=EDGE_PRESETS[e.preset||'none'];
   if(p&&p.color) return p.color;
-  return e.accent||'#39FF7A';
+  return e.accent||themeHex('--phos-green','#39FF7A');
 }
 function edgeLabel(e){ return (e.label||'').trim()||(EDGE_PRESETS[e.preset||'none']||{}).label||''; }
 function edgeEndpoints(e){
@@ -839,7 +834,7 @@ const REGISTRY = {
     markup:p=>`<div class="loopbox">${p.text}</div>` },
 
   box:      { name:'Box (border+fill)',
-    props:{text:'TRANSLATION:<br>chunk docs → pray', accent:'#39FF7A', fill:true, alert:false},
+    props:{text:'TRANSLATION:<br>chunk docs → pray', accent:'var(--phos-green)', fill:true, alert:false},
     fields:['text','accent','fill','alert'], fieldTypes:{text:'textarea', fill:'check', alert:'check'},
     markup:p=>`<div class="${p.fill?'box-fill':'box-border'}${p.alert?' box-alert':''}"${p.color?'':` style="--stroke:${p.accent}; --boxbg:${p.accent==='#FFB000'?'var(--fill-amber)':p.accent==='#FF5555'?'var(--fill-red)':'var(--fill-green)'}"`}>${p.text}</div>` },
 
@@ -876,24 +871,24 @@ const REGISTRY = {
       return `<li class="cline ${(s||'').trim()}">${t}</li>`;}).join('')}</ul>` },
 
   arrow:    { name:'Arrow (annotation)',
-    props:{accent:'#39FF7A', w:220, thick:false},
+    props:{accent:'var(--phos-green)', w:220, thick:false},
     fields:['accent','w','thick'], fieldTypes:{w:'number', thick:'check'},
-    markup:p=>`<span class="annot glow" style="color:${p.color||p.accent}"><svg width="${p.w}" viewBox="0 0 200 60"><line x1="8" y1="30" x2="172" y2="30" stroke="currentColor" stroke-width="${p.thick?10:6}"/><polygon points="188,30 158,15 158,45" fill="currentColor"/></svg></span>` },
+    markup:p=>`<span class="annot glow" style="color:${p.color||p.accent||'var(--phos-green)'}"><svg width="${p.w}" viewBox="0 0 200 60"><line x1="8" y1="30" x2="172" y2="30" stroke="currentColor" stroke-width="${p.thick?10:6}"/><polygon points="188,30 158,15 158,45" fill="currentColor"/></svg></span>` },
 
   circle:   { name:'Hand-drawn circle',
     props:{accent:'#FFB000', s:300},
     fields:['accent','s'], fieldTypes:{s:'number'},
-    markup:p=>`<span class="annot" style="color:${p.color||p.accent}"><svg width="${p.s}" viewBox="0 0 180 120"><path d="M88 13 C142 14, 171 38, 167 64 C163 95, 118 111, 78 107 C34 103, 11 84, 15 54 C19 27, 55 12, 102 18" fill="none" stroke="currentColor" stroke-width="5"/></svg></span>` },
+    markup:p=>`<span class="annot" style="color:${p.color||p.accent||'var(--phos-green)'}"><svg width="${p.s}" viewBox="0 0 180 120"><path d="M88 13 C142 14, 171 38, 167 64 C163 95, 118 111, 78 107 C34 103, 11 84, 15 54 C19 27, 55 12, 102 18" fill="none" stroke="currentColor" stroke-width="5"/></svg></span>` },
 
   verdict:  { name:'✓ / ✗ verdict mark',
     props:{kind:'ok', s:260},
     fields:['kind','s'], fieldTypes:{kind:'select', s:'number'}, options:{kind:['ok','bad']},
     markup:p=>p.kind==='ok'
-      ? `<span class="annot glow" style="color:${p.color||'#39FF7A'}"><svg width="${p.s}" viewBox="0 0 100 100"><polyline points="18,52 40,74 82,26" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`
+      ? `<span class="annot glow" style="color:${p.color||'var(--phos-green)'}"><svg width="${p.s}" viewBox="0 0 100 100"><polyline points="18,52 40,74 82,26" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`
       : `<span class="annot" style="color:${p.color||'#FF5555'}"><svg width="${p.s}" viewBox="0 0 100 100"><line x1="22" y1="22" x2="78" y2="78" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><line x1="78" y1="22" x2="22" y2="78" stroke="currentColor" stroke-width="12" stroke-linecap="round"/></svg></span>` },
 
   svcblock: { name:'Service block (microservice)',
-    props:{label:'payment-svc', sub:'go', accent:'#39FF7A', state:'healthy'},
+    props:{label:'payment-svc', sub:'go', accent:'var(--phos-green)', state:'healthy'},
     fields:['label','sub','accent','state'], fieldTypes:{state:'select'}, options:{state:['healthy','warn','error','none']},
     markup:p=>{
       const dc=p.state==='warn'?'#FFB000':p.state==='error'?'#FF5555':'#39FF7A';
@@ -945,13 +940,13 @@ const REGISTRY = {
       <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>` },
 
   loadbal:  { name:'Load balancer',
-    props:{label:'load-balancer', accent:'#39FF7A'},
+    props:{label:'load-balancer', accent:'var(--phos-green)'},
     fields:['label','accent'],
-    markup:p=>`<div class="tech" style="text-align:center">
-      <svg width="120" height="64" viewBox="0 0 120 64"><circle cx="60" cy="10" r="7" fill="#39FF7A22" stroke="${p.accent}" stroke-width="2"/>
-      <path d="M60 17 v12 M60 29 L20 47 M60 29 L100 47 M60 29 v18" stroke="${p.accent}" stroke-width="2" fill="none"/>
-      <polygon points="20,56 14,44 26,44" fill="${p.accent}"/><polygon points="100,56 94,44 106,44" fill="${p.accent}"/><polygon points="60,58 54,46 66,46" fill="${p.accent}"/></svg>
-      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>` },
+    markup:p=>{ const A=liveHex(p.accent); return `<div class="tech" style="text-align:center">
+      <svg width="120" height="64" viewBox="0 0 120 64"><circle cx="60" cy="10" r="7" fill="${A}22" stroke="${A}" stroke-width="2"/>
+      <path d="M60 17 v12 M60 29 L20 47 M60 29 L100 47 M60 29 v18" stroke="${A}" stroke-width="2" fill="none"/>
+      <polygon points="20,56 14,44 26,44" fill="${A}"/><polygon points="100,56 94,44 106,44" fill="${A}"/><polygon points="60,58 54,46 66,46" fill="${A}"/></svg>
+      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>`; } },
 
   usericon: { name:'User (person)',
     props:{label:'user', accent:'#D3FFDE'},
@@ -971,15 +966,15 @@ const REGISTRY = {
       <div style="color:var(--text-primary);font-size:15px">${p.label}</div></div>` },
 
   wire:     { name:'Wire (request/response)',
-    props:{label:'', len:320, accent:'#39FF7A', res:true},
+    props:{label:'', len:320, accent:'var(--phos-green)', res:true},
     fields:['label','len','accent','res'], fieldTypes:{len:'number', accent:'color2', res:'check'},
-    markup:p=>`<div class="tech" style="width:${p.len}px;text-align:center">
+    markup:p=>{ const A=liveHex(p.accent); return `<div class="tech" style="width:${p.len}px;text-align:center">
       <svg width="100%" height="26" viewBox="0 0 ${p.len} 26" preserveAspectRatio="none">
-        <line class="wire${p.res?'':' flow'}" x1="6" y1="13" x2="${p.len-14}" y2="13" stroke="${p.accent}" stroke-width="2.5"/>
-        <polygon points="${p.len-4},13 ${p.len-16},6 ${p.len-16},20" fill="${p.accent}"/>
-        ${p.res?`<line class="wire" x1="${p.len-6}" y1="22" x2="14" y2="22" stroke="${p.accent}" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/><polygon points="4,22 16,16 16,28" fill="${p.accent}"/>`:''}
+        <line class="wire${p.res?'':' flow'}" x1="6" y1="13" x2="${p.len-14}" y2="13" stroke="${A}" stroke-width="2.5"/>
+        <polygon points="${p.len-4},13 ${p.len-16},6 ${p.len-16},20" fill="${A}"/>
+        ${p.res?`<line class="wire" x1="${p.len-6}" y1="22" x2="14" y2="22" stroke="${A}" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/><polygon points="4,22 16,16 16,28" fill="${A}"/>`:''}
       </svg>
-      ${p.label?`<div style="font-size:13px;color:var(--text-dim);margin-top:-6px">${p.label}</div>`:''}</div>` },
+      ${p.label?`<div style="font-size:13px;color:var(--text-dim);margin-top:-6px">${p.label}</div>`:''}</div>`; } },
 
   statdot:  { name:'Status dot (up/dead/error)',
     props:{kind:'healthy', size:18},
@@ -1014,7 +1009,7 @@ const REGISTRY = {
 
   user:     { name:'TK · user actor',
     group:'actors',
-    props:{label:'user', size:120, accent:'#39FF7A'},
+    props:{label:'user', size:120, accent:'var(--phos-green)'},
     fields:['label','size','accent'], fieldTypes:{size:'number'},
     markup:p=>`<div class="tk-user" style="--stroke:${p.accent}">
       <svg width="${+p.size||120}" height="${Math.round((+p.size||120)*1.15)}" viewBox="0 0 100 115" fill="none">
@@ -1025,7 +1020,7 @@ const REGISTRY = {
   svc:      { name:'TK · service block',
     group:'nodes',
     help:'the generic microservice box — name + tech subtitle. add boundaries FIRST so they sit behind.',
-    props:{name:'payment-svc', sub:'go · grpc', accent:'#39FF7A'},
+    props:{name:'payment-svc', sub:'go · grpc', accent:'var(--phos-green)'},
     fields:['name','sub','accent'],
     markup:p=>`<div class="tk-svc" style="--stroke:${p.accent}"><div class="tk-name">${rich(p.name)}</div>${p.sub?`<div class="tk-sub">${p.sub}</div>`:''}</div>` },
 
@@ -1040,7 +1035,7 @@ const REGISTRY = {
 
   server:   { name:'TK · rack server',
     group:'nodes',
-    props:{label:'api-01', units:4, accent:'#39FF7A'},
+    props:{label:'api-01', units:4, accent:'var(--phos-green)'},
     fields:['label','units','accent'], fieldTypes:{units:'number'},
     markup:p=>{ const u=Math.max(2,Math.min(8,+p.units||4));
       return `<div style="display:flex;flex-direction:column;align-items:center">
@@ -1069,7 +1064,7 @@ const REGISTRY = {
   pod:      { name:'TK · pod',
     group:'nodes',
     help:'status dot: ok / warn / dead — place on top of a boundary (cluster/node)',
-    props:{name:'web-7f9d', status:'ok', accent:'#39FF7A'},
+    props:{name:'web-7f9d', status:'ok', accent:'var(--phos-green)'},
     fields:['name','status','accent'], fieldTypes:{status:'select'}, options:{status:['ok','warn','dead']},
     markup:p=>`<div class="tk-pod" style="--stroke:${p.accent}"><div class="pbox"><span class="hdot ${p.status}" style="position:absolute;top:-9px;right:-9px;width:18px;height:18px;"></span></div>${p.name?`<div class="pname">${rich(p.name)}</div>`:''}</div>` },
 
@@ -1083,7 +1078,7 @@ const REGISTRY = {
   wire:     { name:'TK · wire (labeled arrow)',
     group:'flow',
     help:'head: closed ▶ sync · open › async · none plain. both = duplex. clock = latency glyph on label. flow = marching dashes.',
-    props:{dir:'→', len:420, label:'', dashed:false, flow:false, head:'closed', both:false, clock:false, accent:'#39FF7A'},
+    props:{dir:'→', len:420, label:'', dashed:false, flow:false, head:'closed', both:false, clock:false, accent:'var(--phos-green)'},
     fields:['dir','len','label','dashed','flow','head','both','clock','accent'], fieldTypes:{dir:'select',len:'number',label:'textarea',dashed:'check',flow:'check',head:'select',both:'check',clock:'check'}, options:{dir:['→','←','↑','↓'], head:['closed','open','none']},
     markup:p=>{
       const vert=p.dir==='↑'||p.dir==='↓';
@@ -1160,7 +1155,7 @@ const REGISTRY = {
   model:    { name:'TK · model / neural net',
     group:'ai',
     help:'gpu toggle = chip-pins frame for hardware-angle videos',
-    props:{label:'llama-3', layers:[3,4,3], gpu:false, w:210, accent:'#39FF7A'},
+    props:{label:'llama-3', layers:[3,4,3], gpu:false, w:210, accent:'var(--phos-green)'},
     fields:['label','layers','gpu','w','accent'], fieldTypes:{gpu:'check'},
     markup:p=>{
       const cols=(Array.isArray(p.layers)?p.layers:String(p.layers||'').split(',')).map(Number).filter(n=>n>0);
@@ -1181,7 +1176,7 @@ const REGISTRY = {
   tokens:   { name:'TK · token stream',
     group:'ai',
     help:'falling character chips — ambient loop; height controls the column',
-    props:{text:'the|cat|sat|down', h:200, dur:3.5, accent:'#39FF7A'},
+    props:{text:'the|cat|sat|down', h:200, dur:3.5, accent:'var(--phos-green)'},
     fields:['text','h','dur','accent'], fieldTypes:{h:'number',dur:'number'},
     markup:p=>{
       const parts=String(p.text).split('|').filter(Boolean);
@@ -1190,14 +1185,14 @@ const REGISTRY = {
 
   prompt:   { name:'TK · prompt box',
     group:'ai',
-    props:{text:'why did my prod db fall over?', send:'▸ send', accent:'#39FF7A'},
+    props:{text:'why did my prod db fall over?', send:'▸ send', accent:'var(--phos-green)'},
     fields:['text','send','accent'],
     markup:p=>`<div class="tk-prompt" style="--stroke:${p.accent}"><span class="ptext">${rich(p.text)}<span class="cursor is-on"></span></span><span class="psend">${p.send}</span></div>` },
 
   ctxwin:   { name:'TK · context window',
     group:'ai',
     help:'slots: on = filled context, hot = about to overflow (amber)',
-    props:{label:'context · 8k tokens', used:5, total:8, hot:false, accent:'#39FF7A'},
+    props:{label:'context · 8k tokens', used:5, total:8, hot:false, accent:'var(--phos-green)'},
     fields:['label','used','total','hot','accent'], fieldTypes:{used:'number',total:'number',hot:'check'},
     markup:p=>{ const tot=Math.max(1,Math.min(16,+p.total||8)), use=Math.max(0,Math.min(tot,+p.used||0));
       return `<div class="tk-ctx" style="--stroke:${p.accent}">
@@ -1216,7 +1211,7 @@ const REGISTRY = {
 
   vm:       { name:'TK · virtual machine',
     group:'nodes',
-    props:{label:'vm-2', units:4, accent:'#39FF7A'},
+    props:{label:'vm-2', units:4, accent:'var(--phos-green)'},
     fields:['label','units','accent'], fieldTypes:{units:'number'},
     markup:p=>{ const u=Math.max(2,Math.min(8,+p.units||4));
       return `<div style="display:flex;flex-direction:column;align-items:center">
@@ -1237,7 +1232,7 @@ const REGISTRY = {
 
   lb:       { name:'TK · load balancer',
     group:'nodes',
-    props:{label:'', accent:'#39FF7A'},
+    props:{label:'', accent:'var(--phos-green)'},
     fields:['label','accent'],
     markup:p=>`<div style="display:flex;flex-direction:column;align-items:center">
       <svg width="180" height="122" fill="none" stroke="var(--stroke)" stroke-width="3">
@@ -1252,7 +1247,7 @@ const REGISTRY = {
   gateway:  { name:'TK · api gateway / proxy',
     group:'nodes',
     help:'one gate covers B9 reverse-proxy and B10 api-gateway — label decides',
-    props:{name:'api-gateway', sub:'auth · routing', accent:'#39FF7A'},
+    props:{name:'api-gateway', sub:'auth · routing', accent:'var(--phos-green)'},
     fields:['name','sub','accent'],
     markup:p=>`<div class="tk-gate" style="--stroke:${p.accent}"><div class="door"></div><div class="tk-name">${rich(p.name)}</div>${p.sub?`<div class="tk-sub">${p.sub}</div>`:''}</div>` },
 
@@ -1391,7 +1386,7 @@ const REGISTRY = {
 
   valve:    { name:'TK · rate limiter',
     group:'flow',
-    props:{label:'max 100 rps', accent:'#39FF7A'},
+    props:{label:'max 100 rps', accent:'var(--phos-green)'},
     fields:['label','accent'],
     markup:p=>`<span class="tk-valve" style="--stroke:${p.accent}">
       <svg width="168" height="58" fill="none">
@@ -1404,14 +1399,14 @@ const REGISTRY = {
   scale:    { name:'TK · autoscaling',
     group:'meta',
     help:'up = boxes spawn in staggered · down = fade & drop out',
-    props:{dir:'up', n:4, accent:'#39FF7A'},
+    props:{dir:'up', n:4, accent:'var(--phos-green)'},
     fields:['dir','n','accent'], fieldTypes:{dir:'select',n:'number'}, options:{dir:['up','down']},
     markup:p=>{ const n=Math.max(2,Math.min(6,+p.n||4));
       return `<div class="tk-scale ${p.dir==='down'?'down':'up'}" style="--stroke:${p.accent}">${Array.from({length:n},(_,i)=>`<span class="sb" style="animation-delay:${(i*0.15).toFixed(2)}s"></span>`).join('')}</div>`; } },
 
   lock:     { name:'TK · locked',
     group:'meta',
-    props:{label:'TLS', accent:'#39FF7A'},
+    props:{label:'TLS', accent:'var(--phos-green)'},
     fields:['label','accent'],
     markup:p=>`<span class="tk-lock" style="--stroke:${p.accent}">
       <svg width="44" height="52" viewBox="0 0 44 52" fill="none" stroke="var(--stroke)" stroke-width="3.5">
@@ -1438,7 +1433,7 @@ const REGISTRY = {
   pipeline: { name:'TK · pipeline stages',
     group:'flow',
     help:'stages separated by |',
-    props:{stages:'chunk|embed|store|retrieve', accent:'#39FF7A'},
+    props:{stages:'chunk|embed|store|retrieve', accent:'var(--phos-green)'},
     fields:['stages','accent'],
     markup:p=>{ const st=String(p.stages).split('|').filter(Boolean);
       return `<div class="tk-pipe" style="--stroke:${p.accent};--cbg:var(--fill-green)">${st.map(s=>`<span class="st">${rich(s)}</span>`).join('')}</div>`; } },
@@ -1458,7 +1453,7 @@ const REGISTRY = {
 
   consensus:{ name:'TK · consensus vote',
     group:'flow',
-    props:{label:'quorum 2/3', accent:'#39FF7A'},
+    props:{label:'quorum 2/3', accent:'var(--phos-green)'},
     fields:['label','accent'],
     markup:p=>`<div style="display:flex;flex-direction:column;align-items:center">
       <svg width="210" height="160" fill="none">
@@ -1483,7 +1478,7 @@ const REGISTRY = {
 
   plate:    { name:'TK · name plate',
     group:'meta',
-    props:{title:'kafka-cluster', sub:'3 brokers · rf=3', accent:'#39FF7A'},
+    props:{title:'kafka-cluster', sub:'3 brokers · rf=3', accent:'var(--phos-green)'},
     fields:['title','sub','accent'],
     markup:p=>`<span class="tk-plate" style="--cc:${p.accent}"><span class="pt">${rich(p.title)}</span>${p.sub?`<span class="ps">${p.sub}</span>`:''}</span>` },
 
@@ -1495,7 +1490,7 @@ const REGISTRY = {
 
   fproc:    { name:'FL · process step',
     group:'logic',
-    props:{text:'validate payload', accent:'#39FF7A'},
+    props:{text:'validate payload', accent:'var(--phos-green)'},
     fields:['text','accent'],
     markup:p=>`<div class="tk-fproc" style="--stroke:${p.accent}">${rich(p.text)}</div>` },
 
@@ -1508,7 +1503,7 @@ const REGISTRY = {
 
   fterm:    { name:'FL · start / end',
     group:'logic',
-    props:{text:'START', accent:'#39FF7A'},
+    props:{text:'START', accent:'var(--phos-green)'},
     fields:['text','accent'],
     markup:p=>`<div class="tk-term" style="--stroke:${p.accent}">${rich(p.text)}</div>` },
 
@@ -1521,19 +1516,19 @@ const REGISTRY = {
   lifeline: { name:'SQ · lifeline',
     group:'seq',
     help:'participant box + dashed drop — place activation bars and messages on top',
-    props:{label:'api-gateway', h:380, accent:'#39FF7A'},
+    props:{label:'api-gateway', h:380, accent:'var(--phos-green)'},
     fields:['label','h','accent'], fieldTypes:{h:'number'},
     markup:p=>`<div class="tk-life" style="--stroke:${p.accent}"><span class="pbox">${rich(p.label)}</span><span class="ll" style="--h:${+p.h||380}px"></span></div>` },
 
   activation:{ name:'SQ · activation bar',
     group:'seq',
-    props:{h:140, accent:'#39FF7A'},
+    props:{h:140, accent:'var(--phos-green)'},
     fields:['h','accent'], fieldTypes:{h:'number'},
     markup:p=>`<span class="tk-act" style="--stroke:${p.accent};--h:${+p.h||140}px"></span>` },
 
   selfcall: { name:'SQ · self-call loop',
     group:'seq',
-    props:{accent:'#39FF7A'},
+    props:{accent:'var(--phos-green)'},
     fields:['accent'],
     markup:p=>`<span class="tk-selfcall" style="--stroke:${p.accent}">
       <svg width="76" height="94" viewBox="0 0 76 94" fill="none" stroke="var(--stroke)" stroke-width="3">
@@ -1574,35 +1569,36 @@ const REGISTRY = {
   chartline:{ name:'X · line / area chart',
     group:'charts',
     help:'comma-separated values, normalized to peak',
-    props:{label:'p99 latency', data:'12,34,28,52,46,74,88', area:true, color:'#39FF7A'},
+    props:{label:'p99 latency', data:'12,34,28,52,46,74,88', area:true, color:'var(--phos-green)'},
     fields:['label','data','area','color'], fieldTypes:{area:'check'},
     markup:p=>{
       const vals=String(p.data).split(',').map(Number).filter(v=>!isNaN(v));
       if(vals.length<2) return '<b>needs 2+ values</b>';
+      const C=liveHex(p.color);
       const W=340,H=180,P=14, max=Math.max(...vals,1);
       const pts=vals.map((v,i)=>`${(P+i*((W-2*P)/(vals.length-1))).toFixed(1)},${(H-P-(v/max)*(H-2*P)).toFixed(1)}`);
       return `<div class="tk-chart" style="--cc:${p.color}">${p.label?`<div class="clbl">${rich(p.label)}</div>`:''}
         <svg width="${W}" height="${H}">
           <line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="var(--line-dim)" stroke-width="2"/>
           <line x1="${P}" y1="${P}" x2="${P}" y2="${H-P}" stroke="var(--line-dim)" stroke-width="2"/>
-          ${p.area?`<polygon points="${P},${H-P} ${pts.join(' ')} ${W-P},${H-P}" fill="${p.color}" opacity=".14"/>`:''}
-          <polyline points="${pts.join(' ')}" fill="none" stroke="${p.color}" stroke-width="3.5"/>
-          <circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="5.5" fill="${p.color}"/>
+          ${p.area?`<polygon points="${P},${H-P} ${pts.join(' ')} ${W-P},${H-P}" fill="${C}" opacity=".14"/>`:''}
+          <polyline points="${pts.join(' ')}" fill="none" stroke="${C}" stroke-width="3.5"/>
+          <circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="5.5" fill="${C}"/>
         </svg></div>`; } },
 
   chartbars:{ name:'X · comparison bars',
     group:'charts',
     help:'rows: label:value separated by |',
-    props:{label:'who serves faster', rows:'gRPC:91|REST:62|SOAP:23', color:'#39FF7A'},
+    props:{label:'who serves faster', rows:'gRPC:91|REST:62|SOAP:23', color:'var(--phos-green)'},
     fields:['label','rows','color'],
     markup:p=>{ const rows=String(p.rows).split('|').filter(Boolean).map(r=>{
         const i=r.lastIndexOf(':'); return [r.slice(0,i).trim(), parseFloat(r.slice(i+1))||0]; });
       return `<div class="tk-chart">${p.label?`<div class="clbl">${rich(p.label)}</div>`:''}
-        <div class="tk-bars">${rows.map(([lab,val])=>`<div class="brow"><span class="blab">${rich(lab)}</span><span class="btrack"><span class="bfill" style="width:${Math.min(100,val)}%;background:${p.color}"></span></span><span class="bval">${val}</span></div>`).join('')}</div></div>`; } },
+        <div class="tk-bars">${rows.map(([lab,val])=>`<div class="brow"><span class="blab">${rich(lab)}</span><span class="btrack"><span class="bfill" style="width:${Math.min(100,val)}%;background:${p.color||'var(--phos-green)'}"></span></span><span class="bval">${val}</span></div>`).join('')}</div></div>`; } },
 
   chartdonut:{ name:'X · donut split',
     group:'charts',
-    props:{label:'64%', pct:64, d:220, color:'#39FF7A'},
+    props:{label:'64%', pct:64, d:220, color:'var(--phos-green)'},
     fields:['label','pct','d','color'], fieldTypes:{pct:'number',d:'number'},
     markup:p=>{ const pct=Math.max(0,Math.min(100,+p.pct||0));
       return `<div class="tk-chart"><div class="tk-donut" style="--d:${+p.d||220}px;--pct:${pct};--dc:${p.color}"><span class="dcap">${rich(p.label||(pct+'%'))}</span></div></div>`; } },
@@ -1610,7 +1606,7 @@ const REGISTRY = {
   elbow:    { name:'TK · elbow wire (ports)',
     group:'flow',
     help:'comes from top, exits right — flipH/flipV mirror it. ports = attach squares on node edges.',
-    props:{lenH:260, lenV:180, ports:true, flipH:false, flipV:false, accent:'#39FF7A'},
+    props:{lenH:260, lenV:180, ports:true, flipH:false, flipV:false, accent:'var(--phos-green)'},
     fields:['lenH','lenV','ports','flipH','flipV','accent'], fieldTypes:{lenH:'number',lenV:'number',ports:'check',flipH:'check',flipV:'check'},
     markup:p=>`<div class="tk-elbow ${p.flipH?'flipx':''} ${p.flipV?'flipy':''}" style="width:${+p.lenH||260}px;height:${+p.lenV||180}px;--stroke:${p.accent}"><span class="vseg"></span><span class="hseg"></span>${p.ports?`<span class="port" style="left:-6px;top:-7px"></span><span class="port" style="right:-7px;bottom:-6px"></span>`:''}</div>` },
 
@@ -1638,7 +1634,7 @@ const REGISTRY = {
   arcwire:  { name:'KK · curved flow wire',
     group:'flow',
     help:'bezier arc with moving data — data: one packet · stream: many dots · pulse: slow single. rotate the component for direction.',
-    props:{len:420, bow:-90, mode:'data', n:4, label:'', dashed:false, head:false, accent:'#39FF7A'},
+    props:{len:420, bow:-90, mode:'data', n:4, label:'', dashed:false, head:false, accent:'var(--phos-green)'},
     fields:['len','bow','mode','n','label','dashed','head','accent'],
     fieldTypes:{len:'number',bow:'number',mode:'select',n:'number',label:'textarea',dashed:'check',head:'check'}, options:{mode:['data','stream','pulse']},
     markup:p=>{
@@ -1661,7 +1657,7 @@ const REGISTRY = {
   fanout:   { name:'KK · fan-out branches',
     group:'flow',
     help:'one source splitting into N curved branches — branching services, sharding, fan-out reads',
-    props:{n:4, len:380, spread:220, mode:'stream', label:'', accent:'#39FF7A'},
+    props:{n:4, len:380, spread:220, mode:'stream', label:'', accent:'var(--phos-green)'},
     fields:['n','len','spread','mode','label','accent'],
     fieldTypes:{n:'number',len:'number',spread:'number',mode:'select'}, options:{mode:['data','stream','pulse']},
     markup:p=>{
@@ -1692,7 +1688,7 @@ const REGISTRY = {
   splitter: { name:'KK · doc → chunks splitter',
     group:'ai',
     help:'document splits into chunks drifting out staggered — RAG ingestion, sharding, fanning out work',
-    props:{doc:'doc.pdf', chunks:'c1|c2|c3|c4|c5', accent:'#FFB000', docAccent:'#39FF7A'},
+    props:{doc:'doc.pdf', chunks:'c1|c2|c3|c4|c5', accent:'#FFB000', docAccent:'var(--phos-green)'},
     fields:['doc','chunks','accent','docAccent'],
     markup:p=>{ const ch=String(p.chunks).split('|').filter(Boolean);
       return `<div class="tk-split" style="--stroke:${p.docAccent}">
@@ -1703,7 +1699,7 @@ const REGISTRY = {
   bootnode: { name:'KK · node bootstrap',
     group:'nodes',
     help:'outline draws itself in, status lights up — "worker nodes coming up". replays every time it is pulled.',
-    props:{label:'node-3 joining', units:4, status:'ok', accent:'#39FF7A'},
+    props:{label:'node-3 joining', units:4, status:'ok', accent:'var(--phos-green)'},
     fields:['label','units','status','accent'], fieldTypes:{units:'number',status:'select'}, options:{status:['ok','warn','dead']},
     markup:p=>{ const u=Math.max(2,Math.min(6,+p.units||4)); const H=u*34+10;
       return `<div class="tk-boot" style="--stroke:${p.accent}">
@@ -1724,7 +1720,7 @@ const REGISTRY = {
   swarm:    { name:'KK · scale-to-N swarm',
     group:'nodes',
     help:'grid of tiny nodes materializing in stagger — "scaling to 100 servers". dead count tints some red.',
-    props:{n:48, dead:0, label:'×100 nodes', gap:10, accent:'#39FF7A'},
+    props:{n:48, dead:0, label:'×100 nodes', gap:10, accent:'var(--phos-green)'},
     fields:['n','dead','label','gap','accent'], fieldTypes:{n:'number',dead:'number',gap:'number'},
     markup:p=>{
       const n=Math.max(4,Math.min(100,+p.n||48)), deadN=Math.max(0,Math.min(n,+p.dead||0));
@@ -1790,7 +1786,7 @@ const REGISTRY = {
 
   globe:    { name:'CL · globe / edge users',
     group:'cloud',
-    props:{label:'global traffic', accent:'#39FF7A'},
+    props:{label:'global traffic', accent:'var(--phos-green)'},
     fields:['label','accent'],
     markup:p=>`<div style="display:flex;flex-direction:column;align-items:center" class="tech">`
       +`<svg width="92" height="92" viewBox="0 0 92 92" fill="none" stroke="var(--stroke)" stroke-width="3.5">`
@@ -1809,7 +1805,7 @@ const REGISTRY = {
 
   policy:   { name:'CL · IAM policy / shield',
     group:'cloud',
-    props:{label:'least privilege', accent:'#39FF7A'},
+    props:{label:'least privilege', accent:'var(--phos-green)'},
     fields:['label','accent'],
     markup:p=>`<div style="display:flex;flex-direction:column;align-items:center" class="tech">`
       +`<svg width="80" height="92" viewBox="0 0 80 92" fill="none" stroke="var(--stroke)" stroke-width="4">`
@@ -2353,8 +2349,11 @@ function renderInspector(){
     } else if(t==='image'){
       html+=`<div class="row"><label>${f}</label><input type="file" accept="image/*" data-img="${f}" style="flex:1;font-size:11px;color:#7da88a"></div>`;
     } else if(f.toLowerCase().includes('accent')){
-      html+=`<div class="row"><label>${f}</label><input type="color" data-prop="${f}" value="${c.props[f]}">
-             <select data-prop="${f}">${ACCENTS.map(a=>`<option value="${a}" ${c.props[f]===a?'selected':''}>${a}</option>`).join('')}</select></div>`;
+      const av=c.props[f]||'';
+      const isTheme=!av||av.startsWith('var(');
+      const live=isTheme?themeHex('--phos-green','#39FF7A'):av;
+      html+=`<div class="row"><label>${f}</label><input type="color" data-prop="${f}" value="${live}" title="${isTheme?'theme default (follows active theme)':'explicit '+av}">
+             <select data-prop="${f}"><option value="var(--phos-green)" ${isTheme?'selected':''}>theme default</option>${ACCENTS.map(a=>`<option value="${a}" ${av===a?'selected':''}>${a}</option>`).join('')}</select></div>`;
     } else {
       const isNum=t==='number';
       if(isNum){
@@ -2791,7 +2790,7 @@ function connectStart(e,c,pid){
   const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
   const wrap=document.createElement('div');
   wrap.id='connect-wire';
-  wrap.innerHTML=`<svg width="${W}" height="${H}"><line x1="${p0.x}" y1="${p0.y}" x2="${p0.x}" y2="${p0.y}" stroke="#39FF7A" stroke-width="3" stroke-dasharray="10 8"/><circle cx="${p0.x}" cy="${p0.y}" r="6" fill="#39FF7A"/><circle class="endhl" cx="-50" cy="-50" r="10" fill="none" stroke="#FFB000" stroke-width="3" display="none"/></svg>`;
+  wrap.innerHTML=`<svg width="${W}" height="${H}"><line x1="${p0.x}" y1="${p0.y}" x2="${p0.x}" y2="${p0.y}" style="stroke:var(--phos-green)" stroke-width="3" stroke-dasharray="10 8"/><circle cx="${p0.x}" cy="${p0.y}" r="6" style="fill:var(--phos-green)"/><circle class="endhl" cx="-50" cy="-50" r="10" fill="none" stroke="#FFB000" stroke-width="3" display="none"/></svg>`;
   scene.appendChild(wrap);
   const line=wrap.querySelector('line'), endhl=wrap.querySelector('.endhl');
   const st={from:c.id, fromPort:pid, el:wrap, mv:null, up:null, target:null, targetPort:null};
@@ -3164,9 +3163,19 @@ function pruneEdges(){
 }
 /* legacy projects → linear sequence: sort by old beat index, keep creation order.
    Old beats/scenes flatten into one list — Space order = old story order. */
+/* Brand-green defaults are theme-relative: an explicit '#39FF7A' stored in an old
+   file meant "default", so point it at the live theme var (follows the active
+   theme). Other hues are semantic (warn/error/data) and stay frozen. */
+function themeize(o){
+  ['accent','docAccent','color'].forEach(f=>{
+    if(typeof o[f]==='string' && o[f].toLowerCase()==='#39ff7a') o[f]='var(--phos-green)';
+  });
+  if(o.props) themeize(o.props);
+  return o;
+}
 function importProject(d){
   const out={ comps:[], edges:[], note:'' };
-  const spread=c=>{ const o={ scale:1, rot:0, opacity:1, z:10, ...c }; delete o.beat;
+  const spread=c=>{ const o=themeize({ scale:1, rot:0, opacity:1, z:10, ...c }); delete o.beat;
     if(o.carry && !o.pin){ o.pin=true; } delete o.carry; return o; };
   // base canvas comps first (sorted by old beat), then legacy named scenes in order
   const base=(d.comps||[]).map((c,i)=>({ c, i }));
@@ -3763,7 +3772,7 @@ function autosave(){
     if(d){ if(d.scene){ inW.value=d.scene.w; inH.value=d.scene.h; setSceneSize(d.scene.w,d.scene.h); }
            const list=(d.comps||[]).map((c,i)=>({ c, i }));
            list.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
-           comps=list.map(({c})=>{ const o={scale:1,rot:0,opacity:1,z:10,...c}; delete o.beat;
+           comps=list.map(({c})=>{ const o=themeize({scale:1,rot:0,opacity:1,z:10,...c}); delete o.beat;
              if(o.carry && !o.pin) o.pin=true; delete o.carry; return o; });
            edges=Array.isArray(d.edges)?d.edges:[];
            const fl0=flowlinksToEdges(comps);
@@ -3840,9 +3849,9 @@ function sceneInner(){
      builder canvas and 📸 PNG exactly, palette previews and all */
   return c.innerHTML;
 }
-/* the popup only links tokens/phosphor css — structural rules live in THIS page's
-   <style>: .comp positioning, box-sizing reset, pa-* keyframes, typing rules.
-   Copy everything except html/body element rules (don't restyle the popup shell). */
+/* the popup links tokens/core/theme css files — structural rules that live only
+   in THIS page's <style> (.comp positioning, pa-* keyframes, typing rules) are
+   copied below. Copy everything except html/body element rules (don't restyle the popup shell). */
 function motionCSSForPopup(){
   const out=[];
   for(const sheet of document.styleSheets){
@@ -3866,10 +3875,13 @@ function openPopout(){
   popup=window.open('','llmao-scene',`width=${tw+16},height=${th+16},menubar=no,toolbar=no,location=no,status=no`);
   popup.document.write(`<!DOCTYPE html><html><head><title>llmao scene</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="css/core.css">
+<link rel="stylesheet" href="css/theme-glass.css">
+<link rel="stylesheet" href="css/theme-brutal.css">
     <link rel="stylesheet" href="css/phosphor.css">
     <style>${motionCSSForPopup()}</style>
-    <style>html,body{margin:0;overflow:hidden;background:#0A0F0A}</style></head>
+    <style>html,body{margin:0;overflow:hidden;background:var(--bg-deep)}</style></head>
     <body><div id="stage-scale"><div class="scene" id="scene" style="--scene-w:${W}px;--scene-h:${H}px">${sceneInner()}</div></div>
     <script src="js/phosphor.js"><\/script><script src="js/themes.js"><\/script>
     <script>

@@ -15,6 +15,11 @@
   --ghost-fill: #0B170E;
   --ghost-stroke: #0D1D11;
 
+  /* effect accents consumed by core.css as var() only (see themes.js ROLES) */
+  --shadow: rgba(0,0,0,0.6);
+  --glow: rgba(57,255,122,0.3);
+  --crash-ink: #FFC9C9;
+
   --font-display: 'VT323', monospace;
   --font-body: 'JetBrains Mono', 'IBM Plex Mono', monospace;
   --font-hand: 'Caveat', cursive;
@@ -42,4 +47,4 @@ body {
   font-family: sans-serif;
 }
 
-.glow-green { filter: drop-shadow(0 0 8px rgba(57, 255, 122, 0.3)); }
+.glow-green { filter: drop-shadow(0 0 8px var(--glow)); }

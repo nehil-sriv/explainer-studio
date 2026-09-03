@@ -8,7 +8,9 @@
                      page.html?set=--phos-green=#FF0000,--panel=#111111
    Usage C (bake):   panel → "COPY :root CSS" → paste over tokens.css
 
-   Presets: phosphor · amber · syntaxpop · heat · paper
+    Presets: phosphor (house) · minimal · blueprint · glass · brutal · neon
+    Presets with `attr` also flip #scene[data-theme] for extra skin
+    (css/theme-glass.css, css/theme-brutal.css — dormant otherwise).
    ============================================================ */
 
 (function () {
@@ -27,11 +29,14 @@
     ['--fill-red',     'Fill tint — red'],
     ['--ghost-fill',   'Ghost mark fill'],
     ['--ghost-stroke', 'Ghost mark stroke'],
+    ['--shadow',       'Drop shadows'],
+    ['--glow',         'Glow (cursor · highlights)'],
+    ['--crash-ink',    'Crash-loop text'],
   ];
 
   const THEMES = {
     phosphor: {
-      label: 'PHOSPHOR · green CRT (default)',
+      label: 'PHOSPHOR · green CRT (house theme)',
       vars: {
         '--bg-deep': '#0A0F0A', '--panel': '#101710', '--line-dim': '#1E2A1E',
         '--text-primary': '#D3FFDE', '--text-dim': '#5C8A66',
@@ -39,69 +44,97 @@
         '--cyan-dim': '#57C7C0',
         '--fill-green': '#102E19', '--fill-amber': '#2A2409', '--fill-red': '#221616',
         '--ghost-fill': '#0B170E', '--ghost-stroke': '#0D1D11',
+        '--shadow': 'rgba(0,0,0,0.6)', '--glow': 'rgba(57,255,122,0.3)', '--crash-ink': '#FFC9C9',
       },
     },
-    amber: {
-      label: 'CRT AMBER · monochrome retro',
+    minimal: {
+      label: 'MINIMAL MONO · near-black, hairlines, no glow',
       vars: {
-        '--bg-deep': '#0C0C05', '--panel': '#16150a', '--line-dim': '#413a14',
-        '--text-primary': '#ffd98a', '--text-dim': '#b39448',
-        '--phos-green': '#ffb000', '--amber': '#ffd23f', '--alert-red': '#ff5e45',
-        '--cyan-dim': '#d9c07a',
-        '--fill-green': '#2e2508', '--fill-amber': '#332b0d', '--fill-red': '#2e1410',
-        '--ghost-fill': '#151206', '--ghost-stroke': '#242009',
+        '--bg-deep': '#050505', '--panel': '#0B0B0B', '--line-dim': '#262626',
+        '--text-primary': '#FAFAFA', '--text-dim': '#8A8A8A',
+        '--phos-green': '#EDEDED', '--amber': '#D6D6D6', '--alert-red': '#F87171',
+        '--cyan-dim': '#93A1B5',
+        '--fill-green': '#101010', '--fill-amber': '#131313', '--fill-red': '#170D0D',
+        '--ghost-fill': '#070707', '--ghost-stroke': '#0E0E0E',
+        '--shadow': 'rgba(0,0,0,0.7)', '--glow': 'rgba(255,255,255,0.10)', '--crash-ink': '#FCA5A5',
       },
     },
-    syntaxpop: {
-      label: 'SYNTAX POP · dracula IDE',
+    blueprint: {
+      label: 'BLUEPRINT · white line-art on engineering blue',
       vars: {
-        '--bg-deep': '#282A36', '--panel': '#21222C', '--line-dim': '#44475A',
-        '--text-primary': '#F8F8F2', '--text-dim': '#6272A4',
-        '--phos-green': '#50FA7B', '--amber': '#F1FA8C', '--alert-red': '#FF5555',
-        '--cyan-dim': '#8BE9FD',
-        '--fill-green': '#1d3a2a', '--fill-amber': '#3a3a1f', '--fill-red': '#3a1d24',
-        '--ghost-fill': '#23242f', '--ghost-stroke': '#34374a',
+        '--bg-deep': '#082A63', '--panel': '#0D3585', '--line-dim': '#2E5CB8',
+        '--text-primary': '#FFFFFF', '--text-dim': '#9DB9E8',
+        '--phos-green': '#FFFFFF', '--amber': '#FFD166', '--alert-red': '#FF6B6B',
+        '--cyan-dim': '#7DD3FC',
+        '--fill-green': '#0E3280', '--fill-amber': '#123A86', '--fill-red': '#471D28',
+        '--ghost-fill': '#072554', '--ghost-stroke': '#0C3286',
+        '--shadow': 'rgba(0,0,0,0.5)', '--glow': 'rgba(255,255,255,0.22)', '--crash-ink': '#FECACA',
       },
     },
-    heat: {
-      label: 'LLMAO HEAT · espresso & fawn',
+    glass: {
+      label: 'LIQUID GLASS · frosted cards over aurora dark',
+      attr: 'glass',
       vars: {
-        '--bg-deep': '#191009', '--panel': '#231811', '--line-dim': '#3d2c1d',
-        '--text-primary': '#F5EBDC', '--text-dim': '#A98F6F',
-        '--phos-green': '#E8853D', '--amber': '#F4A261', '--alert-red': '#E5534B',
-        '--cyan-dim': '#8FBFB0',
-        '--fill-green': '#31200f', '--fill-amber': '#33230f', '--fill-red': '#301512',
-        '--ghost-fill': '#211609', '--ghost-stroke': '#33240f',
+        '--bg-deep': '#060A14', '--panel': '#0E1626', '--line-dim': '#2A3A55',
+        '--text-primary': '#EAF2FF', '--text-dim': '#8CA3C7',
+        '--phos-green': '#22D3EE', '--amber': '#FBBF24', '--alert-red': '#FB7185',
+        '--cyan-dim': '#67E8F9',
+        '--fill-green': '#0C1830', '--fill-amber': '#141207', '--fill-red': '#1C0F1A',
+        '--ghost-fill': '#081020', '--ghost-stroke': '#0E1A30',
+        '--shadow': 'rgba(0,0,0,0.5)', '--glow': 'rgba(34,211,238,0.35)', '--crash-ink': '#FECDD3',
       },
     },
-    paper: {
-      label: 'PAPER CUT · light editorial',
+    brutal: {
+      label: 'BRUTALIST · cream, black lines, hard shadows',
+      attr: 'brutal',
       vars: {
-        '--bg-deep': '#FBF8F1', '--panel': '#FFFFFF', '--line-dim': '#E4DDD0',
-        '--text-primary': '#191713', '--text-dim': '#98917F',
-        '--phos-green': '#1A7F37', '--amber': '#9A6700', '--alert-red': '#CF222E',
-        '--cyan-dim': '#2B59FF',
-        '--fill-green': '#e7f4ec', '--fill-amber': '#f6efd9', '--fill-red': '#fbeaea',
-        '--ghost-fill': '#f1ece1', '--ghost-stroke': '#ddd5c5',
+        '--bg-deep': '#FFF6E9', '--panel': '#FFFFFF', '--line-dim': '#1A1A1A',
+        '--text-primary': '#141414', '--text-dim': '#6B6257',
+        '--phos-green': '#16A34A', '--amber': '#F59E0B', '--alert-red': '#DC2626',
+        '--cyan-dim': '#2563EB',
+        '--fill-green': '#E7F6EA', '--fill-amber': '#FEF3C7', '--fill-red': '#FDE2E2',
+        '--ghost-fill': '#F1E7D2', '--ghost-stroke': '#E3D3B8',
+        '--shadow': 'rgba(26,26,26,0.35)', '--glow': 'rgba(22,163,74,0.18)', '--crash-ink': '#991B1B',
+      },
+    },
+    neon: {
+      label: 'NEON DUOTONE · black + magenta/cyan glow',
+      vars: {
+        '--bg-deep': '#000000', '--panel': '#0B0B0F', '--line-dim': '#2A2A35',
+        '--text-primary': '#F5F3FF', '--text-dim': '#8B8B9E',
+        '--phos-green': '#FF2FB3', '--amber': '#FFB300', '--alert-red': '#FF3860',
+        '--cyan-dim': '#00E5FF',
+        '--fill-green': '#1C0A16', '--fill-amber': '#1C1405', '--fill-red': '#1C0A10',
+        '--ghost-fill': '#060606', '--ghost-stroke': '#101014',
+        '--shadow': 'rgba(0,0,0,0.8)', '--glow': 'rgba(255,47,179,0.4)', '--crash-ink': '#FF8FAB',
       },
     },
   };
 
   const LS_KEY = 'llmao-theme-v1';
-  const root = document.documentElement;
+  /* Theme scope = the CANVAS scene only — never :root.
+     Builder chrome keeps the :root defaults (its own fixed design language);
+     themed vars set inline on #scene inherit into components alone.
+     In the popout (separate document, same script) this resolves to its #scene. */
+  function scopeEl() { return document.getElementById('scene') || document.documentElement; }
 
   function applyVars(vars) {
+    const scope = scopeEl();
     Object.entries(vars).forEach(([k, v]) => {
-      if (/^#[0-9a-fA-F]{3,8}$/.test(v)) root.style.setProperty(k, v);
+      if (/^#[0-9a-fA-F]{3,8}$/.test(v) || /^rgba?\([^)]*\)$/.test(v)) scope.style.setProperty(k, v);
     });
   }
 
   function applyPreset(key) {
     const t = THEMES[key];
     if (!t) return false;
+    const scope = scopeEl();
     // clear inline overrides first so presets are clean swaps
-    ROLES.forEach(([k]) => root.style.removeProperty(k));
+    ROLES.forEach(([k]) => scope.style.removeProperty(k));
     applyVars(t.vars);
+    // design-method themes (glass/brutal) switch extra skin via data-theme attr
+    if (t.attr) scope.dataset.theme = t.attr;
+    else delete scope.dataset.theme;
     save({ preset: key });
     syncInputs(t.vars);
     return true;
@@ -129,7 +162,7 @@
   }
 
   function currentComputed() {
-    const cs = getComputedStyle(root);
+    const cs = getComputedStyle(scopeEl());
     const out = {};
     ROLES.forEach(([k]) => { out[k] = cs.getPropertyValue(k).trim(); });
     return out;
@@ -212,7 +245,7 @@
       inputs[role] = { color, hex };
       const commit = v => {
         if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
-        root.style.setProperty(role, v);
+        scopeEl().style.setProperty(role, v);
         save({ preset: 'custom' });
         const other = v === color.value ? hex : color;
         if (other === hex) hex.value = v; else color.value = v;
