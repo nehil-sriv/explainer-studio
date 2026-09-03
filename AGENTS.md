@@ -65,6 +65,8 @@ SHOW (video)
 **Preview:** footer `▶ play` (step) / `⏩ auto` (timed, no recording).
 **Record:** `⏺ REC → step` (you press Space) / `⏩ auto` (plays all with hold timing) → MP4.
 Capture is cropped to the canvas (Region Capture) — window title, URL and editor UI never reach the clip. Popout (`⧉`) remains for OBS users and as REC fallback.
+**One-click export:** `🎞 export` → SVG still / animated GIF / WebM video. Renders every sequence state full-res via html-to-image — no capture picker. GIF via gif.js CDN, video via canvas.captureStream + MediaRecorder.
+**Nodes + edges (GravelGraph-style):** `gnode` comps are service cards (icon chip + title + sub). Every component exposes 4 edge ports — select it and drag a 🔗 dot onto any component. Links live in the `edges[]` layer (NOT comps): `smooth`/`step`/`straight`/`curved` routing, protocol presets (HTTPS/gRPC/SQL/Event/Success/Error), branch tint, weight, direction, dots/dash/pulse + speed. An edge draws when both endpoints are visible, so wires pop in as nodes reveal. Click an edge (or 🔗 EDGES list) for the Edge panel. Legacy `flowlink` comps auto-migrate to edges on load.
 
 ---
 
