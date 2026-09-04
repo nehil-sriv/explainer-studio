@@ -155,6 +155,9 @@ While playing/recording the Sequence tab auto-opens as a teleprompter: shown ste
 the NEXT step glows amber with a `NEXT ▸` pill and auto-scrolls into view; selecting canvas
 comps mid-take no longer yanks the tab away; Esc exits back to Edit.
 Capture is cropped to the canvas (Region Capture) — window title, URL and editor UI never reach the clip. Popout (`⧉`) remains for OBS users and as REC fallback.
+Safari has no Region Capture: the fallback requests a bare capture (no surface hints, which
+Safari rejects) and directs the user to pick the popout TAB — window captures bake the OS
+title bar into the clip, tab captures exclude all browser chrome.
 **One-click export:** `🎞 export` → SVG still / animated GIF / WebM video. Renders every sequence state full-res via html-to-image — no capture picker. GIF via gif.js CDN, video via canvas.captureStream + MediaRecorder.
 GIF workers spawn from a Blob URL (CDN source fetched once) so file:// encodes instead of
 stalling at 0%; a 90s-silence watchdog reports instead of hanging; default scale is 0.5×
