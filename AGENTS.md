@@ -161,7 +161,10 @@ Capture is cropped to the canvas (Region Capture) — window title, URL and edit
 GIF workers spawn from a Blob URL (CDN source fetched once) so file:// encodes instead of
 stalling at 0%; a 90s-silence watchdog reports instead of hanging; default scale is 0.5×
 (1080p GIFs take minutes per frame in JS — first progress arrives only after frame one).
-**Nodes + edges (GravelGraph-style):** `gnode` comps are service cards (icon chip + title + sub). Every component exposes 4 edge ports — select it and drag a 🔗 dot onto any component. Links live in the `edges[]` layer (NOT comps): `smooth`/`step`/`straight`/`curved` routing, protocol presets (HTTPS/gRPC/SQL/Event/Success/Error), branch tint, weight, direction, dots/dash/pulse + speed.   An edge draws when both endpoints are visible, so wires pop in as nodes reveal. Click an edge
+GIF pacing ignores take holds: live-captures the canvas as-is (~8fps × `gif duration`,
+default 3s, loops forever) — ambient loops play, steps/takes untouched.
+**Nodes + edges (GravelGraph-style):** `gnode` comps are service cards (icon chip + title + sub). Every component exposes 4 edge ports — select it and drag a 🔗 dot onto any component. Links live in the `edges[]` layer (NOT comps): `smooth`/`step`/`straight`/`curved` routing, protocol presets (HTTPS/gRPC/SQL/Event/Success/Error), branch tint,   weight, direction, dots/dash/pulse + speed. Traveling dots ride CSS `offset-path`
+  (never SMIL `animateMotion` — snapshots restart SMIL clocks, freezing flow in GIF/PNG).   An edge draws when both endpoints are visible, so wires pop in as nodes reveal. Click an edge
   on the canvas (or Delete key) for the Edge panel. Legacy `flowlink` comps auto-migrate to edges on load.
 
 ---

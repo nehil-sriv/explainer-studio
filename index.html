@@ -352,6 +352,7 @@ body {
     <p class="hint">renders every sequence step full-res — no screen capture, no picker. GIF/WebM play the steps with your hold timing.</p>
     <div class="rec-row"><label>format</label><select id="exp-fmt"><option value="svg">SVG still (current canvas)</option><option value="gif">GIF animated (all steps)</option><option value="webm">WebM video (all steps)</option></select></div>
     <div class="rec-row"><label>scale</label><select id="exp-scale"><option value="0.5" selected>0.5× (small)</option><option value="1">1×</option><option value="2">2× (sharp)</option></select><span class="hint" style="margin:0">GIF: 0.5× keeps size sane</span></div>
+    <div class="rec-row" id="exp-gifrow"><label>gif duration (s)</label><input type="number" id="exp-gifhold" value="3" min="1" max="12" step="0.5" style="width:64px"><span class="hint" style="margin:0">records live canvas + motion · loops forever</span></div>
     <div id="exp-status"></div>
     <div class="rec-btns">
       <button class="mini primary" id="exp-start">↓ export</button>
@@ -695,19 +696,22 @@ function edgeBuild(e,ov){
     a.setAttribute('cx',ax); a.setAttribute('cy',ay); a.setAttribute('r',3);
     a.setAttribute('fill',col); g.appendChild(a); });
   const speed=Math.max(0.25,Math.min(4,+e.speed||1));
-  const dot=(path,dur,begin)=>{ const c=document.createElementNS(NS,'circle');
-    c.setAttribute('r',style==='pulse'?6:4.5); c.setAttribute('fill',col);
-    const m=document.createElementNS(NS,'animateMotion');
-    m.setAttribute('dur',dur+'s'); m.setAttribute('begin',begin+'s');
-    m.setAttribute('repeatCount','indefinite'); m.setAttribute('path',path);
-    c.appendChild(m); g.appendChild(c); };
+  // traveling dots ride CSS offset-path (NOT SMIL animateMotion): snapshots restart
+  // SMIL clocks, freezing flow in GIF/PNG exports — CSS motion captures like tokens do
+  const dot=(path,dur,begin,r)=>{ const c=document.createElementNS(NS,'circle');
+    c.setAttribute('r',r); c.setAttribute('fill',col);
+    c.setAttribute('cx',0); c.setAttribute('cy',0);
+    c.setAttribute('class','flowdot');
+    c.style.offsetPath=`path('${path}')`;
+    c.style.animationDuration=dur+'s'; c.style.animationDelay=begin+'s';
+    g.appendChild(c); };
   if(animOn&&style==='dots'){
     const dur=+(1.9/speed).toFixed(2), n=3;
-    for(let i=0;i<n;i++) dot(G.d,dur,+(-(i*dur/n)).toFixed(2));
+    for(let i=0;i<n;i++) dot(G.d,dur,+(-(i*dur/n)).toFixed(2),4.5);
     if(e.dir==='both'){ const GB=edgeGeom(e,!rev);
-      if(GB) for(let i=0;i<n;i++) dot(GB.d,dur,+(-(i*dur/n)).toFixed(2)); }
+      if(GB) for(let i=0;i<n;i++) dot(GB.d,dur,+(-(i*dur/n)).toFixed(2),4.5); }
   }
-  if(animOn&&style==='pulse') dot(G.d,+(3.4/speed).toFixed(2),0);
+  if(animOn&&style==='pulse') dot(G.d,+(3.4/speed).toFixed(2),0,6);
   const lbl=edgeLabel(e);
   if(lbl||e.caption){
     // pure-SVG label chip (no foreignObject: robust across browsers + exports).
@@ -716,26 +720,26 @@ function edgeBuild(e,ov){
     const t=document.createElementNS(NS,'g');
     t.setAttribute('class','elab');
     const cap=String(e.caption||'');
-    const wLbl=lbl?Math.round(lbl.length*7.4+24):0;
-    const wCap=cap?Math.round(cap.length*6.6+14):0;
-    const w=Math.max(wLbl,wCap,12);
+    const wLbl=lbl?Math.round(lbl.length*7.9+28):0;
+    const wCap=cap?Math.round(cap.length*7.3+18):0;
+    const w=Math.max(wLbl,wCap,16);
     const both=!!(lbl&&cap);
-    const top=both?-22:(lbl?-20:-11), h=both?40:(lbl?24:20);
+    const top=both?-24:(lbl?-21:-12), h=both?46:(lbl?26:22);
     const r=document.createElementNS(NS,'rect');
     r.setAttribute('x',-w/2); r.setAttribute('y',top); r.setAttribute('width',w); r.setAttribute('height',h);
-    r.setAttribute('rx',6); r.setAttribute('fill','#0B100C'); r.setAttribute('fill-opacity','0.94');
-    r.setAttribute('stroke','#1E2A1E'); r.setAttribute('stroke-width',1);
+    r.setAttribute('rx',7); r.setAttribute('fill','#0B100C'); r.setAttribute('fill-opacity','0.96');
+    r.setAttribute('stroke',col); r.setAttribute('stroke-opacity','0.55'); r.setAttribute('stroke-width',1.5);
     t.appendChild(r);
     if(lbl){ const tx=document.createElementNS(NS,'text');
-      tx.setAttribute('y',both?-6:0); tx.setAttribute('text-anchor','middle');
+      tx.setAttribute('y',both?-7:1); tx.setAttribute('text-anchor','middle');
       tx.setAttribute('dominant-baseline',both?'auto':'middle');
-      tx.setAttribute('font-family',"'JetBrains Mono',monospace"); tx.setAttribute('font-size',12);
+      tx.setAttribute('font-family',"'JetBrains Mono',monospace"); tx.setAttribute('font-size',13);
       tx.setAttribute('letter-spacing','0.5'); tx.setAttribute('fill',col);
       tx.textContent=lbl; t.appendChild(tx); }
     if(cap){ const cx=document.createElementNS(NS,'text');
-      cx.setAttribute('y',both?12:1); cx.setAttribute('text-anchor','middle');
+      cx.setAttribute('y',both?13:1); cx.setAttribute('text-anchor','middle');
       cx.setAttribute('dominant-baseline','middle');
-      cx.setAttribute('font-family',"'JetBrains Mono',monospace"); cx.setAttribute('font-size',11);
+      cx.setAttribute('font-family',"'JetBrains Mono',monospace"); cx.setAttribute('font-size',12);
       cx.setAttribute('fill',themeHex('--text-dim','#5C8A66')); cx.textContent=cap; t.appendChild(cx); }
     g.appendChild(t);
     g._track=track; g._label=t;
@@ -1612,11 +1616,13 @@ const REGISTRY = {
       const path=`M 14 ${base} Q ${L/2} ${base+bow*2} ${L-14} ${base}`;
       const dur=p.mode==='pulse'?3.4:1.7;
       let dots='';
+      // CSS offset-path dots (not SMIL): export snapshots restart SMIL clocks, freezing
+      // flow — CSS motion captures frame-to-frame like the token streams do
       if(p.mode==='stream'){
         const nn=Math.max(2,Math.min(10,+p.n||4));
-        for(let i=0;i<nn;i++) dots+=`<circle r="${i%3===2?4:5.5}" fill="${i%3===2?'var(--cyan-dim)':'var(--stroke)'}"><animateMotion dur="${dur}s" begin="${(-(i*dur/nn)).toFixed(2)}s" repeatCount="indefinite" path="${path}"/></circle>`;
+        for(let i=0;i<nn;i++) dots+=`<circle class="flowdot" r="${i%3===2?4:5.5}" fill="${i%3===2?'var(--cyan-dim)':'var(--stroke)'}" cx="0" cy="0" style="offset-path:path('${path}');animation-duration:${dur}s;animation-delay:${(-(i*dur/nn)).toFixed(2)}s"/>`;
       } else {
-        dots=`<circle r="6" fill="var(--stroke)"><animateMotion dur="${dur}s" repeatCount="indefinite" path="${path}"/></circle>`;
+        dots=`<circle class="flowdot" r="6" fill="var(--stroke)" cx="0" cy="0" style="offset-path:path('${path}');animation-duration:${dur}s"/>`;
       }
       const head=p.head?`<polygon class="headf" points="${L-16},${base-8} ${L-3},${base} ${L-16},${base+8}"/>`:'';
       return `<div class="tk-aw ${p.dashed?'dashed':''}" style="--stroke:${p.accent};width:${L}px;position:relative">
@@ -1644,10 +1650,10 @@ const REGISTRY = {
         if(p.mode==='stream'){
           const col=i%2?'var(--cyan-dim)':'var(--stroke)';
           const beg=(n===4)?BEG4[i]:-(i*0.475);
-          dots+=`<circle r="4.5" fill="${col}" opacity="${fade(i)}"><animateMotion dur="1.9s" begin="${beg}s" repeatCount="indefinite" path="${d}"/></circle>`;
+          dots+=`<circle class="flowdot" r="4.5" fill="${col}" opacity="${fade(i)}" cx="0" cy="0" style="offset-path:path('${d}');animation-duration:1.9s;animation-delay:${beg}s"/>`;
         } else {
           const dur=p.mode==='pulse'?3.2:1.7;
-          dots+=`<circle r="5" fill="var(--stroke)" opacity="${fade(i)}"><animateMotion dur="${dur}s" begin="${(i*0.25).toFixed(2)}s" repeatCount="indefinite" path="${d}"/></circle>`;
+          dots+=`<circle class="flowdot" r="5" fill="var(--stroke)" opacity="${fade(i)}" cx="0" cy="0" style="offset-path:path('${d}');animation-duration:${dur}s;animation-delay:${(i*0.25).toFixed(2)}s"/>`;
         }
       }
       return `<div class="tk-fan" style="--stroke:${p.accent};width:${L}px;position:relative">
@@ -3296,11 +3302,23 @@ function hideChrome(on){
 const EXP={ scale:1, busy:false, cancel:false };
 function expStatus(){ return document.getElementById('exp-status'); }
 function expScale(){ EXP.scale=parseFloat(document.getElementById('exp-scale').value)||1; return EXP.scale; }
-function stepDurMs(k){
-  if(k===0) return 700;
-  const c=comps[k-1];
-  const anim=((c.animDelay||0)+(c.animDur||0.6))*1000;
-  return Math.round(anim+seqHoldFor(c)*1000);
+function gifDurationMs(){
+  // GIF captures the live canvas (not per-step) — total capture length from the dialog
+  const hold=Math.max(0.5, parseFloat((document.getElementById('exp-gifhold')||{}).value)||3);
+  return Math.round(hold*1000);
+}
+/* live capture: sample the canvas as-is (ambient loops play, takes/steps untouched)
+   at ~8fps for the dialog duration — a screen recording, not a slideshow */
+async function collectLiveFrames(st, totalMs){
+  const interval=125, n=Math.max(2,Math.min(96,Math.round(totalMs/interval)));
+  const out=[];
+  for(let i=0;i<n;i++){
+    if(EXP.cancel) break;
+    st.textContent=`capturing live canvas ${i+1}/${n}… (Esc cancels)`;
+    out.push({cv:await expRaster(), dur:interval});
+    await sleep(interval);
+  }
+  return out;
 }
 async function expRaster(){
   hideChrome(true);
@@ -3322,21 +3340,6 @@ async function exportSVG(){
     expDownload(dataUrl,'llmao-scene.svg');
     st.textContent='✔ SVG saved (current canvas state)';
   }catch(err){ hideChrome(false); st.textContent='⚠ SVG failed: '+err.message; }
-}
-async function collectStepFrames(st){
-  // one settled frame per state; restores playback afterwards
-  const keepShown=SEQ.shown, keepActive=SEQ.active;
-  SEQ.active=true;
-  const out=[];
-  for(let k=0;k<=comps.length;k++){
-    if(EXP.cancel) break;
-    SEQ.shown=k; renderCanvas(); renderStrip();
-    st.textContent=`rendering step ${k}/${comps.length}… (Esc cancels)`;
-    await sleep(180);
-    out.push({cv:await expRaster(), dur:stepDurMs(k)});
-  }
-  SEQ.shown=keepShown; SEQ.active=keepActive; render(); renderStrip();
-  return out;
 }
 /* gif.js workers stall silently at 0% when the CDN worker script can't spawn
    (file:// null origin, sandboxed iframes, shield-blocked workers) — and the lib
@@ -3361,12 +3364,12 @@ async function exportGIF(){
   if(!comps.length){ st.textContent='nothing to export — add components first'; return; }
   EXP.busy=true; EXP.cancel=false;
   try{
-    const frames=await collectStepFrames(st);
+    const frames=await collectLiveFrames(st, gifDurationMs());
     if(EXP.cancel){ st.textContent='cancelled'; return; }
     if(!frames.length) return;
     const W=frames[0].cv.width, H=frames[0].cv.height;
     st.textContent='encoding GIF… (starting workers)';
-    const gif=new GIF({workers:2, quality:9, width:W, height:H,
+    const gif=new GIF({workers:2, quality:9, width:W, height:H, repeat:0,
       workerScript:await gifWorkerURL(),
       background:'#0A0F0A'});
     frames.forEach(f=>gif.addFrame(f.cv,{copy:true, delay:Math.max(100,Math.min(10000,f.dur))}));
@@ -3452,6 +3455,10 @@ async function exportVideo(){
 document.getElementById('btn-export-media').onclick=()=>{
   const p=document.getElementById('exp-pop');
   p.style.display=p.style.display==='block'?'none':'block';
+  document.getElementById('exp-gifrow').style.display=document.getElementById('exp-fmt').value==='gif'?'':'none';
+};
+document.getElementById('exp-fmt').onchange=()=>{
+  document.getElementById('exp-gifrow').style.display=document.getElementById('exp-fmt').value==='gif'?'':'none';
 };
 document.getElementById('exp-close').onclick=()=>{ document.getElementById('exp-pop').style.display='none'; };
 document.getElementById('exp-start').onclick=()=>{

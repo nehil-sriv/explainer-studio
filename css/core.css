@@ -2082,6 +2082,15 @@
   stroke-dasharray: 9 8;
   animation: tk-marchh 0.8s linear infinite;
 }
+/* traveling data dots ride CSS offset-path (never SMIL animateMotion): export
+   snapshots restart SMIL clocks, freezing flow — CSS motion captures like tokens */
+.flowdot {
+  offset-anchor: center;
+  transform-box: fill-box;
+  offset-rotate: 0deg;
+  animation: flowgo linear infinite;
+}
+@keyframes flowgo { from { offset-distance: 0%; } to { offset-distance: 100%; } }
 
 /* ===== legacy tech-explainer set (moved from builder <style>) ===== */
 .svc {
