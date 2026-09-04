@@ -1577,6 +1577,21 @@ const REGISTRY = {
     markup:p=>{ const pct=Math.max(0,Math.min(100,+p.pct||0));
       return `<div class="tk-chart"><div class="tk-donut" style="--d:${+p.d||220}px;--pct:${pct};--dc:${p.color}"><span class="dcap">${rich(p.label||(pct+'%'))}</span></div></div>`; } },
 
+  tbl:      { name:'TK · table',
+    group:'charts',
+    help:'header + rows, cells separated by |, one row per line. [g]x[/g] / [a]x[/a] / [r]x[/r] color cells.',
+    props:{title:'', head:'Service|Stack|Status', rows:'api|rest|[g]live[/g]\ndb|postgres|[a]slow[/a]\nworker|queue|[r]down[/r]', accent:'var(--phos-green)'},
+    fields:['title','head','rows','accent'], fieldTypes:{head:'textarea', rows:'textarea'},
+    markup:p=>{
+      const head=String(p.head||'').split('|').map(s=>s.trim());
+      const rows=String(p.rows||'').split('\n').map(r=>r.split('|').map(s=>s.trim())).filter(r=>r.some(c=>c));
+      const n=Math.max(head.length,...rows.map(r=>r.length));
+      const td=(c,i,tag)=>`<${tag}>${rich(c||'')}</${tag}>`;
+      return `<div class="tk-tbl" style="--stroke:${p.accent}">
+        ${p.title?`<div class="tltitle">${rich(p.title)}</div>`:''}
+        <table><thead><tr>${Array.from({length:n},(_,i)=>td(head[i]||'',i,'th')).join('')}</tr></thead>
+        <tbody>${rows.map(r=>`<tr>${Array.from({length:n},(_,i)=>td(r[i]||'',i,'td')).join('')}</tr>`).join('')}</tbody></table></div>`; } },
+
   timeline: { name:'TK · timeline / roadmap',
     group:'chrome',
     help:'milestones on a line — items and dates are |-separated, aligned by position. done = how many are completed.',

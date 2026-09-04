@@ -2186,3 +2186,30 @@
   letter-spacing: 1px;
   white-space: nowrap;
 }
+
+/* ===== TK · table (structure) ===== */
+.tk-tbl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tk-tbl .tltitle {
+  font-size: calc(30px*var(--fscale,1));
+  letter-spacing: 3px;
+}
+.tk-tbl table {
+  border-collapse: collapse;
+  font-size: calc(20px*var(--fscale,1));
+}
+.tk-tbl th, .tk-tbl td {
+  text-align: left;
+  white-space: nowrap;
+  padding: 9px 20px;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+}
+.tk-tbl th {
+  font-size: calc(15px*var(--fscale,1));
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}

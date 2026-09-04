@@ -89,6 +89,9 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   (✎ edit · ⧉ dup · 📌 pin · 🗑 del). It lives in `#stage-scale` but OUTSIDE `#scene`,
   so cropped REC/popout/export can never record it; hidden while `REC.active` anyway.
 - **Components:** Defined in `REGISTRY` inside `index.html` (`const REGISTRY = { kicker:{...}, svc:{...} }`). Each entry: `name`, `props`, `fields`, `fieldTypes`, `markup(props) → HTML`.
+  Transform = x/y/scale/rot plus `sx`/`sy` axis stretches (legacy E/S handles; current UI
+  is uniform-scale only via the SE handle). Ports/edges/drop math all flow through
+  `visualBox`, which composes them.
 - **Accent convention (theme-following):** default `accent:'var(--phos-green)'` (= theme primary,
   resolves live in CSS via `var(--stroke, var(--phos-green))`, in SVG attrs via `liveHex()` —
   SVG attributes can't use `var()`). Only use a hex default for SEMANTIC hues

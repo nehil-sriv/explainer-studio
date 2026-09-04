@@ -434,3 +434,11 @@
 .tk-tline .tlnode.todo b { color: var(--text-dim); }
 .tk-tline .tlnode s { color: var(--text-dim); }
 .tk-tline .tlnode.done s { color: var(--stroke,var(--phos-green)); }
+
+/* ===== TK · table (skin) ===== */
+.tk-tbl { font-family: var(--font-body); }
+.tk-tbl .tltitle { font-family: var(--font-display); color: var(--text-primary); }
+.tk-tbl th, .tk-tbl td { border-bottom-color: var(--line-dim); }
+.tk-tbl th { color: var(--stroke,var(--phos-green)); }
+.tk-tbl td { color: var(--text-primary); }
+.tk-tbl tbody tr:last-child td { border-bottom: none; }
