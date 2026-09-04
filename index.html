@@ -157,15 +157,18 @@ body {
   footer { padding:8px 16px; font-size:11px; color:#3a5540; }
 
   /* ===== component entrance animations (configurable per component) ===== */
+  /* every motion frame carries scale(var(--ks)) rotate(var(--kr)) — set per element
+     from the comp's edited scale/rot — so entrances never wipe your transform
+     mid-flight (they used to end in transform:none: comps entered "default") */
   @keyframes pa-fade      { from{opacity:0} to{opacity:1} }
-  @keyframes pa-left      { from{opacity:0;transform:translateX(-120px)} to{opacity:1;transform:none} }
-  @keyframes pa-right     { from{opacity:0;transform:translateX(120px)} to{opacity:1;transform:none} }
-  @keyframes pa-up        { from{opacity:0;transform:translateY(120px)} to{opacity:1;transform:none} }
-  @keyframes pa-down      { from{opacity:0;transform:translateY(-120px)} to{opacity:1;transform:none} }
-  @keyframes pa-zoom      { from{opacity:0;transform:scale(0.4)} to{opacity:1;transform:scale(1)} }
-  @keyframes pa-zoomout   { from{opacity:0;transform:scale(2.2)} to{opacity:1;transform:scale(1)} }
-  @keyframes pa-glitchin  { 0%{opacity:0;transform:translate(-8px,3px)} 20%{opacity:1;transform:translate(7px,-4px)}
-                            40%{transform:translate(-5px,2px)} 60%{transform:translate(4px,-2px)} 100%{opacity:1;transform:none} }
+  @keyframes pa-left      { from{opacity:0;transform:translateX(-120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-right     { from{opacity:0;transform:translateX(120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-up        { from{opacity:0;transform:translateY(120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-down      { from{opacity:0;transform:translateY(-120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-zoom      { from{opacity:0;transform:scale(calc(var(--ks,1)*0.4)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-zoomout   { from{opacity:0;transform:scale(calc(var(--ks,1)*2.2)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-glitchin  { 0%{opacity:0;transform:translate(-8px,3px) scale(var(--ks,1)) rotate(var(--kr,0deg))} 20%{opacity:1;transform:translate(7px,-4px) scale(var(--ks,1)) rotate(var(--kr,0deg))}
+                            40%{transform:translate(-5px,2px) scale(var(--ks,1)) rotate(var(--kr,0deg))} 60%{transform:translate(4px,-2px) scale(var(--ks,1)) rotate(var(--kr,0deg))} 100%{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
   .comp.anim-typing .pa-char { visibility:hidden; }
   .comp.anim-typing .pa-char.on { visibility:visible; }
   /* snap guides + lock badge */
@@ -226,6 +229,7 @@ body {
     <input type="number" id="scene-h" value="1080" min="200" step="10" style="display:none">
     <button class="palette" id="preset-yt" title="Landscape 1920×1080"><span class="ori-icon landscape"></span></button>
     <button class="palette" id="preset-shorts" title="Portrait 1080×1920"><span class="ori-icon portrait"></span></button>
+    <button class="mini" id="btn-clear-canvas" title="empty this scene (components + wires) — saved items kept, Ctrl+Z undoes">🧹 clear</button>
   </div>
   <div class="tp-group tp-transport">
     <button class="palette" id="btn-popout">⧉ popout</button>
@@ -250,6 +254,9 @@ body {
       <div class="bg-logo">$▮ llmao.md</div>
       <div id="gv"></div><div id="gh"></div><div class="corners"><i></i><i></i><i></i><i></i></div>
       <div class="crt"></div>
+    </div>
+    <div id="sel-tools" style="display:none">
+      <button data-t="edit" title="open in Edit panel">✎ edit</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉ dup</button><button data-t="pin" title="pin: survives clears">📌 pin</button><button data-t="del" title="delete (+ attached edges)">🗑 del</button>
     </div>
   </div></div>
 
@@ -2018,6 +2025,7 @@ function renderCanvas(){
     // --- SEQUENCE visibility: edit = show all; playback = first SEQ.shown ---
     if(!compVisible(c)) return;
     const reg=REGISTRY[c.type];
+    if(!reg) return;   // unknown type (e.g. a newer file) — skip, don't crash the scene
     const el=document.createElement('div');
     const isFirstRender=!freshTrack.has(c);
     freshTrack.add(c);
@@ -2025,6 +2033,8 @@ function renderCanvas(){
     el.dataset.draft=c.draft?'1':'0';
     el.dataset.id=c.id;
     el.style.cssText=`left:${c.x}px;top:${c.y}px;z-index:${c.z};transform:scale(${c.scale}) rotate(${c.rot}deg);opacity:${c.opacity};`;
+    el.style.setProperty('--ks', c.scale||1);   // entrance keyframes carry these — transform survives the flight
+    el.style.setProperty('--kr', (c.rot||0)+'deg');
     if(c.wpx) el.style.width=c.wpx+'px';
     if(c.hpx) el.style.height=c.hpx+'px';
     if(c.props&&c.props.color){ el.style.setProperty('--ca', c.props.color); el.style.setProperty('--cc', c.props.color); el.style.setProperty('--ct', c.props.color); }
@@ -2083,39 +2093,23 @@ function renderList(){
     if(c.parked) return;                                // parked list rendered below
     const li=document.createElement('li');
     const hideN=(Array.isArray(c.hides)?c.hides.length:0);
+    const mk=(txt,title,fn,cls='',on=false)=>{ const b=document.createElement('button');
+      if(cls)b.className=cls; b.textContent=txt; b.title=title;
+      if(on){ b.style.color='var(--ch-amber)'; b.style.borderColor='var(--ch-amber)'; }
+      b.onclick=e=>{ e.stopPropagation(); fn(); };
+      return b; };
     if(!playing){
       // === edit mode: full step controls per row ===
       li.className=c.id===selId?'sel':'';
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+(c.spot?'💡':'')+((c.clearBefore||c.pin||c.spot)?' ':'')+(hideN?`⊘${hideN} `:'');
       li.innerHTML=`<span class="name"><span class="marks">${marks}</span>${i+1}. ${c.type} <span class="pos">${String(c.props.text||c.props.title||c.props.label||'').slice(0,24)}</span></span>`;
-      const mk=(txt,title,fn,cls='',on=false)=>{ const b=document.createElement('button');
-        if(cls)b.className=cls; b.textContent=txt; b.title=title;
-        if(on){ b.style.color='var(--ch-amber)'; b.style.borderColor='var(--ch-amber)'; }
-        b.onclick=e=>{ e.stopPropagation(); fn(); };
-        return b; };
       li.append(
         mk('🧹','clear screen before this step (earlier comps hide — 📌 pinned survive)',()=>{ snap(); c.clearBefore=!c.clearBefore; render(); renderStrip(); },'',!!c.clearBefore),
         mk('📌','pin: stays on screen through clears',()=>{ snap(); c.pin=!c.pin; render(); renderStrip(); },'',!!c.pin),
         mk('⧉','duplicate',()=>{ const d=structuredClone(c); delete d._played; d.id=uid(); d.z=c.z+1;
                                  comps.splice(i+1,0,d); render(); renderStrip(); }),
         mk('🗑','remove from recording scene (attached edges go too)',()=>{ snap(); edges=edges.filter(x=>x.from!==c.id&&x.to!==c.id); comps=comps.filter(x=>x.id!==c.id); if(selId===c.id)selId=null; if(selEdge&&!edges.some(x=>x.id===selEdge))selEdge=null; render(); },'danger')
-      );
-      // drag to reorder — drop before/after by cursor half (take-mode rows stay click-to-jump)
-      li.draggable=true;
-      li.ondragstart=e=>{ e.dataTransfer.setData('text/plain',c.id); e.dataTransfer.effectAllowed='move'; li.classList.add('dragging'); };
-      li.ondragend=()=>list.querySelectorAll('.dragging,.drop-before,.drop-after').forEach(x=>x.classList.remove('dragging','drop-before','drop-after'));
-      const halfBefore=e=>{ const r=li.getBoundingClientRect(); return (e.clientY-r.top)<r.height/2; };
-      li.ondragover=e=>{ e.preventDefault(); e.dataTransfer.dropEffect='move';
-        li.classList.toggle('drop-before',halfBefore(e)); li.classList.toggle('drop-after',!halfBefore(e)); };
-      li.ondragleave=()=>li.classList.remove('drop-before','drop-after');
-      li.ondrop=e=>{ e.preventDefault();
-        const id=e.dataTransfer.getData('text/plain'); if(!id||id===c.id) return;
-        const from=comps.findIndex(x=>x.id===id); if(from<0) return;
-        snap();
-        const [mv]=comps.splice(from,1);
-        let to=comps.indexOf(c); if(!halfBefore(e)) to++;
-        comps.splice(to,0,mv); render(); renderStrip();
-      };
+      );   // end step-control buttons
     } else {
       // === take mode (play/record): text-only narration script ===
       // visited steps are clickable (jump back and return); past-the-head is locked;
@@ -2131,7 +2125,24 @@ function renderList(){
       li.innerHTML=`<span class="l1"><span class="n">${i+1}.</span><span class="t">${c.type}</span>${marks?`<span class="marks">${marks}</span>`:''}${label?`<span class="txt">${label.replace(/</g,'&lt;')}</span>`:''}${isHead?'<span class="headtag" title="furthest visited — click to jump back here">⌂ you were here</span>':''}${isNext?'<span class="nexttag">NEXT ▸</span>':''}</span>`;
       li.onclick=()=>seqJump(i);
     }
-    if(!playing) li.onclick=()=>select(c.id);
+    if(!playing){   // edit rows reorder by drag — take rows stay click-to-jump
+      li.draggable=true;
+      li.ondragstart=e=>{ e.dataTransfer.setData('text/plain',c.id); e.dataTransfer.effectAllowed='move'; li.classList.add('dragging'); };
+      li.ondragend=()=>list.querySelectorAll('.dragging,.drop-before,.drop-after').forEach(x=>x.classList.remove('dragging','drop-before','drop-after'));
+      const halfBefore=e=>{ const r=li.getBoundingClientRect(); return (e.clientY-r.top)<r.height/2; };
+      li.ondragover=e=>{ e.preventDefault(); e.dataTransfer.dropEffect='move';
+        li.classList.toggle('drop-before',halfBefore(e)); li.classList.toggle('drop-after',!halfBefore(e)); };
+      li.ondragleave=()=>li.classList.remove('drop-before','drop-after');
+      li.ondrop=e=>{ e.preventDefault();
+        const id=e.dataTransfer.getData('text/plain'); if(!id||id===c.id) return;
+        const from=comps.findIndex(x=>x.id===id); if(from<0) return;
+        snap();
+        const [mv]=comps.splice(from,1);
+        let to=comps.indexOf(c); if(!halfBefore(e)) to++;
+        comps.splice(to,0,mv); render(); renderStrip();
+      };
+      li.onclick=()=>select(c.id);
+    }
     list.appendChild(li);
   });
   if(!comps.length && !parkedNow.length) list.innerHTML='<div class="hint" style="padding:4px">empty — click a component above to begin</div>';
@@ -2189,12 +2200,45 @@ function renderLive(){
     if(document.activeElement!==inp && inp.type==='range') inp.value=c2[inp.dataset.p];
     if(document.activeElement!==inp && inp.type==='number') inp.value=c2[inp.dataset.p];
   });
+  renderSelTools();   // follow the comp while it drags
   autosave();
 }
 
 function render(){
-  renderCanvas(); renderList(); renderInspector(); renderStrip();
+  renderCanvas(); renderList(); renderInspector(); renderStrip(); renderSelTools();
 }
+/* floating selection toolbar — child of #stage-scale (so it pans/scales with the
+   canvas) but OUTSIDE #scene, so Region-Capture REC (cropped to #scene) and the
+   popout/export mirrors can never record it. Hidden while REC is live anyway. */
+function renderSelTools(){
+  const bar=document.getElementById('sel-tools'); if(!bar) return;
+  const c=comps.find(x=>x.id===selId);
+  if(!c||c.parked||REC.active){ bar.style.display='none'; return; }
+  // counter-scale: the bar lives in the zoomed canvas, so un-zoom it to constant screen size
+  const s=currentScale()||1;
+  const h=(c._rh||c.hpx||120);
+  bar.style.display='flex';
+  bar.style.transform=`scale(${1/s})`;
+  bar.style.transformOrigin='top left';
+  if(!bar.dataset.hh) bar.dataset.hh=bar.offsetHeight||28;   // layout px == screen px after un-zoom
+  const bh=parseFloat(bar.dataset.hh);
+  const below=c.y*s<(bh+14);   // no screen room above — hang it underneath instead
+  bar.style.left=c.x+'px';
+  bar.style.top=(below?c.y+h+8/s:c.y-8/s-bh/s)+'px';
+  const pin=bar.querySelector('[data-t="pin"]'); if(pin) pin.classList.toggle('on',!!c.pin);
+}
+document.querySelectorAll('#sel-tools button').forEach(b=>{
+  b.onclick=e=>{ e.stopPropagation();
+    const c=comps.find(x=>x.id===selId); if(!c) return;
+    const k=b.dataset.t;
+    if(k==='edit'){ showRailTab('edit');
+      const f=document.querySelector('#fields textarea,#fields input,#fields select'); if(f) f.focus(); }
+    else if(k==='dup'){ seqDuplicateSel(); }
+    else if(k==='pin'){ snap(); c.pin=!c.pin; render(); renderStrip(); }
+    else if(k==='del'){ snap(); edges=edges.filter(x=>x.from!==c.id&&x.to!==c.id);
+      comps=comps.filter(x=>x.id!==c.id); selId=null; render(); }
+  };
+});
 /* right-rail tabs: Edit vs Sequence */
 function showRailTab(which){
   const edit=which!=='seq';
@@ -2277,6 +2321,7 @@ function renderInspector(){
   }
   wrap.style.display='block'; empty.style.display='none';
   const reg=REGISTRY[c.type];
+  if(!reg){ wrap.innerHTML=`<p style="font-size:11px;color:var(--ch-red);margin:0">unknown type “${String(c.type).replace(/</g,'&lt;')}” — saved by a newer build, can't edit here</p>`; return; }
   let html=`<p style="font-size:11px;color:${c.draft?'var(--ch-amber)':'var(--ch-dim)'};margin:0 0 10px">${c.draft?'PREVIEW (draft) · ':''}${reg.name}${reg.help?` — ${reg.help}`:''}</p>`;
 
   // transform row — slider + number input side by side
@@ -2490,6 +2535,7 @@ function renderInspector(){
   // animation controls
   const animSel=wrap.querySelector('#anim-select');
   if(animSel){
+    // selecting an animation replays it immediately — that IS the test preview
     animSel.onchange=()=>{ c.anim=animSel.value; c._played=false; renderCanvas(); };
 
     wrap.querySelector('#anim-replay').onclick=()=>{ delete c._played; renderCanvas(); };
@@ -2771,14 +2817,18 @@ const TK_DEFAULT_ANIM={
 
 function applyAnimation(el, c, force=false){
   const dur=c.animDur||0.6, delay=c.animDelay||0;
+  const playDelay=SEQ.active?0:delay;   // takes start on the Space press — delay is an edit-preview timing
   if(c.anim===undefined && TK_DEFAULT_ANIM[c.type]) c.anim=TK_DEFAULT_ANIM[c.type];   // auto: first render picks the type's default (user can change/disable after)
   if(!c.anim || c.anim==='none'){ el.style.animation='none'; return; }
   if(c._played && !force){ el.style.animation='none'; return; }  // already played — don't restart
   c._played=true;
   if(c.anim==='type'){
-    typewrite(el, dur, delay);
+    typewrite(el, dur, playDelay);
   } else {
-    el.style.animation=`${c.anim} ${dur}s cubic-bezier(.2,.7,.3,1) ${delay}s both`;
+    // backwards fill (NOT both): every motion keyframe ends in transform:none/scale(1),
+    // and a forwards fill would hold that over the inline scale()/rotate() forever —
+    // rotated/scaled comps looked "reset to default" until a repaint cleared it
+    el.style.animation=`${c.anim} ${dur}s cubic-bezier(.2,.7,.3,1) ${playDelay}s backwards`;
   }
 }
 /* letter-by-letter reveal across all text nodes */
@@ -3012,17 +3062,21 @@ function seqPlay(from=0){
   if(!comps.filter(c=>!c.parked).length){ toastMsg('nothing to play — add components first'); return; }
   snap();
   SEQ.active=true; SEQ.auto=false; seqStopAutoTimer();
+  SEQ.ended=false;
   SEQ.shown=Math.max(0, Math.min(from, comps.length));
   SEQ.maxShown=SEQ.shown;   // revisit head — jumps never pass what the take has revealed
   selId=null;
-  // re-arm entrance of the first shown comp so ▶ always plays it
+  // takes replay entrances (motion is back) — delay is edit-preview-only so takes start on-beat
   comps.forEach(c=>{ delete c._played; if(typeof c.revealed!=='undefined' && c.props.stepped) c.revealed=0; });
   render(); renderStrip(); syncPopupSpot(); try{ camSyncForSeq(); }catch(_){}
   showRailTab('seq');   // playing = narrating — keep the teleprompter list up
   toastMsg(SEQ.shown===0 ? '▶ from blank — Space = next component · Esc = exit' : `▶ from ${SEQ.shown+1}/${comps.length} — Space continues`);
 }
 function seqNext(){
-  if(!SEQ.active){ seqPlay(0); return; }
+  if(!SEQ.active){
+    if(SEQ.ended){ SEQ.ended=false; toastMsg('take ended — ▶ play replays it'); return; }
+    seqPlay(0); return;
+  }
   // stepped terminal/checklist: reveal next line first
   const visible=comps.filter(c=>compVisible(c));
   const last=[...visible].reverse().find(c=>c.props.stepped);
@@ -3038,7 +3092,7 @@ function seqNext(){
     SEQ.maxShown=Math.max(SEQ.maxShown,SEQ.shown);
     render(); renderStrip(); syncPopupSpot(); try{ camSyncForSeq(); }catch(_){}
   } else {
-    toastMsg('end of sequence — Esc to edit');
+    seqExit(true);   // past the last step — the take ends itself, no Esc needed
   }
 }
 function seqPrev(){
@@ -3063,17 +3117,19 @@ function seqJump(i){
   render(); renderStrip(); syncPopupSpot(); try{ camSyncForSeq(); }catch(_){}
   toastMsg(`⏪ step ${SEQ.shown}/${comps.length} — furthest visited ${SEQ.maxShown}/${comps.length}`);
 }
-function seqExit(){
+function seqExit(ended){
   seqStopAutoTimer();
   SEQ.active=false; SEQ.auto=false; SEQ.shown=comps.length; SEQ.maxShown=0;
+  SEQ.ended=!!ended;   // reached-the-end (not Esc/stop): swallow one stray Space so the take can't loop
   render(); renderStrip(); syncPopupSpot();
   showRailTab('edit');
-  toastMsg('edit mode — all components visible · ↑↓ in list = sequence order');
+  toastMsg(ended?'✔ take ended — all components visible · drag rows to reorder'
+                :'edit mode — all components visible · drag list rows to reorder');
 }
 function seqStopAutoTimer(){ if(SEQ.autoTimer){ clearTimeout(SEQ.autoTimer); SEQ.autoTimer=null; } }
 function seqAutoStep(done){
   if(!SEQ.active || !SEQ.auto) return;
-  if(SEQ.shown >= comps.length){ SEQ.auto=false; if(done) done(); else { toastMsg('✔ auto-play done — Esc to edit'); renderStrip(); } return; }
+  if(SEQ.shown >= comps.length){ SEQ.auto=false; if(done) done(); seqExit(true); return; }
   seqNext();
   const cur=comps[SEQ.shown-1];
   const hold=cur?seqHoldFor(cur):SEQ.holdDefault;
@@ -3105,10 +3161,9 @@ function seqDuplicateSel(){
   comps.splice(i+1,0,d); selId=d.id; render(); renderStrip();
   return d;
 }
-/* ⇄ new state (Phase 1 state changes): in-place clone that RETIRES the selected
-   comp when it appears — db healthy → db connection-lost without touching the
-   data model. Jump back before the variant and the old state returns (⊘ hides
-   only apply from shown steps). A variant never carries 🧹: a swap must not nuke. */
+/* ⇄ new state: in-place clone that RETIRES the selected comp when it appears —
+   db healthy → db connection-lost. Jump back before the variant and the old state
+   returns (⊘ hides only apply from shown steps). A variant never carries 🧹. */
 function seqVariantSel(){
   const i=comps.findIndex(x=>x.id===selId);
   if(i<0){ toastMsg('select a component first — then ⇄ makes its next state'); return null; }
@@ -3278,10 +3333,13 @@ function importProject(d){
 function toastMsg(msg){
   let t=document.getElementById('navtoast');
   if(!t){ t=document.createElement('div'); t.id='navtoast';
-    t.style.cssText='position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999;transition:opacity .5s';
+    t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);z-index:999;transition:opacity .5s';
     document.body.appendChild(t); }
+  // toasts always dock under the header — the footer strip owns the bottom edge
+  t.style.top='60px';
+  t.style.bottom='';
   t.textContent=msg; t.style.opacity='1';
-  clearTimeout(t._tm); t._tm=setTimeout(()=>t.style.opacity='0', 1500);
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.style.opacity='0', 2600);
 }
 /* ============ undo ============ */
 const undoStack=[];
@@ -3489,14 +3547,16 @@ function mirrorCompToPopup(c){
       el=pdoc.createElement('div');
       el.className='comp fresh'; el.dataset.id=c.id; el.dataset.draft=c.draft?'1':'0';
       el.style.cssText='position:absolute;';
-      // arm entrance animation on first appearance only
+      // arm entrance animation on first appearance only (take reveals start on-beat: no delay)
       if(c.anim && c.anim!=='none'){
         if(c.anim==='type'){ el.dataset.twdur=Math.round((c.animDur||0.6)*1000); }
-        else { el.style.animation=`${c.anim} ${(c.animDur||0.6)}s cubic-bezier(.2,.7,.3,1) ${(c.animDelay||0)}s both`; }
+        else { el.style.animation=`${c.anim} ${(c.animDur||0.6)}s cubic-bezier(.2,.7,.3,1) ${SEQ.active?0:(c.animDelay||0)}s backwards`; }
       }
       pscene.appendChild(el);
     }
     el.style.cssText+=`left:${c.x}px;top:${c.y}px;z-index:${c.z};transform:scale(${c.scale}) rotate(${c.rot}deg);opacity:${c.opacity};`;
+    el.style.setProperty('--ks', c.scale||1);   // same var-carry as builder paint — popup entrances keep transform too
+    el.style.setProperty('--kr', (c.rot||0)+'deg');
     if(c.wpx) el.style.width=c.wpx+'px';
     if(c.hpx) el.style.height=c.hpx+'px';
     el.style.setProperty('--fscale', c.fscale||1);
@@ -3569,7 +3629,7 @@ function sceneHtmlForRecord(){
       n.classList.add('anim-typing');
       n.dataset.twdur=Math.round((c.animDur||0.6)*1000);
     }else{
-      n.style.animation=`${c.anim} ${(c.animDur||0.6)}s cubic-bezier(.2,.7,.3,1) ${(c.animDelay||0)}s both`;
+      n.style.animation=`${c.anim} ${(c.animDur||0.6)}s cubic-bezier(.2,.7,.3,1) ${SEQ.active?0:(c.animDelay||0)}s backwards`;
     }
   });
   return root.innerHTML;
@@ -3647,7 +3707,7 @@ async function startRec(autoMode){
   try{
     snap();
     seqStopAutoTimer();
-    SEQ.active=true; SEQ.auto=false; SEQ.shown=0; SEQ.maxShown=0;
+    SEQ.active=true; SEQ.auto=false; SEQ.shown=0; SEQ.maxShown=0; SEQ.ended=false;
     REC.autoMode=!!autoMode;
     comps.forEach(c=>{ delete c._played; if(c.props.stepped) c.revealed=0; });
     selId=null;
@@ -3965,6 +4025,20 @@ document.getElementById('file-open').onchange=e=>{
   r.readAsText(f); e.target.value='';
 };
 
+/* 🧹 clear canvas: empty THIS scene only (components + wires) — saved components,
+   saved scenes and exports are untouched, and Ctrl+Z brings it all back */
+document.getElementById('btn-clear-canvas').onclick=()=>{
+  if(!comps.length && !edges.length){ toastMsg('canvas is already empty'); return; }
+  if(!confirm(`Clear the canvas?\nRemoves ${comps.length} component(s) and ${edges.length} wire(s) from this scene.\nSaved components and scenes are kept. Ctrl+Z undoes.`)) return;
+  snap();
+  seqStopAutoTimer();
+  if(SEQ.active) seqExit();
+  comps=[]; edges=[]; selId=null; selEdge=null;
+  SEQ.shown=0; SEQ.maxShown=0; SEQ.ended=false;
+  render(); renderStrip();
+  toastMsg('canvas cleared — Ctrl+Z brings it back');
+};
+
 document.getElementById('btn-new-project').onclick=()=>{
   if(!confirm('Start a new project?\nClears the canvas, saved components and saved scenes (autosave too). Exported .json files are NOT deleted.')) return;
   seqStopAutoTimer();
@@ -4067,7 +4141,17 @@ function updatePopout(){
   const html=sceneInner();
   if(html===lastPushedHtml) return;         // unchanged — a rebuild would restart every animation
   lastPushedHtml=html;
-  popup.document.getElementById('scene').innerHTML=html;
+  const pscene=popup.document.getElementById('scene');
+  pscene.innerHTML=html;
+  if(SEQ.active){
+    // preview takes: mirror SETTLED state — a wholesale push would restart every
+    // entrance from its from-state ("default flash") on each step; builder never
+    // restarts settled animations mid-take (_played guard), neither should the popout
+    pscene.querySelectorAll('.comp').forEach(n=>{
+      n.style.animation='none'; n.classList.remove('anim-typing');
+      n.querySelectorAll('.pa-char').forEach(s=>s.classList.add('on'));
+    });
+  }
 }
 document.getElementById('btn-popout').onclick=openPopout;
 setInterval(updatePopout, 500); /* keep popout in sync while editing */

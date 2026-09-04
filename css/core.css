@@ -2023,6 +2023,8 @@
   top: 0;
   overflow: visible;
   pointer-events: none;
+  z-index: 1;   /* above background decor (.ghosts, auto stack) — comps carry z-index ≥1
+                   and win ties by later DOM order, so wires stay under cards but over the #s */
 }
 #edges g.edge {
   pointer-events: auto;

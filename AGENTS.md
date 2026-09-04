@@ -82,6 +82,9 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   `fit()` ends with `centerStage()`,
   which centers the painted scene by measured scroll (grid `place-items` can't be
   trusted with the oversized scaled canvas — content drifts right without it).
+- **Selection toolbar:** selecting a canvas comp shows `#sel-tools` floating above it
+  (✎ edit · ⧉ dup · 📌 pin · 🗑 del). It lives in `#stage-scale` but OUTSIDE `#scene`,
+  so cropped REC/popout/export can never record it; hidden while `REC.active` anyway.
 - **Components:** Defined in `REGISTRY` inside `index.html` (`const REGISTRY = { kicker:{...}, svcblock:{...} }`). Each entry: `name`, `props`, `fields`, `fieldTypes`, `markup(props) → HTML`.
 - **Accent convention (theme-following):** default `accent:'var(--phos-green)'` (= theme primary,
   resolves live in CSS via `var(--stroke, var(--phos-green))`, in SVG attrs via `liveHex()` —
@@ -119,6 +122,8 @@ SHOW (video)
   so one click returns. Clicking NEXT continues the take with full context.
   Clicking a footer dot jumps there.
 - **Space / PageDown / →** → next component. **← / PageUp** → back. **Esc** → exit to edit (show all).
+  One more Space past the last step (or auto-play reaching the end) ends the take itself.
+- **Toasts** (`#navtoast`) always dock under the header — the footer strip owns the bottom edge.
 - **Clear / retire:** `🧹` on a step clears the screen before it appears; `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. Edit mode always shows everything.
 - **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ new state from this` clones the
   selected comp exactly in place and sets the clone to ⊘-hide the original on appear — a swap with
@@ -128,6 +133,15 @@ SHOW (video)
 - **Hold timing (auto mode):** footer `hold s` = global default; EDIT SELECTED `hold s` = per-component override.
 
 **Preview:** header `▶ play` (step) / `⏩ auto` (timed, no recording).
+**Take motion:** Space reveals replay the entrance (builder, popout mirror, record snapshot alike),
+but the entrance DELAY is skipped mid-take — takes start on the Space press, delays are an
+edit-preview timing. `backwards` fill (never `both`): motion keyframes end in `transform:none`,
+and a forwards fill would hold that over inline scale/rotate forever.
+Every motion keyframe carries `scale(var(--ks,1)) rotate(var(--kr,0deg))`, set per element
+from the comp's edited scale/rot at paint (builder + popup mirror) — entrances fly the offset
+in, never the transform itself.
+The idle `updatePopout` tick mirrors SETTLED state during takes (no inline animation, typing
+chars forced shown) — a wholesale push would otherwise restart every entrance per step.
 **Record:** `⏺ REC → step` (you press Space) / `⏩ auto` (plays all with hold timing) → MP4.
 Transport lives in the header (play/auto/hold always; next/back/exit appear while playing);
 the footer strip is dots-only timeline. Reorder via Sequence tab ↑↓ or `Alt+↑↓`, duplicate via `Ctrl+D`.
