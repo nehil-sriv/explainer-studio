@@ -2012,18 +2012,18 @@
 .gnode {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   background: var(--panel);
   border: 1.5px solid var(--line-dim);
-  border-radius: 11px;
-  padding: 10px 15px;
-  min-width: 196px;
+  border-radius: 14px;
+  padding: 12px 18px;
+  min-width: 210px;
 }
 .gnode .gicon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   flex: none;
-  border-radius: 9px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   color: var(--stroke,var(--phos-green));
@@ -2081,6 +2081,16 @@
 #edges .etrack-dash {
   stroke-dasharray: 9 8;
   animation: tk-marchh 0.8s linear infinite;
+}
+/* gravel-style glowing wire endpoints */
+#edges circle.anchor {
+  filter: drop-shadow(0 0 4px currentColor);
+}
+/* gravel-style edge labels: bare protocol text rides the wire (haloed),
+   caption sits in a dark pill below it */
+#edges g.elab text.elab-label {
+  paint-order: stroke;
+  stroke-width: 3.5px;
 }
 /* traveling data dots ride CSS offset-path (never SMIL animateMotion): export
    snapshots restart SMIL clocks, freezing flow — CSS motion captures like tokens */

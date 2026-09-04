@@ -690,11 +690,11 @@ function edgeBuild(e,ov){
     const j=document.createElementNS(NS,'circle');
     j.setAttribute('cx',jx); j.setAttribute('cy',jy); j.setAttribute('r',3.5);
     j.setAttribute('fill',col); j.setAttribute('class','joint'); g.appendChild(j); });
-  // anchor dots pin the wire ends exactly onto the ports
+  // anchor dots pin the wire ends exactly onto the ports (gravel-style glowing endpoints)
   [[G.sx,G.sy],[G.ex,G.ey]].forEach(([ax,ay])=>{
     const a=document.createElementNS(NS,'circle');
     a.setAttribute('cx',ax); a.setAttribute('cy',ay); a.setAttribute('r',3);
-    a.setAttribute('fill',col); g.appendChild(a); });
+    a.setAttribute('fill',col); a.setAttribute('class','anchor'); g.appendChild(a); });
   const speed=Math.max(0.25,Math.min(4,+e.speed||1));
   // traveling dots ride CSS offset-path (NOT SMIL animateMotion): snapshots restart
   // SMIL clocks, freezing flow in GIF/PNG exports — CSS motion captures like tokens do
@@ -720,24 +720,25 @@ function edgeBuild(e,ov){
     const t=document.createElementNS(NS,'g');
     t.setAttribute('class','elab');
     const cap=String(e.caption||'');
-    const wLbl=lbl?Math.round(lbl.length*7.9+28):0;
-    const wCap=cap?Math.round(cap.length*7.3+18):0;
-    const w=Math.max(wLbl,wCap,16);
-    const both=!!(lbl&&cap);
-    const top=both?-24:(lbl?-21:-12), h=both?46:(lbl?26:22);
-    const r=document.createElementNS(NS,'rect');
-    r.setAttribute('x',-w/2); r.setAttribute('y',top); r.setAttribute('width',w); r.setAttribute('height',h);
-    r.setAttribute('rx',7); r.setAttribute('fill','#0B100C'); r.setAttribute('fill-opacity','0.96');
-    r.setAttribute('stroke',col); r.setAttribute('stroke-opacity','0.55'); r.setAttribute('stroke-width',1.5);
-    t.appendChild(r);
+    // gravel-style: protocol label as bare small-caps text on the wire (haloed for
+    // legibility), caption as a dark pill riding below — no boxes around protocols
     if(lbl){ const tx=document.createElementNS(NS,'text');
-      tx.setAttribute('y',both?-7:1); tx.setAttribute('text-anchor','middle');
-      tx.setAttribute('dominant-baseline',both?'auto':'middle');
-      tx.setAttribute('font-family',"'JetBrains Mono',monospace"); tx.setAttribute('font-size',13);
-      tx.setAttribute('letter-spacing','0.5'); tx.setAttribute('fill',col);
-      tx.textContent=lbl; t.appendChild(tx); }
-    if(cap){ const cx=document.createElementNS(NS,'text');
-      cx.setAttribute('y',both?13:1); cx.setAttribute('text-anchor','middle');
+      tx.setAttribute('y',-7); tx.setAttribute('text-anchor','middle');
+      tx.setAttribute('dominant-baseline','auto');
+      tx.setAttribute('class','elab-label');
+      tx.setAttribute('font-family',"'JetBrains Mono',monospace"); tx.setAttribute('font-size',11);
+      tx.setAttribute('letter-spacing','1.5'); tx.setAttribute('fill',col);
+      tx.setAttribute('stroke','#0B100C');
+      tx.textContent=lbl.toUpperCase(); t.appendChild(tx); }
+    if(cap){
+      const w=Math.round(cap.length*7.3+20);
+      const r=document.createElementNS(NS,'rect');
+      r.setAttribute('x',-w/2); r.setAttribute('y',8); r.setAttribute('width',w); r.setAttribute('height',22);
+      r.setAttribute('rx',7); r.setAttribute('fill','#0B100C'); r.setAttribute('fill-opacity','0.96');
+      r.setAttribute('stroke',col); r.setAttribute('stroke-opacity','0.45'); r.setAttribute('stroke-width',1.5);
+      t.appendChild(r);
+      const cx=document.createElementNS(NS,'text');
+      cx.setAttribute('y',19); cx.setAttribute('text-anchor','middle');
       cx.setAttribute('dominant-baseline','middle');
       cx.setAttribute('font-family',"'JetBrains Mono',monospace"); cx.setAttribute('font-size',12);
       cx.setAttribute('fill',themeHex('--text-dim','#5C8A66')); cx.textContent=cap; t.appendChild(cx); }
