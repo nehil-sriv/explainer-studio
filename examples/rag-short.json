@@ -45,7 +45,7 @@
   },
   {
    "id": "3uqpo",
-   "type": "svcblock",
+   "type": "svc",
    "x": 400,
    "y": 620,
    "scale": 1,
@@ -58,10 +58,10 @@
    "animDur": 0.6,
    "animDelay": 0.5,
    "props": {
-    "label": "llama-3.1",
     "sub": "frozen weights",
     "accent": "#57C7C0",
-    "state": "warn"
+    "state": "warn",
+    "name": "llama-3.1"
    }
   },
   {
@@ -126,7 +126,7 @@
    },
    {
     "id": "3uqpo",
-    "type": "svcblock",
+    "type": "svc",
     "x": 400,
     "y": 620,
     "scale": 1,
@@ -139,10 +139,10 @@
     "animDur": 0.6,
     "animDelay": 0.5,
     "props": {
-     "label": "llama-3.1",
      "sub": "frozen weights",
      "accent": "#57C7C0",
-     "state": "warn"
+     "state": "warn",
+     "name": "llama-3.1"
     }
    },
    {
@@ -186,7 +186,7 @@
    },
    {
     "id": "rnvp4",
-    "type": "dbtech",
+    "type": "db",
     "x": 200,
     "y": 440,
     "scale": 1,
@@ -226,7 +226,7 @@
    },
    {
     "id": "lzlj1",
-    "type": "fence",
+    "type": "boundary",
     "x": 140,
     "y": 840,
     "scale": 1,
@@ -241,12 +241,12 @@
     "props": {
      "label": "chunks \u00d7 128",
      "accent": "#FFB000",
-     "tint": true
+     "tint": "green"
     }
    },
    {
     "id": "ew3za",
-    "type": "countbadg",
+    "type": "chip",
     "x": 470,
     "y": 920,
     "scale": 1,
@@ -259,8 +259,8 @@
     "animDur": 0.3,
     "animDelay": 0.8,
     "props": {
-     "n": "\u00d7128",
-     "accent": "#FFB000"
+     "text": "\u00d7128",
+     "color": "#FFB000"
     }
    },
    {
@@ -304,7 +304,7 @@
    },
    {
     "id": "a2rq5",
-    "type": "fence",
+    "type": "boundary",
     "x": 260,
     "y": 420,
     "scale": 1,
@@ -319,7 +319,7 @@
     "props": {
      "label": "chunks",
      "accent": "#5C8A66",
-     "tint": false
+     "tint": "none"
     }
    },
    {
@@ -345,7 +345,7 @@
    },
    {
     "id": "s0nva",
-    "type": "dbtech",
+    "type": "db",
     "x": 400,
     "y": 860,
     "scale": 1,
@@ -364,7 +364,7 @@
    },
    {
     "id": "ps4uf",
-    "type": "cachetech",
+    "type": "cache",
     "x": 400,
     "y": 1120,
     "scale": 1,
@@ -422,7 +422,7 @@
    },
    {
     "id": "5ik06",
-    "type": "usericon",
+    "type": "user",
     "x": 80,
     "y": 400,
     "scale": 1,
@@ -462,7 +462,7 @@
    },
    {
     "id": "3a8fh",
-    "type": "svcblock",
+    "type": "svc",
     "x": 380,
     "y": 620,
     "scale": 1,
@@ -475,10 +475,10 @@
     "animDur": 0.6,
     "animDelay": 0.6,
     "props": {
-     "label": "retriever",
      "sub": "top-k = 4",
      "accent": "#39FF7A",
-     "state": "healthy"
+     "state": "healthy",
+     "name": "retriever"
     }
    },
    {
@@ -504,7 +504,7 @@
    },
    {
     "id": "ustpj",
-    "type": "dbtech",
+    "type": "db",
     "x": 380,
     "y": 1000,
     "scale": 1,
@@ -543,7 +543,7 @@
   "05 ANSWER": [
    {
     "id": "saga5",
-    "type": "svcblock",
+    "type": "svc",
     "x": 380,
     "y": 280,
     "scale": 1,
@@ -556,10 +556,10 @@
     "animDur": 0.6,
     "animDelay": 0,
     "props": {
-     "label": "retriever",
      "sub": "top-k = 4",
      "accent": "#39FF7A",
-     "state": "healthy"
+     "state": "healthy",
+     "name": "retriever"
     }
    },
    {
@@ -585,7 +585,7 @@
    },
    {
     "id": "0hh0n",
-    "type": "svcblock",
+    "type": "svc",
     "x": 400,
     "y": 680,
     "scale": 1,
@@ -598,10 +598,10 @@
     "animDur": 0.6,
     "animDelay": 0.5,
     "props": {
-     "label": "llm",
      "sub": "answer + cite",
      "accent": "#57C7C0",
-     "state": "healthy"
+     "state": "healthy",
+     "name": "llm"
     }
    },
    {
@@ -627,7 +627,7 @@
    },
    {
     "id": "o9tc2",
-    "type": "usericon",
+    "type": "user",
     "x": 80,
     "y": 1080,
     "scale": 1,

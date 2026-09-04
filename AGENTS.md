@@ -90,7 +90,7 @@ _archive/old-builder/   ← previous builder copies (do not edit)
 - **Selection toolbar:** selecting a canvas comp shows `#sel-tools` floating above it
   (✎ edit · ⧉ dup · 📌 pin · 🗑 del). It lives in `#stage-scale` but OUTSIDE `#scene`,
   so cropped REC/popout/export can never record it; hidden while `REC.active` anyway.
-- **Components:** Defined in `REGISTRY` inside `index.html` (`const REGISTRY = { kicker:{...}, svcblock:{...} }`). Each entry: `name`, `props`, `fields`, `fieldTypes`, `markup(props) → HTML`.
+- **Components:** Defined in `REGISTRY` inside `index.html` (`const REGISTRY = { kicker:{...}, svc:{...} }`). Each entry: `name`, `props`, `fields`, `fieldTypes`, `markup(props) → HTML`.
 - **Accent convention (theme-following):** default `accent:'var(--phos-green)'` (= theme primary,
   resolves live in CSS via `var(--stroke, var(--phos-green))`, in SVG attrs via `liveHex()` —
   SVG attributes can't use `var()`). Only use a hex default for SEMANTIC hues
@@ -184,7 +184,7 @@ stalling at 0%; a 90s-silence watchdog reports instead of hanging; default scale
 
 - Use `examples/*.json` as template. Each beat is an object with `beat` index; components reference `REGISTRY` keys.
 - Color semantics: green = healthy, amber = warning/cache, red = failure, cyan = data/storage, dim = infra.
-- New tech visuals (fence/node/pod etc.) are already in `REGISTRY` — prefer them over generic boxes for infra videos.
+- New tech visuals (boundary/node/pod etc.) are already in `REGISTRY` — prefer them over generic boxes for infra videos.
 
 ---
 

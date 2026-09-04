@@ -795,11 +795,13 @@ function gnIcon(kind){
 
 const REGISTRY = {
   kicker:   { name:'Kicker chip (EP.NNN // TYPE)',
+    group:'basics',
     props:{text:'EP.001 // HOT TAKE'},
     fields:['text'],
     markup:p=>`<span class="kicker">${p.text}</span>` },
 
   title:    { name:'Title line (VT323 big)',
+    group:'basics',
     help:'TAGS: [g]green [a]amber [r]red [c]cyan [m]mint [d]dim · [#hex]custom · [b]bold [i]italic [s1.5]bigger',
     props:{text:'RAG IS JUST GREP', glitch:'', size:150},
     fields:['text','glitch','size'], fieldTypes:{size:'number'},
@@ -809,6 +811,7 @@ const REGISTRY = {
       return `<div class="title-line" style="font-size:${p.size}px">${t}</div>`; } },
 
   terminal: { name:'Terminal window',
+    group:'basics',
     props:{title:'~/opinions — zsh', body:`$ rag --ask "does it scale?"\n✓ match found (score 0.02)`, w:900, stepped:false},
     fields:['title','body','w','stepped'], fieldTypes:{body:'textarea', w:'number', stepped:'check'}, help:'enable stepped to reveal line-by-line (Space = next line)',
     markup:p=>`
@@ -818,52 +821,62 @@ const REGISTRY = {
       </div>` },
 
   hottake:  { name:'Lower third · HOT TAKE',
+    group:'meta',
     props:{label:'HOT TAKE', text:"it's grep with a marketing budget"},
     fields:['label','text'],
     markup:p=>`<div class="hot-take"><div class="hot-take-tab">${p.label}</div><div class="hot-take-text">${p.text}<span class="cursor is-on"></span></div></div>` },
 
   toast:    { name:'Error toast',
+    group:'meta',
     props:{text:'confidence 0.97 · sources read: none ⚠'},
     fields:['text'],
     markup:p=>`<div class="toast-error"><b>ERROR:</b> ${p.text}</div>` },
 
   blame:    { name:'git blame tag',
+    group:'meta',
     props:{who:'<rahul@management>', msg:'just a small change'},
     fields:['who','msg'],
     markup:p=>`<div class="blame"><span class="who">&lt;${p.who.replace(/^<|>$/g,'')}&gt;</span> <span class="msg">"${p.msg}"</span></div>` },
 
   comment:  { name:'Code-comment bar',
+    group:'meta',
     props:{text:'// hot take incoming'},
     fields:['text'],
     markup:p=>`<div class="code-comment">${p.text}</div>` },
 
   stamp:    { name:'Stamp',
+    group:'meta',
     props:{text:'NOT APPROVED'},
     fields:['text'],
     markup:p=>`<div class="stamp">${p.text}</div>` },
 
   sticky:   { name:'Sticky note',
+    group:'meta',
     props:{text:'TODO:<br>read the docs ← nah', rot:-3},
     fields:['text','rot'], fieldTypes:{text:'textarea', rot:'number'},
     markup:p=>`<div class="sticky-note" style="--rot:${p.rot}deg">${p.text}</div>` },
 
   loopbox:  { name:'Loop box (dashed)',
+    group:'seq',
     props:{text:'↻ see: recursion'},
     fields:['text'],
     markup:p=>`<div class="loopbox">${p.text}</div>` },
 
   box:      { name:'Box (border+fill)',
+    group:'meta',
     props:{text:'TRANSLATION:<br>chunk docs → pray', accent:'var(--phos-green)', fill:true, alert:false},
     fields:['text','accent','fill','alert'], fieldTypes:{text:'textarea', fill:'check', alert:'check'},
     markup:p=>`<div class="${p.fill?'box-fill':'box-border'}${p.alert?' box-alert':''}"${p.color?'':` style="--stroke:${p.accent}; --boxbg:${p.accent==='#FFB000'?'var(--fill-amber)':p.accent==='#FF5555'?'var(--fill-red)':'var(--fill-green)'}"`}>${p.text}</div>` },
 
   caption:  { name:'Caption pops',
+    group:'basics',
     help:'same word tags: [w]=green [e]=red [n]=amber still valid',
     props:{text:'it handles [n]10x[/n] load — [w]works![/w] …in prod it\'s a [e]fire[/e]'},
     fields:['text'], fieldTypes:{text:'textarea'},
     markup:p=>`<div class="caps">${rich(p.text)}</div>` },
 
   progress: { name:'Progress bar',
+    group:'meta',
     props:{pct:64, stall:false},
     fields:['pct','stall'], fieldTypes:{pct:'number', stall:'check'},
     markup:p=>{
@@ -874,15 +887,18 @@ const REGISTRY = {
       </div>`; } },
 
   rec:      { name:'REC indicator',
+    group:'meta',
     props:{}, fields:[],
     markup:()=>`<span class="rec">REC</span>` },
 
   diff:     { name:'Diff pair',
+    group:'meta',
     props:{bad:'microservices for everything', good:'one boring process'},
     fields:['bad','good'],
     markup:p=>`<div class="diff"><div class="diff-del">− ${p.bad}</div><div class="diff-add">+ ${p.good}</div></div>` },
 
   checklist:{ name:'Checklist card',
+    group:'basics',
     props:{items:'write code|done\nwrite tests|done\nupdate docs|never', stepped:false},
     fields:['items','stepped'], fieldTypes:{items:'textarea', stepped:'check'}, help:'one per line: text | done|never · enable stepped to reveal line-by-line',
     markup:p=>`<ul class="checklist">${p.items.split('\n').map(l=>{
@@ -890,92 +906,41 @@ const REGISTRY = {
       return `<li class="cline ${(s||'').trim()}">${t}</li>`;}).join('')}</ul>` },
 
   arrow:    { name:'Arrow (annotation)',
+    group:'meta',
     props:{accent:'var(--phos-green)', w:220, thick:false},
     fields:['accent','w','thick'], fieldTypes:{w:'number', thick:'check'},
     markup:p=>`<span class="annot glow" style="color:${p.color||p.accent||'var(--phos-green)'}"><svg width="${p.w}" viewBox="0 0 200 60"><line x1="8" y1="30" x2="172" y2="30" stroke="currentColor" stroke-width="${p.thick?10:6}"/><polygon points="188,30 158,15 158,45" fill="currentColor"/></svg></span>` },
 
   circle:   { name:'Hand-drawn circle',
+    group:'meta',
     props:{accent:'#FFB000', s:300},
     fields:['accent','s'], fieldTypes:{s:'number'},
     markup:p=>`<span class="annot" style="color:${p.color||p.accent||'var(--phos-green)'}"><svg width="${p.s}" viewBox="0 0 180 120"><path d="M88 13 C142 14, 171 38, 167 64 C163 95, 118 111, 78 107 C34 103, 11 84, 15 54 C19 27, 55 12, 102 18" fill="none" stroke="currentColor" stroke-width="5"/></svg></span>` },
 
   verdict:  { name:'✓ / ✗ verdict mark',
+    group:'meta',
     props:{kind:'ok', s:260},
     fields:['kind','s'], fieldTypes:{kind:'select', s:'number'}, options:{kind:['ok','bad']},
     markup:p=>p.kind==='ok'
       ? `<span class="annot glow" style="color:${p.color||'var(--phos-green)'}"><svg width="${p.s}" viewBox="0 0 100 100"><polyline points="18,52 40,74 82,26" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`
       : `<span class="annot" style="color:${p.color||'#FF5555'}"><svg width="${p.s}" viewBox="0 0 100 100"><line x1="22" y1="22" x2="78" y2="78" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><line x1="78" y1="22" x2="22" y2="78" stroke="currentColor" stroke-width="12" stroke-linecap="round"/></svg></span>` },
 
-  svcblock: { name:'Service block (microservice)',
-    props:{label:'payment-svc', sub:'go', accent:'var(--phos-green)', state:'healthy'},
-    fields:['label','sub','accent','state'], fieldTypes:{state:'select'}, options:{state:['healthy','warn','error','none']},
-    markup:p=>{
-      const dc=p.state==='warn'?'#FFB000':p.state==='error'?'#FF5555':'#39FF7A';
-      return `<div class="svc tech" style="--stroke:${p.accent}${p.state==='none'?';--dotc:transparent':''}">
-        ${p.state!=='none'?`<span class="svc-dot${p.state==='healthy'?' tpulse':''}" style="--dotc:${dc}"></span>`:''}
-        <div class="svc-name">${p.label}</div><div class="svc-sub">${p.sub}</div></div>`; } },
-
-  kpod:     { name:'Pod (container)',
-    props:{label:'api', accent:'#57C7C0'},
-    fields:['label','accent'],
-    markup:p=>`<div class="podbox tech" style="--stroke:${p.accent}">
-      <svg width="34" height="30" viewBox="0 0 34 30"><rect x="2" y="4" width="30" height="22" rx="3" fill="none" stroke="${p.accent}" stroke-width="2"/><path d="M8 9h18M8 21h18" stroke="${p.accent}" stroke-width="2"/></svg>
-      <span style="color:var(--text-primary);font-size:17px;font-weight:700">${p.label}</span></div>` },
-
   knode:    { name:'Node (worker) — drop pods inside',
+    group:'nodes',
     props:{label:'node-1', role:'worker'},
     fields:['label','role'],
     markup:p=>`<div class="nodebox tech"><div class="nodebox-head"><span>${p.label}</span><span style="color:var(--text-dim)">${p.role}</span></div>
       <div class="nodebox-body" data-slot="pods">drop pods here</div></div>` },
 
   kcp:      { name:'Control plane',
+    group:'nodes',
     props:{label:'control-plane'},
     fields:['label'],
     markup:p=>`<div class="nodebox tech cpbadge" style="--amber:1"><div class="nodebox-head" style="background:var(--fill-amber)"><span>${p.label}</span></div>
       <div class="nodebox-body" style="color:var(--text-dim);font-size:13px">apiserver · scheduler · etcd</div></div>` },
 
-  fence:    { name:'Boundary (cluster / zone / VPC)',
-    props:{label:'cluster-prod', accent:'#5C8A66', tint:false},
-    fields:['label','accent','tint'], fieldTypes:{tint:'check'},
-    markup:p=>`<div class="clusterfence tech${p.tint?' tint':''}" style="--stroke:${p.accent};${p.tint?'':'background:transparent'}">
-      <span class="fence-label">${p.label}</span><span class="fenceslot">drop services inside</span></div>` },
-
-  dbtech:   { name:'Database (cylinder)',
-    props:{label:'postgres', accent:'#57C7C0'},
-    fields:['label','accent'],
-    markup:p=>`<div class="tech" style="text-align:center">
-      <svg width="70" height="60" viewBox="0 0 70 60"><ellipse cx="35" cy="10" rx="28" ry="8" fill="${p.accent}22" stroke="${p.accent}" stroke-width="2"/>
-      <path d="M7 10 v40 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8 v-40" fill="none" stroke="${p.accent}" stroke-width="2"/>
-      <path d="M7 24 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8 M7 38 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8" fill="none" stroke="${p.accent}" stroke-width="1.4" opacity=".55"/></svg>
-      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>` },
-
-  cachetech:{ name:'Cache (redis)',
-    props:{label:'cache', accent:'#FFB000'},
-    fields:['label','accent'],
-    markup:p=>`<div class="tech" style="text-align:center">
-      <svg width="70" height="60" viewBox="0 0 70 60"><ellipse cx="35" cy="10" rx="28" ry="8" fill="#FFB00022" stroke="${p.accent}" stroke-width="2"/>
-      <path d="M7 10 v40 c0 4.4 12.5 8 28 8 s28 -3.6 28 -8 v-40" fill="none" stroke="${p.accent}" stroke-width="2"/>
-      <path d="M38 20 l-10 12 h8 l-4 10 12 -14 h-8 z" fill="${p.accent}"/></svg>
-      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>` },
-
-  loadbal:  { name:'Load balancer',
-    props:{label:'load-balancer', accent:'var(--phos-green)'},
-    fields:['label','accent'],
-    markup:p=>{ const A=liveHex(p.accent); return `<div class="tech" style="text-align:center">
-      <svg width="120" height="64" viewBox="0 0 120 64"><circle cx="60" cy="10" r="7" fill="${A}22" stroke="${A}" stroke-width="2"/>
-      <path d="M60 17 v12 M60 29 L20 47 M60 29 L100 47 M60 29 v18" stroke="${A}" stroke-width="2" fill="none"/>
-      <polygon points="20,56 14,44 26,44" fill="${A}"/><polygon points="100,56 94,44 106,44" fill="${A}"/><polygon points="60,58 54,46 66,46" fill="${A}"/></svg>
-      <div style="color:var(--text-primary);font-size:16px;font-weight:700">${p.label}</div></div>`; } },
-
-  usericon: { name:'User (person)',
-    props:{label:'user', accent:'#D3FFDE'},
-    fields:['label','accent'],
-    markup:p=>`<div class="tech" style="text-align:center">
-      <svg width="56" height="60" viewBox="0 0 56 60"><circle cx="28" cy="16" r="12" fill="none" stroke="${p.accent}" stroke-width="2.5"/>
-      <path d="M6 56 c0 -18 10 -26 22 -26 s22 8 22 26" fill="none" stroke="${p.accent}" stroke-width="2.5"/></svg>
-      <div style="color:var(--text-primary);font-size:15px">${p.label}</div></div>` },
-
   clientdev:{ name:'Client device (browser)',
+    group:'actors',
     props:{label:'browser', accent:'#57C7C0'},
     fields:['label','accent'],
     markup:p=>`<div class="tech" style="text-align:center">
@@ -984,32 +949,14 @@ const REGISTRY = {
       <rect x="12" y="26" width="86" height="34" rx="3" fill="none" stroke="${p.accent}" stroke-width="1.4" opacity=".6"/></svg>
       <div style="color:var(--text-primary);font-size:15px">${p.label}</div></div>` },
 
-  wire:     { name:'Wire (request/response)',
-    props:{label:'', len:320, accent:'var(--phos-green)', res:true},
-    fields:['label','len','accent','res'], fieldTypes:{len:'number', accent:'color2', res:'check'},
-    markup:p=>{ const A=liveHex(p.accent); return `<div class="tech" style="width:${p.len}px;text-align:center">
-      <svg width="100%" height="26" viewBox="0 0 ${p.len} 26" preserveAspectRatio="none">
-        <line class="wire${p.res?'':' flow'}" x1="6" y1="13" x2="${p.len-14}" y2="13" stroke="${A}" stroke-width="2.5"/>
-        <polygon points="${p.len-4},13 ${p.len-16},6 ${p.len-16},20" fill="${A}"/>
-        ${p.res?`<line class="wire" x1="${p.len-6}" y1="22" x2="14" y2="22" stroke="${A}" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/><polygon points="4,22 16,16 16,28" fill="${A}"/>`:''}
-      </svg>
-      ${p.label?`<div style="font-size:13px;color:var(--text-dim);margin-top:-6px">${p.label}</div>`:''}</div>`; } },
-
-  statdot:  { name:'Status dot (up/dead/error)',
-    props:{kind:'healthy', size:18},
-    fields:['kind','size'], fieldTypes:{kind:'select', size:'number'}, options:{kind:['healthy','warn','error','loading']},
-    markup:p=>{
-      const col=p.kind==='warn'?'#FFB000':p.kind==='error'?'#FF5555':p.kind==='loading'?'#57C7C0':'#39FF7A';
-      const anim=p.kind==='healthy'?' tpulse':p.kind==='error'?' tshake':'';
-      const inner=p.kind==='error'?'✕':p.kind==='warn'?'!':p.kind==='loading'?'◌':'';
-      return `<span class="tpulse" style="display:inline-grid;place-items:center;width:${p.size}px;height:${p.size}px;border-radius:50%;border:2px solid ${col};color:${col};font-weight:700;font-size:${Math.round(p.size*0.6)}px;${p.kind==='healthy'?'' :''}">${inner}</span>`; } },
-
   countbadg:{ name:'Count badge (×N)',
+    group:'meta',
     props:{n:'×12', accent:'#FFB000'},
     fields:['n','accent'],
     markup:p=>`<span class="tech" style="display:inline-block;background:${p.accent};color:var(--ink-on-accent);font-weight:700;font-size:15px;padding:3px 10px;border-radius:99px">${p.n}</span>` },
 
   image:    { name:'Image / logo (PNG)',
+    group:'basics',
     props:{src:'', w:400},
     fields:['src','w'], fieldTypes:{src:'textarea', w:'number'},
     help:'paste an image URL / data-URI in the text box, or use the file picker below',
@@ -1020,6 +967,7 @@ const REGISTRY = {
         </div>` },
 
   callout:  { name:'Callout chip + leader',
+    group:'meta',
     props:{text:'this: broken', accent:'#FFB000'},
     fields:['text','accent'],
     markup:p=>`<div class="callout" style="position:relative"><span class="callout-chip"${p.color?'':` style="--cc:${p.accent}"`}>${p.text}</span><span class="callout-line dashed"></span></div>` },
@@ -1038,10 +986,10 @@ const REGISTRY = {
 
   svc:      { name:'TK · service block',
     group:'nodes',
-    help:'the generic microservice box — name + tech subtitle. add boundaries FIRST so they sit behind.',
-    props:{name:'payment-svc', sub:'go · grpc', accent:'var(--phos-green)'},
-    fields:['name','sub','accent'],
-    markup:p=>`<div class="tk-svc" style="--stroke:${p.accent}"><div class="tk-name">${rich(p.name)}</div>${p.sub?`<div class="tk-sub">${p.sub}</div>`:''}</div>` },
+    help:'the generic microservice box — name + tech subtitle. add boundaries FIRST so they sit behind. state adds the status dot (absorbed from legacy svcblock).',
+    props:{name:'payment-svc', sub:'go · grpc', accent:'var(--phos-green)', state:'none'},
+    fields:['name','sub','accent','state'], fieldTypes:{state:'select'}, options:{state:['none','healthy','warn','error']},
+    markup:p=>`<div class="tk-svc" style="--stroke:${p.accent}">${p.state&&p.state!=='none'?`<span class="svc-dot${p.state==='healthy'?' tpulse':''}" style="--dotc:${p.state==='warn'?'#FFB000':p.state==='error'?'#FF5555':'#39FF7A'}"></span>`:''}<div class="tk-name">${rich(p.name)}</div>${p.sub?`<div class="tk-sub">${p.sub}</div>`:''}</div>` },
 
   gnode:    { name:'GG · node card',
     group:'nodes',
@@ -1129,10 +1077,10 @@ const REGISTRY = {
 
   health:   { name:'TK · health dot',
     group:'meta',
-    help:'ok = steady green · warn = amber pulse · dead = red flicker',
-    props:{status:'ok', label:'UP'},
-    fields:['status','label'], fieldTypes:{status:'select'}, options:{status:['ok','warn','dead']},
-    markup:p=>`<span class="tk-health"><span class="hdot ${p.status}" style="width:22px;height:22px;"></span>${p.label?`<span>${rich(p.label)}</span>`:''}</span>` },
+    help:'ok = steady green · warn = amber pulse · dead = red flicker (absorbed legacy statdot: size included)',
+    props:{status:'ok', label:'UP', size:22},
+    fields:['status','label','size'], fieldTypes:{status:'select', size:'number'}, options:{status:['ok','warn','dead']},
+    markup:p=>`<span class="tk-health"><span class="hdot ${p.status}" style="width:${+p.size||22}px;height:${+p.size||22}px;"></span>${p.label?`<span>${rich(p.label)}</span>`:''}</span>` },
 
   /* ====== tech-diagram kit · batch 2 (AI/RAG + data-flow states) ====== */
 
@@ -2737,16 +2685,16 @@ const ANIMS = { none:'none', 'pa-fade':'fade in', 'pa-left':'pan ← from left',
 /* default drop-scale per role — hierarchy: context small, entry mid, infra full,
    groups/charts sized via their own w/h. Always overridable via the scale slider. */
 const TK_DSCALE={
-  user:.8, usericon:.8, clientdev:.8,
+  user:.8, clientdev:.8,
   cloud:1.15, firewall:.9, gateway:1.05, lb:1.05, cdn:1,
   server:1, vm:1, container:1, bootnode:1, knode:1, worker:1,
-  svc:1, gnode:1, svcblock:1, controlplane:1.05, kcp:1.05,
+  svc:1, gnode:1, controlplane:1.05, kcp:1.05,
   db:1, nosql:1, cache:1, vdb:1, bucket:1, warehouse:1.1, kv:1, doc:.9, logs:1,
   model:1.15, embed:.9, tokens:.9, prompt:1, ctxwin:1, splitter:1, index:.9,
-  pod:.95, kpod:.95, crashpod:.95, statdot:1, health:1, chip:1, countbadg:1, region:1,
+  pod:.95, crashpod:.95, health:1, chip:1, countbadg:1, region:1,
   plate:1, lock:1, latency:1, warn:1, burst:1, spinner:1, scale:1, replicate:1,
   wire:1, packet:1, arcwire:1, fanout:1, elbow:1, ws:1, retry:1, timeout:1, valve:1,
-  pipeline:1, breaker:1, consensus:1, fence:1, frame:1,
+  pipeline:1, breaker:1, consensus:1, frame:1,
   k8s:1, alarm:1, cron:1, globe:1, secret:1, policy:1, repo:1, cirunner:1,
   fproc:1, fdec:1, fterm:1, fio:1, lifeline:1, activation:1, selfcall:1,
   dtitle:1, legend:.9, footnote:.9, chartline:1, chartbars:1, chartdonut:1,
@@ -2776,10 +2724,10 @@ const TK_DEFAULT_ANIM={
   lifeline:'pa-fade', activation:'pa-zoom', selfcall:'pa-fade',
   dtitle:'pa-down', legend:'pa-fade', footnote:'pa-fade', frame:'pa-fade',
   chartline:'pa-fade', chartbars:'pa-left', chartdonut:'pa-zoom',
-  usericon:'pa-right', clientdev:'pa-right', svcblock:'pa-left', loadbal:'pa-fade',
-  kcp:'pa-glitchin', knode:'pa-up', kpod:'pa-up', fence:'pa-zoom', cachetech:'pa-zoom',
-  dbtech:'pa-up', chip:'pa-fade', countbadg:'pa-zoom', latency:'pa-fade', lock:'pa-zoom',
-  plate:'pa-left', region:'pa-fade', replicate:'pa-fade', scale:'pa-fade', statdot:'pa-zoom',
+  clientdev:'pa-right',
+  kcp:'pa-glitchin', knode:'pa-up',
+  chip:'pa-fade', countbadg:'pa-zoom', latency:'pa-fade', lock:'pa-zoom',
+  plate:'pa-left', region:'pa-fade', replicate:'pa-fade', scale:'pa-fade',
   health:'pa-fade', warn:'pa-zoom', burst:'pa-down', spinner:'pa-fade'
 };
 

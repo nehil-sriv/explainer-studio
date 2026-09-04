@@ -720,6 +720,7 @@
   display: block;
 }
 .tk-svc {
+  position: relative;
   border: 3px solid var(--stroke,var(--phos-green));
   background: var(--cbg,var(--fill-green));
   padding: 22px 30px;
