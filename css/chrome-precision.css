@@ -152,17 +152,29 @@ body button.mini.primary kbd { color: #00363d; border-color: rgba(0,0,0,.45); }
 /* floating selection toolbar — lives in #stage-scale (outside #scene: un-recordable) */
 body #sel-tools {
   position: absolute; z-index: 9999; display: none; gap: 2px; align-items: center;
-  background: var(--ch-bg3); border: 1px solid var(--ch-line); border-radius: 6px; padding: 3px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.55); white-space: nowrap;
+  background: var(--ch-bg3); border: 1px solid var(--ch-line); border-radius: 12px; padding: 5px 6px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.04); white-space: nowrap;
 }
 body #sel-tools button {
-  font-family: var(--ch-font); font-size: 12px; font-weight: 500;
-  background: none; border: 1px solid transparent; border-radius: 4px;
-  color: var(--ch-dim); padding: 4px 8px; cursor: pointer; white-space: nowrap;
+  font-family: var(--ch-font); font-size: 17px; font-weight: 500; line-height: 1;
+  background: none; border: 1px solid transparent; border-radius: 8px;
+  color: var(--ch-dim); padding: 6px 9px; cursor: pointer; white-space: nowrap;
 }
 body #sel-tools button:hover { color: var(--ch-text); border-color: var(--ch-focus); }
 body #sel-tools button.on { color: var(--ch-amber); border-color: var(--ch-amber); }
 body #sel-tools button[data-t="del"]:hover { color: var(--ch-red); border-color: var(--ch-red); }
+/* alignment grid — child of #stage-scale (scales with canvas) but outside #scene,
+   so crops/exports can never capture it; force-hidden during REC regardless */
+body #canvas-grid {
+  position: absolute; left: 0; top: 0; z-index: 5000; pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right, rgba(255,255,255,.09) 0 1px, transparent 1px 200px),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.09) 0 1px, transparent 1px 200px),
+    repeating-linear-gradient(to right, rgba(255,255,255,.045) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.045) 0 1px, transparent 1px 40px);
+}
+body.rec-crop #canvas-grid { display: none !important; }
+body #btn-grid.on { color: var(--ch-cyan); border-color: var(--ch-cyan); }
 body button.mini.danger:hover, body ul.clean button.danger:hover {
   color: var(--ch-red); border-color: var(--ch-red); background: var(--ch-bg3);
 }

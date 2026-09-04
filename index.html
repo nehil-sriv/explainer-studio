@@ -238,6 +238,7 @@ body {
     <button class="palette" id="preset-yt" title="Landscape 1920×1080"><span class="ori-icon landscape"></span></button>
     <button class="palette" id="preset-shorts" title="Portrait 1080×1920"><span class="ori-icon portrait"></span></button>
     <button class="mini" id="btn-clear-canvas" title="empty this scene (components + wires) — saved items kept, Ctrl+Z undoes">🧹 clear</button>
+    <button class="mini" id="btn-grid" title="alignment gridlines (40/200px) — editing aid, never recorded">▦ grid</button>
   </div>
   <div class="tp-group tp-transport">
     <button class="palette" id="btn-popout">⧉ popout</button>
@@ -264,8 +265,9 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="open in Edit panel">✎ edit</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉ dup</button><button data-t="pin" title="pin: survives clears">📌 pin</button><button data-t="del" title="delete (+ attached edges)">🗑 del</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
+    <div id="canvas-grid" style="display:none" title="alignment grid — never recorded"></div>
   </div></div>
 
   <aside id="rail-left">
@@ -2959,10 +2961,21 @@ function makeDraggable(el,c){
     const xs=[0,64,W/2,W-64], ys=[0,H*0.33,H/2,H*0.67,H-64];
     const mv=ev=>{
       let nx=Math.round((ev.clientX-sx)/currentScale()), ny=Math.round((ev.clientY-sy)/currentScale());
-      const snapTo=(v,cands)=>{ for(const cd of cands){ if(Math.abs(v-cd)<12) return cd; } return null; };
-      const gx=snapTo(nx,xs), gy=snapTo(ny,ys);
-      if(gx!==null && !ev.altKey){ nx=gx; gv.style.display='block'; gv.style.left=gx+'px'; } else gv.style.display='none';
-      if(gy!==null && !ev.altKey){ ny=gy; gh.style.display='block'; gh.style.top=gy+'px'; } else gh.style.display='none';
+      // smart guides: dragged left/center/right snaps to grid lines AND to every
+      // other comp's left/center/right (same for top/center/bottom) — Alt disables
+      const w=c._rw||c.wpx||220, h=c._rh||c.hpx||120;
+      const candX=xs.map(g=>[g,g]), candY=ys.map(g=>[g,g]);
+      comps.forEach(o=>{ if(o.id===c.id||o.parked) return;
+        const ow=o._rw||o.wpx||220, oh=o._rh||o.hpx||120;
+        [o.x,o.x+ow/2,o.x+ow].forEach(a=>{ candX.push([a,a],[a-w/2,a],[a-w,a]); });
+        [o.y,o.y+oh/2,o.y+oh].forEach(b=>{ candY.push([b,b],[b-h/2,b],[b-h,b]); });
+      });
+      const pick=(v,cands)=>{ let best=null,bd=8;
+        for(const [val,line] of cands){ const d=Math.abs(v-val); if(d<bd){ bd=d; best=[val,line]; } }
+        return best; };
+      const px=pick(nx,candX), py=pick(ny,candY);
+      if(px&&!ev.altKey){ nx=Math.round(px[0]); gv.style.display='block'; gv.style.left=px[1]+'px'; } else gv.style.display='none';
+      if(py&&!ev.altKey){ ny=Math.round(py[0]); gh.style.display='block'; gh.style.top=py[1]+'px'; } else gh.style.display='none';
       const dx=nx-c.x, dy=ny-c.y;
       if(childrenOf(c.id).length) moveGroup(c,dx,dy); else { c.x=nx; c.y=ny; }
       renderLive();
@@ -3978,7 +3991,18 @@ function fit(){
   el.style.transformOrigin='top left';
   el.style.width=Math.round(w*s)+'px';
   el.style.height=Math.round(h*s)+'px';
+  const grid=document.getElementById('canvas-grid');   // grid lives in canvas px, scales along
+  if(grid){ grid.style.width=w+'px'; grid.style.height=h+'px'; }
 }
+/* alignment grid toggle — persisted; structural REC-safety via DOM placement + rec-crop CSS */
+function setGrid(on){
+  const g=document.getElementById('canvas-grid'), b=document.getElementById('btn-grid');
+  if(g) g.style.display=on?'':'none';
+  if(b) b.classList.toggle('on',!!on);
+  try{ localStorage.setItem('phosphor-grid',on?'1':''); }catch(_){}
+}
+document.getElementById('btn-grid').onclick=()=>setGrid(document.getElementById('canvas-grid').style.display==='none');
+try{ setGrid(localStorage.getItem('phosphor-grid')==='1'); }catch(_){}
 addEventListener('resize',fit); fit();
 renderSaved();
 
