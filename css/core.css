@@ -2213,3 +2213,17 @@
   letter-spacing: 2px;
   text-transform: uppercase;
 }
+
+/* ===== TK · bullet points (structure) ===== */
+.tk-bullets {
+  margin: 0;
+  padding-left: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: calc(24px*var(--fscale,1));
+  line-height: 1.35;
+}
+.tk-bullets .cline::marker {
+  font-size: 1.1em;
+}

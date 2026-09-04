@@ -124,7 +124,8 @@ SHOW (video)
   (cyan edge line shows the drop point) or `Alt+↑↓`; `Ctrl+D` / `Delete` work from the keyboard;
   🧹📌🅿⊘ flags also in the Edit panel.
   Pressing play/record flips the list into a text-only narration script
-  (number · type · clean label, done steps dim, NEXT glows amber). Mid-take, clicking any
+  (number · type · clean label, done steps dim, NEXT glows amber). The stepped comp Space is
+  revealing expands into per-point rows (`1.2 Beta ▸ NEXT`) — click a line to show through it. Mid-take, clicking any
   VISITED step jumps the canvas back there (`seqJump`, clamped to `SEQ.maxShown` — footer dots
   use it too); unvisited   steps stay locked; the furthest-visited step keeps a green `⌂ you were here` home marker
   so one click returns. Clicking NEXT continues the take with full context.

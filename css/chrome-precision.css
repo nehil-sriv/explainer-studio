@@ -229,6 +229,11 @@ body #rail-right #complist li.seqrow .nexttag { margin-left: auto; }
    head = furthest visited (◉ marker stays while you browse behind it),
    locked = not revealed yet (disabled until Space gets there) */
 body #rail-right #complist li.seqrow.take { cursor: pointer; }
+/* per-point rows under the driving stepped comp */
+body #rail-right #complist li.seqrow.lnrow { padding-top: 3px; padding-bottom: 3px; }
+body #rail-right #complist li.seqrow.lnrow .l1 { padding-left: 18px; }
+body #rail-right #complist li.seqrow.lnrow .n { color: var(--ch-dim); }
+body #rail-right #complist li.seqrow.lnrow.next .n { color: var(--ch-amber-hi); }
 body #rail-right #complist li.seqrow.seen { opacity: .92; }
 body #rail-right #complist li.seqrow.seen .n { color: var(--ch-green-hi); }
 body #rail-right #complist li.seqrow.head .n { color: var(--ch-green-hi); font-weight: 700; }

@@ -907,6 +907,13 @@ const REGISTRY = {
     fields:['bad','good'],
     markup:p=>`<div class="diff"><div class="diff-del">− ${p.bad}</div><div class="diff-add">+ ${p.good}</div></div>` },
 
+  bullets:  { name:'TK · bullet points',
+    group:'basics',
+    help:'one point per line (or | separated) · tick stepped, then Space (or next ⏭) reveals each point when you want it',
+    props:{items:'First win|Second win|Third win', stepped:true, accent:'var(--phos-green)'},
+    fields:['items','stepped','accent'], fieldTypes:{items:'textarea', stepped:'check'},
+    markup:p=>`<ul class="tk-bullets" style="--stroke:${p.accent}">${String(p.items||'').split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean).map(t=>`<li class="cline">${rich(t)}</li>`).join('')}</ul>` },
+
   checklist:{ name:'Checklist card',
     group:'basics',
     props:{items:'write code|done\nwrite tests|done\nupdate docs|never', stepped:false},
@@ -2042,6 +2049,16 @@ function renderCanvas(){
   if(REC.active) mirrorEdgesToPopup(); // stepped takes re-push the overlay wholesale
 }
 
+/* display label for rows/dots/tooltips: text/title/label/name, else the first list
+   item (bullets/checklist carry items, not text) — rich tags stripped, keys untouched */
+function compLabel(c){
+  const p=c.props||{};
+  const direct=String(p.text||p.title||p.label||p.name||'').replace(/\[[^\]]*\]/g,'').trim();
+  if(direct) return direct;
+  const items=String(p.items||'').split('\n').flatMap(l=>l.split('|'))
+    .map(s=>s.trim().replace(/\[[^\]]*\]/g,'').trim()).filter(Boolean);
+  return items[0]||'';
+}
 function renderList(){
   const list=document.getElementById('complist'); if(!list) return;
   list.innerHTML='';
@@ -2049,6 +2066,16 @@ function renderList(){
   // teleprompter state: while playing/recording, the NEXT comp to appear is
   // highlighted so narration can lead it; already-shown steps dim
   const playing=SEQ.active, nextId=(playing&&SEQ.maxShown<comps.length)?comps[SEQ.maxShown].id:null;
+  // per-point teleprompter: the stepped comp Space is currently revealing expands
+  // into clickable line rows (same driver seqNext uses)
+  let driveId=null, driveCur=0, driveTotal=0;
+  if(playing){
+    const vis=comps.filter(c=>compVisible(c));
+    const lastDrv=[...vis].reverse().find(c=>c.props.stepped);
+    if(lastDrv){ driveTotal=stepTotal(lastDrv);
+      driveCur=(typeof lastDrv.revealed==='number')?lastDrv.revealed:driveTotal;
+      if(driveCur<driveTotal) driveId=lastDrv.id; }
+  }
   comps.forEach((c,i)=>{
     if(c.parked) return;                                // parked list rendered below
     const li=document.createElement('li');
@@ -2062,7 +2089,7 @@ function renderList(){
       // === edit mode: full step controls per row ===
       li.className=c.id===selId?'sel':'';
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+((c.clearBefore||c.pin)?' ':'')+(hideN?`⊘${hideN} `:'');
-      li.innerHTML=`<span class="name"><span class="marks">${marks}</span>${i+1}. ${c.type} <span class="pos">${String(c.props.text||c.props.title||c.props.label||'').slice(0,24)}</span></span>`;
+      li.innerHTML=`<span class="name"><span class="marks">${marks}</span>${i+1}. ${c.type} <span class="pos">${compLabel(c).slice(0,24)}</span></span>`;
       li.append(
         mk('🧹','clear screen before this step (earlier comps hide — 📌 pinned survive)',()=>{ snap(); c.clearBefore=!c.clearBefore; render(); renderStrip(); },'',!!c.clearBefore),
         mk('📌','pin: stays on screen through clears',()=>{ snap(); c.pin=!c.pin; render(); renderStrip(); },'',!!c.pin),
@@ -2073,13 +2100,15 @@ function renderList(){
     } else {
       // === take mode (play/record): text-only narration script ===
       // visited steps are clickable (jump back and return); past-the-head is locked;
-      // the furthest-visited step keeps its ◉ head marker while you browse behind it
-      const locked=i>SEQ.maxShown;
-      const isNext=c.id===nextId, isHead=SEQ.shown<SEQ.maxShown && i===SEQ.maxShown-1;
+      // the furthest-visited step keeps its ◉ head marker while you browse behind it.
+      // while points remain in the driving stepped comp, NEXT lives on point rows only —
+      // the next component row must not glow (Space reveals a point, not the component)
+      const locked=i>SEQ.maxShown||(driveId&&i>=SEQ.shown&&c.id!==driveId);
+      const isNext=c.id===nextId&&!driveId, isHead=SEQ.shown<SEQ.maxShown && i===SEQ.maxShown-1;
       li.className='seqrow take'+(c.id===selId?' sel':'')
         +(locked?' locked':(isNext?' next':(i<SEQ.shown?' done':' seen'))) + (isHead?' head':'');
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+(hideN?`⊘${hideN}`:'');
-      const label=String(c.props.text||c.props.title||c.props.label||'').replace(/\[[^\]]*\]/g,'').trim();
+      const label=compLabel(c);
       li.title=locked?`${i+1}. ${c.type} — not visited yet, Space reveals it`
         :`${i+1}. ${c.type}${label?' — '+label:''} · click to jump here`;
       li.innerHTML=`<span class="l1"><span class="n">${i+1}.</span><span class="t">${c.type}</span>${marks?`<span class="marks">${marks}</span>`:''}${label?`<span class="txt">${label.replace(/</g,'&lt;')}</span>`:''}${isHead?'<span class="headtag" title="furthest visited — click to jump back here">⌂ you were here</span>':''}${isNext?'<span class="nexttag">NEXT ▸</span>':''}</span>`;
@@ -2104,6 +2133,21 @@ function renderList(){
       li.onclick=()=>select(c.id);
     }
     list.appendChild(li);
+    // expanded point rows for the driving stepped comp — click a line to show through it
+    if(playing && c.id===driveId){
+      const tmp=document.createElement('div');
+      tmp.innerHTML=REGISTRY[c.type].markup(c.props);
+      [...tmp.querySelectorAll('.tline,.cline')].forEach((ln,k)=>{
+        const n=k+1, txt=(ln.textContent||'').trim()||`point ${n}`;
+        const r=document.createElement('li');
+        r.className='seqrow take lnrow'+(n<=driveCur?' done':(n===driveCur+1?' next':''));
+        r.title=`${i+1}.${n} ${txt} — click to show through here`;
+        r.innerHTML=`<span class="l1"><span class="n">${i+1}.${n}</span><span class="txt">${txt.replace(/</g,'&lt;')}</span>${n===driveCur+1?'<span class="nexttag">NEXT ▸</span>':''}</span>`;
+        r.onclick=()=>{ const t=comps.find(x=>x.id===driveId);
+          if(t){ t.revealed=n; render(); renderStrip(); } };
+        list.appendChild(r);
+      });
+    }
   });
   if(!comps.length && !parkedNow.length) list.innerHTML='<div class="hint" style="padding:4px">empty — click a component above to begin</div>';
   // 🅿 parked comps — hidden from the story, one click brings them back
@@ -2116,7 +2160,7 @@ function renderList(){
     parkedNow.forEach(c=>{
       const li=document.createElement('li');
       li.className='seqrow parked';
-      const label=String(c.props.text||c.props.title||c.props.label||'').replace(/\[[^\]]*\]/g,'').trim();
+      const label=compLabel(c);
       li.title=`parked ${c.type}${label?' — '+label:''} — click to put back at the end of the sequence`;
       li.innerHTML=`<span class="l1"><span class="n">🅿</span><span class="t">${c.type}</span></span>`
         +(label?`<span class="l2">${label.replace(/</g,'&lt;')}</span>`:'');
@@ -2124,15 +2168,15 @@ function renderList(){
       list.appendChild(li);
     });
   }
-  // keep the NEXT step in view while narrating
-  if(nextId){ const nx=list.querySelector('li.next'); if(nx) nx.scrollIntoView({block:'nearest'}); }
+  // keep the NEXT step in view while narrating (line-level first, then component)
+  if(nextId){ const nx=list.querySelector('li.lnrow.next')||list.querySelector('li.next'); if(nx) nx.scrollIntoView({block:'nearest'}); }
 }
 
 /* ============ 🔗 edges sidebar list ============ */
 function edgeShort(id){
   const c=comps.find(x=>x.id===id);
   if(!c) return '?';
-  const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
+  const s=compLabel(c);
   return `${comps.indexOf(c)+1}.${c.type}${s?' · '+s.slice(0,12):''}`;
 }
 
@@ -2565,16 +2609,16 @@ function renderInspector(){
     sel.onchange=()=>{ c.props[sel.dataset.accsel]=sel.value; renderCanvas(); renderInspector(); autosave(); };
   });
 
-  // line-reveal controls (stepped terminal / checklist)
+  // line-reveal controls (stepped terminal / checklist / bullets)
   if(c.props.stepped){
-    const __m=REGISTRY[c.type].markup(c.props).match(/tline|cline/g); const total=(__m&&__m.length)||0;
+    const total=stepTotal(c);
     const cur=(typeof c.revealed==='number')?c.revealed:total;
     const row=document.createElement('div');
     row.className='row'; row.style.flexWrap='wrap';
     row.innerHTML=`<label>lines</label><span class="linecount" style="flex:1;font-size:11px;color:var(--ch-dim)">${cur}/${total} shown</span>`;
     const mk=(txt,ttl,fn)=>{ const b=document.createElement('button'); b.className='mini'; b.textContent=txt; b.title=ttl; b.onclick=e=>{ e.stopPropagation(); fn(); renderInspector(); }; return b; };
     row.append(
-      mk('▸ next','reveal next line (or press Space with component selected)',()=>{ c.revealed=Math.min(total,(typeof c.revealed==='number'?c.revealed+1:1)); renderCanvas(); }),
+      mk('▸ next','reveal next line (or press Space with component selected)',()=>{ c.revealed=Math.min(total,(typeof c.revealed==='number'?c.revealed+1:1)); renderCanvas(); renderList(); renderStrip(); }),
       mk('↺','hide all lines',()=>{ c.revealed=0; renderCanvas(); }),
       mk('all','show every line',()=>{ delete c.revealed; renderCanvas(); })
     );
@@ -2631,7 +2675,7 @@ function saveComp(c){
   try{ props=structuredClone(c.props); }
   catch(_){ toastMsg('⚠ could not copy this component (unclonable data)'); return; }
   const saved=loadSaved();
-  saved.push({ name:`${c.type} · ${String(c.props.text||c.props.title||c.props.label||'').slice(0,24)}`,
+  saved.push({ name:`${c.type} · ${compLabel(c).slice(0,24)}`,
                type:c.type, x:c.x, y:c.y, scale:c.scale, rot:c.rot, opacity:c.opacity,
                anim:c.anim||'none', animDur:(c.animDur!==undefined?c.animDur:0.6), animDelay:(c.animDelay!==undefined?c.animDelay:0),
                seqHold:c.seqHold, clearBefore:c.clearBefore, pin:c.pin,
@@ -2746,13 +2790,13 @@ const TK_DSCALE={
   k8s:1, alarm:1, cron:1, globe:1, secret:1, policy:1, repo:1, cirunner:1,
   fproc:1, fdec:1, fterm:1, fio:1, lifeline:1, activation:1, selfcall:1,
   dtitle:1, legend:.9, footnote:.9, chartline:1, chartbars:1, chartdonut:1, timeline:1,
-  terminal:1, hottake:1, toast:1, blame:1, comment:1, stamp:1, sticky:1, loopbox:1,
+  terminal:1, hottake:1, toast:1, blame:1, comment:1, stamp:1, sticky:1, loopbox:1, bullets:1,
   box:1, caption:1, progress:1, rec:1, diff:1, checklist:1, arrow:1, circle:1,
   verdict:1, image:1, callout:1, kicker:1
 };
 
 const TK_DEFAULT_ANIM={
-  kicker:'pa-fade', title:'pa-glitchin', terminal:'pa-up', hottake:'pa-up', toast:'pa-down',
+  kicker:'pa-fade', title:'pa-glitchin', terminal:'pa-up', hottake:'pa-up', toast:'pa-down', bullets:'pa-left',
   blame:'pa-left', comment:'pa-left', stamp:'pa-zoom', sticky:'pa-zoomout', loopbox:'pa-fade',
   box:'pa-fade', caption:'pa-up', progress:'pa-fade', rec:'pa-zoom', diff:'pa-fade',
   checklist:'pa-up', arrow:'pa-fade', circle:'pa-fade', verdict:'pa-zoom', image:'pa-fade', callout:'pa-fade',
@@ -2974,7 +3018,7 @@ addEventListener('keydown',e=>{
       if(e.key===' '){
         const c=comps.find(x=>x.id===selId);
         if(c && c.props.stepped){
-          const total=(REGISTRY[c.type].markup(c.props).match(/tline|cline/g)||[]).length;
+          const total=stepTotal(c);
           const cur=(typeof c.revealed==='number')?c.revealed:total;
           if(cur<total){ c.revealed=cur+1; renderCanvas(); renderInspector(); return; }
         }
@@ -3056,6 +3100,7 @@ function seqPlay(from=0){
   SEQ.shown=Math.max(0, Math.min(from, comps.length));
   SEQ.maxShown=SEQ.shown;   // revisit head — jumps never pass what the take has revealed
   selId=null;
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   // re-arm entrance of the first shown comp so ▶ always plays it
   comps.forEach(c=>{ delete c._played; if(typeof c.revealed!=='undefined' && c.props.stepped) c.revealed=0; });
   // inbuilt one-shots (.comp.fresh gate: swarm cells, gauge fill, splitter, boot draw)
@@ -3064,12 +3109,19 @@ function seqPlay(from=0){
   // a stepped first comp opens on its first line, not an empty box
   const first=comps[SEQ.shown-1];
   if(first && first.props.stepped){
-    const total=(REGISTRY[first.type].markup(first.props).match(/tline|cline/g)||[]).length;
-    first.revealed=Math.min(1,total);
+    first.revealed=Math.min(1,stepTotal(first));
   }
   render(); renderStrip(); try{ camSyncForSeq(); }catch(_){}
   showRailTab('seq');   // playing = narrating — keep the teleprompter list up
   toastMsg(SEQ.shown===0 ? '▶ from blank — Space = next component · Esc = exit' : `▶ ${SEQ.shown}/${comps.length} shown — Space continues · Esc = exit`);
+}
+/* stepped line count — RENDERED lines, not source matches: loop-generated lists
+   (checklist/bullets) carry one cline in source but N in output, and source-regex
+   counting stuck their reveals at 1 */
+function stepTotal(c){
+  const tmp=document.createElement('div');
+  tmp.innerHTML=REGISTRY[c.type].markup(c.props);
+  return tmp.querySelectorAll('.tline,.cline').length;
 }
 function seqNext(){
   if(!SEQ.active) return;   // takes start via ▶ play / footer dots only — keys merely step
@@ -3077,9 +3129,9 @@ function seqNext(){
   const visible=comps.filter(c=>compVisible(c));
   const last=[...visible].reverse().find(c=>c.props.stepped);
   if(last){
-    const total=(REGISTRY[last.type].markup(last.props).match(/tline|cline/g)||[]).length;
+    const total=stepTotal(last);
     const cur=(typeof last.revealed==='number')?last.revealed:total;
-    if(cur<total){ last.revealed=cur+1; renderCanvas(); renderInspector(); renderStrip(); return; }
+    if(cur<total){ last.revealed=cur+1; renderCanvas(); renderInspector(); renderList(); renderStrip(); return; }
   }
   if(SEQ.shown < comps.length){
     const nxt=comps[SEQ.shown];
@@ -3116,6 +3168,7 @@ function seqJump(i){
 function seqExit(ended){
   seqStopAutoTimer();
   SEQ.active=false; SEQ.auto=false; SEQ.shown=comps.length; SEQ.maxShown=0;
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   render(); renderStrip();
   showRailTab('seq');   // Edit is opt-in (tab click or toolbar ✎) — takes land on Sequence
   toastMsg(ended?'✔ take ended — all components visible · drag rows to reorder'
@@ -3175,7 +3228,7 @@ function seqVariantSel(){
 // legacy shims — old project files / old code paths call these
 function beatTotal(){ return Math.max(1, comps.length); }
 function beatName(i){ const c=comps[i]; if(!c) return 'step '+(i+1);
-  const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
+  const s=compLabel(c);
   return (s? c.type+' · '+s.slice(0,14) : c.type); }
 function beatInsertAfter(){ toastMsg('beats retired — ↑↓ in STORY CANVAS sets the order'); }
 function beatDel(){ toastMsg('beats retired — delete components from STORY CANVAS'); }
@@ -3225,7 +3278,7 @@ function renderStrip(){
     const num=document.createElement('b'); num.textContent=i+1;
     pill.appendChild(num);
     const nm=document.createElement('span');
-    const s=String(c.props.text||c.props.title||c.props.label||c.props.name||'').replace(/\[[^\]]*\]/g,'').trim();
+    const s=compLabel(c);
     nm.textContent=(c.parked?'🅿 ':'')+(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+c.type+(s?' · '+s.slice(0,12):'');
     pill.appendChild(nm);
     pill.onclick=()=>{
@@ -3257,7 +3310,7 @@ function openBeatChooser(fresh){
     const cb=document.createElement('input'); cb.type='checkbox'; cb.dataset.id=c.id; cb.checked=!fresh;
     row.appendChild(cb);
     const nm=document.createElement('span');
-    const s=String(c.props.text||c.props.title||c.props.label||'').replace(/\[[^\]]*\]/g,'').trim();
+    const s=compLabel(c);
     nm.textContent=c.type+(s?' · '+s.slice(0,26):'');
     row.appendChild(nm); list.appendChild(row);
   });

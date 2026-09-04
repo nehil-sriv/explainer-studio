@@ -442,3 +442,7 @@
 .tk-tbl th { color: var(--stroke,var(--phos-green)); }
 .tk-tbl td { color: var(--text-primary); }
 .tk-tbl tbody tr:last-child td { border-bottom: none; }
+
+/* ===== TK · bullet points (skin) ===== */
+.tk-bullets { font-family: var(--font-body); color: var(--text-primary); }
+.tk-bullets .cline::marker { color: var(--stroke,var(--phos-green)); content: '▪ '; }
