@@ -2132,3 +2132,57 @@
 .tpulse { animation:techpulse 1.6s ease-in-out infinite; }
 .tshake { animation:techshake 0.15s linear 3; }
 @keyframes techshake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+
+/* ===== TK · timeline / roadmap (structure) ===== */
+.tk-tline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 420px;
+}
+.tk-tline .tltitle {
+  font-size: calc(30px*var(--fscale,1));
+  letter-spacing: 3px;
+}
+.tk-tline .tltrack {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 0 10px;
+}
+.tk-tline .tltrack::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 8px;
+  height: 2px;
+}
+.tk-tline .tlnode {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.tk-tline .tldot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid;
+}
+.tk-tline .tlnode b {
+  font-size: calc(19px*var(--fscale,1));
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tk-tline .tlnode s {
+  text-decoration: none;
+  font-size: calc(14px*var(--fscale,1));
+  letter-spacing: 1px;
+  white-space: nowrap;
+}

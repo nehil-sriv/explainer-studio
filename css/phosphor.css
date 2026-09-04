@@ -414,3 +414,23 @@
   background: var(--bg-deep);
   color: var(--text-dim);
 }
+
+/* ===== TK · timeline / roadmap (skin) ===== */
+.tk-tline { font-family: var(--font-body); }
+.tk-tline .tltitle { font-family: var(--font-display); color: var(--text-primary); }
+.tk-tline .tltrack::before { background: var(--line-dim); }
+.tk-tline .tldot { border-color: var(--text-dim); background: var(--bg-deep); }
+.tk-tline .tlnode.done .tldot {
+  border-color: var(--stroke,var(--phos-green));
+  background: var(--stroke,var(--phos-green));
+  box-shadow: 0 0 12px var(--stroke,var(--phos-green));
+}
+.tk-tline .tlnode.now .tldot {
+  border-color: var(--stroke,var(--phos-green));
+  background: transparent;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--stroke,var(--phos-green)) 25%, transparent), 0 0 14px var(--stroke,var(--phos-green));
+}
+.tk-tline .tlnode b { color: var(--text-primary); }
+.tk-tline .tlnode.todo b { color: var(--text-dim); }
+.tk-tline .tlnode s { color: var(--text-dim); }
+.tk-tline .tlnode.done s { color: var(--stroke,var(--phos-green)); }

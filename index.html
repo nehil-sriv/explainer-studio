@@ -1577,6 +1577,21 @@ const REGISTRY = {
     markup:p=>{ const pct=Math.max(0,Math.min(100,+p.pct||0));
       return `<div class="tk-chart"><div class="tk-donut" style="--d:${+p.d||220}px;--pct:${pct};--dc:${p.color}"><span class="dcap">${rich(p.label||(pct+'%'))}</span></div></div>`; } },
 
+  timeline: { name:'TK · timeline / roadmap',
+    group:'chrome',
+    help:'milestones on a line — items and dates are |-separated, aligned by position. done = how many are completed.',
+    props:{title:'2026 roadmap', items:'Alpha|Beta|GA', dates:'Q1|Q2|Q3', done:1, accent:'var(--phos-green)'},
+    fields:['title','items','dates','done','accent'], fieldTypes:{items:'textarea', dates:'textarea', done:'number'},
+    markup:p=>{
+      const items=String(p.items||'').split('|').map(s=>s.trim()).filter(Boolean);
+      const dates=String(p.dates||'').split('|').map(s=>s.trim());
+      const done=Math.max(0,Math.min(items.length,+p.done||0));
+      return `<div class="tk-tline" style="--stroke:${p.accent}">
+        ${p.title?`<div class="tltitle">${rich(p.title)}</div>`:''}
+        <div class="tltrack">${items.map((t,i)=>{
+          const st=i<done?'done':(i===done?'now':'todo');
+          return `<span class="tlnode ${st}"><i class="tldot"></i><b>${rich(t)}</b>${dates[i]?`<s>${rich(dates[i])}</s>`:''}</span>`; }).join('')}</div></div>`; } },
+
   elbow:    { name:'TK · elbow wire (ports)',
     group:'flow',
     help:'comes from top, exits right — flipH/flipV mirror it. ports = attach squares on node edges.',
@@ -2704,7 +2719,7 @@ const TK_DSCALE={
   pipeline:1, breaker:1, consensus:1, frame:1,
   k8s:1, alarm:1, cron:1, globe:1, secret:1, policy:1, repo:1, cirunner:1,
   fproc:1, fdec:1, fterm:1, fio:1, lifeline:1, activation:1, selfcall:1,
-  dtitle:1, legend:.9, footnote:.9, chartline:1, chartbars:1, chartdonut:1,
+  dtitle:1, legend:.9, footnote:.9, chartline:1, chartbars:1, chartdonut:1, timeline:1,
   terminal:1, hottake:1, toast:1, blame:1, comment:1, stamp:1, sticky:1, loopbox:1,
   box:1, caption:1, progress:1, rec:1, diff:1, checklist:1, arrow:1, circle:1,
   verdict:1, image:1, callout:1, kicker:1
@@ -2729,7 +2744,7 @@ const TK_DEFAULT_ANIM={
   k8s:'pa-zoom', alarm:'pa-down', cron:'pa-fade', globe:'pa-zoom', secret:'pa-fade', policy:'pa-zoom',
   repo:'pa-left', cirunner:'pa-zoom',
   lifeline:'pa-fade', activation:'pa-zoom', selfcall:'pa-fade',
-  dtitle:'pa-down', legend:'pa-fade', footnote:'pa-fade', frame:'pa-fade',
+  dtitle:'pa-down', legend:'pa-fade', footnote:'pa-fade', frame:'pa-fade', timeline:'pa-left',
   chartline:'pa-fade', chartbars:'pa-left', chartdonut:'pa-zoom',
   clientdev:'pa-right',
   kcp:'pa-glitchin', knode:'pa-up',
