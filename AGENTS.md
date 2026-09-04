@@ -44,6 +44,10 @@ _archive/old-builder/   ← previous builder copies (do not edit)
 
 - **Tokens:** Canvas theme colors live in `assets/tokens.css` as CSS variables (mirrored in the
   `<style id="tokens-inline">` fallback for file:// — keep both in sync).
+- **Fonts:** VT323 + JetBrains Mono 400/700 + Caveat 600 (latin) are self-hosted as data-URL
+  `@font-face` inside `<style id="tokens-inline">`, so PNG/GIF/WebM snapshots carry the exact
+  canvas type online or file:// (CDN fetch + raster timing made exports fall back to system
+  fonts). The Google Fonts `<link>` stays for other weights.
   - Core roles: `--bg-deep`, `--panel`, `--phos-green`, `--amber`, `--alert-red`, etc.
   - Effect roles (also in `js/themes.js` presets): `--shadow`, `--glow`, `--crash-ink`.
 - **Theme scope = canvas only.** `js/themes.js` writes preset vars onto `#scene`, never `:root`.
@@ -77,8 +81,9 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   Stencil buttons live in `.pal-set.pg-<gid>` wrappers (`display:contents`, inherits
   `--gc`) with initial-chips + truncated labels (no icon lib — offline rule).
 - **Workbench rails:** `aside#rail-left` (Components: Available/Saved tabs) · `.stage-wrap`
-  canvas · `aside#rail-right` (Edit/Sequence tabs). Selecting anything jumps to Edit;
-  saving jumps to Saved. Tab choices persist. The sidebar resize handle targets `#rail-right`.
+  canvas · `aside#rail-right` (Sequence/Edit tabs, Sequence first and default). Edit is opt-in:
+  selecting never switches tabs — Edit opens via its tab or the canvas toolbar's ✎ button.
+  Tab choices persist. The sidebar resize handle targets `#rail-right`.
   `fit()` ends with `centerStage()`,
   which centers the painted scene by measured scroll (grid `place-items` can't be
   trusted with the oversized scaled canvas — content drifts right without it).
@@ -95,6 +100,8 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   Old files unfreeze exact `#39FF7A` to `var(--phos-green)` on load (`themeize()`);
   other hues stay frozen.
 - **Styling:** `css/phosphor.css` — one class per component. Use `var(--ca)` / `--ct` / `--cbg` / `--fscale` for color/background/font overrides so the EDIT panel's pickers work.
+  Panel naming: `accent` = signature stroke/glow (rendered beside tint), `tint` = global
+  `--ca`/`--ct` override (empty = off). Prop keys unchanged — labels only.
 - **Rich text:** `rich(text)` in `index.html` handles inline tags: `[g]/[a]/[r]/[c]/[m]/[d]` colors, `[b]` bold, `[i]` italic, `[s1.5]` size, `[#hex]` custom. Extend there.
 - **Persistence:**
   - `localStorage` keys: `phosphor-autosave-v2` (canvas), `phosphor-saved-v1` (components), `phosphor-scenes-v1` (scenes).
@@ -121,7 +128,8 @@ SHOW (video)
   use it too); unvisited   steps stay locked; the furthest-visited step keeps a green `⌂ you were here` home marker
   so one click returns. Clicking NEXT continues the take with full context.
   Clicking a footer dot jumps there.
-- **Space / PageDown / →** → next component. **← / PageUp** → back. **Esc** → exit to edit (show all).
+- **Space / PageDown / →** → next component (mid-take only). Takes start via `▶ play` /
+  footer dots — keys never start a take. **← / PageUp** → back. **Esc** → exit to edit (show all).
   One more Space past the last step (or auto-play reaching the end) ends the take itself.
 - **Toasts** (`#navtoast`) always dock under the header — the footer strip owns the bottom edge.
 - **Clear / retire:** `🧹` on a step clears the screen before it appears; `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. Edit mode always shows everything.
@@ -150,6 +158,9 @@ the NEXT step glows amber with a `NEXT ▸` pill and auto-scrolls into view; sel
 comps mid-take no longer yanks the tab away; Esc exits back to Edit.
 Capture is cropped to the canvas (Region Capture) — window title, URL and editor UI never reach the clip. Popout (`⧉`) remains for OBS users and as REC fallback.
 **One-click export:** `🎞 export` → SVG still / animated GIF / WebM video. Renders every sequence state full-res via html-to-image — no capture picker. GIF via gif.js CDN, video via canvas.captureStream + MediaRecorder.
+GIF workers spawn from a Blob URL (CDN source fetched once) so file:// encodes instead of
+stalling at 0%; a 90s-silence watchdog reports instead of hanging; default scale is 0.5×
+(1080p GIFs take minutes per frame in JS — first progress arrives only after frame one).
 **Nodes + edges (GravelGraph-style):** `gnode` comps are service cards (icon chip + title + sub). Every component exposes 4 edge ports — select it and drag a 🔗 dot onto any component. Links live in the `edges[]` layer (NOT comps): `smooth`/`step`/`straight`/`curved` routing, protocol presets (HTTPS/gRPC/SQL/Event/Success/Error), branch tint, weight, direction, dots/dash/pulse + speed.   An edge draws when both endpoints are visible, so wires pop in as nodes reveal. Click an edge
   on the canvas (or Delete key) for the Edge panel. Legacy `flowlink` comps auto-migrate to edges on load.
 

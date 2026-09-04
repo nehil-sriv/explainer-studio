@@ -195,6 +195,14 @@ body #comp-tabs { display: flex; gap: 4px; padding: 8px 12px 0; flex: none; }
 body #rail-right .tabpane { min-height: 0; display: flex; flex-direction: column; flex: 1; overflow-y: auto; }
 body #rail-right .tabpane > .hint { margin: 8px 14px 4px; }
 body #rail-right #complist { padding: 0 8px 12px; overflow-y: auto; }
+/* library search stays pinned while the stencil list scrolls */
+body #rail-left #sec-palette { padding-top: 0; }
+body #rail-left #sec-palette > .hint { padding-top: 12px; }
+body #rail-left .pal-search {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--ch-bg1);
+  margin: 0 -14px 8px; padding: 8px 14px;
+}
 /* sequence reorder: drag rows, drop indicator is a cyan edge line */
 body #rail-right #complist li[draggable="true"] { cursor: grab; }
 body #rail-right #complist li.dragging { opacity: .4; }

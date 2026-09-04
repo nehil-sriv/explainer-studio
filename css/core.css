@@ -1079,15 +1079,20 @@
   margin-top: 8px;
 }
 .tk-tokens {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  align-items: center;
+  position: relative;
+  display: block;
   overflow: hidden;
   width: 70px;
   height: var(--h,190px);
 }
 .tk-tokens span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 100%;
   color: var(--ct,var(--text-primary));
   border: 2px solid var(--line-dim);
   background: var(--panel);
@@ -1096,7 +1101,35 @@
   line-height: 1.3;
   animation: tk-fall var(--dur,3.2s) linear infinite;
 }
-@keyframes tk-fall { from { transform:translateY(-130%); } to { transform:translateY(430%); } }
+/* loop over the CONTAINER (top % = container height): even spacing at any token
+   count, full column coverage, fade at both ends so entries/exits never pop */
+@keyframes tk-fall {
+  0% { top: -16%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: 104%; opacity: 0; }
+}
+/* horizontal twin: stream left→right across --w, vertically centered */
+.tk-tokens.horiz {
+  width: var(--w,420px);
+  height: auto;
+  min-height: 44px;
+}
+.tk-tokens.horiz span {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  margin: auto 0;
+  height: max-content;
+  animation-name: tk-slide;
+}
+@keyframes tk-slide {
+  0% { left: -16%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { left: 104%; opacity: 0; }
+}
 .tk-prompt {
   display: flex;
   align-items: center;
