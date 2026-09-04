@@ -80,7 +80,7 @@ body {
 
   main { flex:1; display:flex; min-height:0; }
   /* stage column */
-  .stage-wrap { flex:1; display:grid; place-items:center; padding:20px; min-width:0; overflow:auto; }
+  .stage-wrap { flex:1; display:grid; place-items:center; padding:20px; min-width:0; min-height:0; overflow:hidden; }
   #stage-scale { transform-origin: top center; }
 
   .scene { cursor: default; }
@@ -3836,26 +3836,21 @@ document.getElementById('t-hold').onchange=e=>{
   if(isFinite(v)&&v>=0){ SEQ.holdDefault=v; autosave(); }
 };
 
-/* fit canvas into available space */
+/* fit canvas into available space — the stage never scrolls (overflow hidden).
+   Grid can't center the transformed box (unsafe centering drifts with oversized
+   items), so size #stage-scale to the SCALED dims with a top-left origin: the box
+   the grid centers is then exactly the visible canvas. Toolbar math is untouched —
+   canvas coords still originate at the box's top-left. */
 function currentScale(){ return parseFloat(document.getElementById('stage-scale').style.transform.replace('scale(',''))||0.5; }
 function fit(){
   const wrap=document.querySelector('.stage-wrap');
   const w=parseInt(inW.value)||1920, h=parseInt(inH.value)||1080;
   const s=Math.min((wrap.clientWidth-60)/w,(wrap.clientHeight-60)/h,1);
-  document.getElementById('stage-scale').style.transform=`scale(${s})`;
-  centerStage();
-}
-/* measured centering: grid place-items can't be trusted with an oversized
-   scaled item (content drifts right, sliding under the sidebar) — so center
-   the painted scene in the viewport explicitly. Never fights manual pans:
-   only called from fit() (load / resize / canvas-size change). */
-function centerStage(){
-  try{
-    const wrap=document.querySelector('.stage-wrap');
-    const r=scene.getBoundingClientRect(), w=wrap.getBoundingClientRect();
-    wrap.scrollLeft+=Math.round((r.left+r.width/2)-(w.left+w.width/2));
-    wrap.scrollTop+=Math.round((r.top+r.height/2)-(w.top+w.height/2));
-  }catch(_){}
+  const el=document.getElementById('stage-scale');
+  el.style.transform=`scale(${s})`;
+  el.style.transformOrigin='top left';
+  el.style.width=Math.round(w*s)+'px';
+  el.style.height=Math.round(h*s)+'px';
 }
 addEventListener('resize',fit); fit();
 renderSaved();

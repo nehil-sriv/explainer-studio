@@ -84,9 +84,7 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   canvas · `aside#rail-right` (Sequence/Edit tabs, Sequence first and default). Edit is opt-in:
   selecting never switches tabs — Edit opens via its tab or the canvas toolbar's ✎ button.
   Tab choices persist. The sidebar resize handle targets `#rail-right`.
-  `fit()` ends with `centerStage()`,
-  which centers the painted scene by measured scroll (grid `place-items` can't be
-  trusted with the oversized scaled canvas — content drifts right without it).
+  The middle canvas is fixed (no scroll/pan — `fit()` scales it into view, grid centers it).
 - **Selection toolbar:** selecting a canvas comp shows `#sel-tools` floating above it
   (✎ edit · ⧉ dup · 📌 pin · 🗑 del). It lives in `#stage-scale` but OUTSIDE `#scene`,
   so cropped REC/popout/export can never record it; hidden while `REC.active` anyway.
