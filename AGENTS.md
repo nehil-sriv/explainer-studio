@@ -76,9 +76,10 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   (see `css/chrome-precision.css`); open/closed share metrics, closed only dims.
   Stencil buttons live in `.pal-set.pg-<gid>` wrappers (`display:contents`, inherits
   `--gc`) with initial-chips + truncated labels (no icon lib — offline rule).
-- **Workbench rails:** `aside#rail-left` (palette + saved) · `.stage-wrap` canvas ·
-  `aside#rail-right` (inspector). Sequence lives in the footer strip, not a panel.
-  The sidebar resize handle targets `#rail-right`. `fit()` ends with `centerStage()`,
+- **Workbench rails:** `aside#rail-left` (Components: Available/Saved tabs) · `.stage-wrap`
+  canvas · `aside#rail-right` (Edit/Sequence tabs). Selecting anything jumps to Edit;
+  saving jumps to Saved. Tab choices persist. The sidebar resize handle targets `#rail-right`.
+  `fit()` ends with `centerStage()`,
   which centers the painted scene by measured scroll (grid `place-items` can't be
   trusted with the oversized scaled canvas — content drifts right without it).
 - **Components:** Defined in `REGISTRY` inside `index.html` (`const REGISTRY = { kicker:{...}, svcblock:{...} }`). Each entry: `name`, `props`, `fields`, `fieldTypes`, `markup(props) → HTML`.
@@ -107,14 +108,32 @@ SHOW (video)
      └─ COMPONENTS — Space reveals next, ← goes back, Esc exits to edit
 ```
 
-- **Order = list order.** Footer `↑`/`↓` (or `Alt+↑↓`) moves the SELECTED component; `Ctrl+D` duplicates it; `Delete` removes it (+ attached edges). Clicking a dot jumps there.
+- **Order = list order.** Sequence tab rows carry per-row step controls
+  (`🧹` clear, `📌` pin, `⧉` duplicate, `🗑` remove + attached edges); reorder by DRAGGING rows
+  (cyan edge line shows the drop point) or `Alt+↑↓`; `Ctrl+D` / `Delete` work from the keyboard;
+  🧹📌🅿⊘ flags also in the Edit panel.
+  Pressing play/record flips the list into a text-only narration script
+  (number · type · clean label, done steps dim, NEXT glows amber). Mid-take, clicking any
+  VISITED step jumps the canvas back there (`seqJump`, clamped to `SEQ.maxShown` — footer dots
+  use it too); unvisited   steps stay locked; the furthest-visited step keeps a green `⌂ you were here` home marker
+  so one click returns. Clicking NEXT continues the take with full context.
+  Clicking a footer dot jumps there.
 - **Space / PageDown / →** → next component. **← / PageUp** → back. **Esc** → exit to edit (show all).
 - **Clear / retire:** `🧹` on a step clears the screen before it appears; `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. Edit mode always shows everything.
+- **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ new state from this` clones the
+  selected comp exactly in place and sets the clone to ⊘-hide the original on appear — a swap with
+  zero new data model (variants never carry 🧹). Jumping back before the variant restores the old
+  state. List rows show `⊘1` on variant steps.
 - **Stepped terminals/checklists:** tick `stepped` → Space reveals one line at a time before the next component.
 - **Hold timing (auto mode):** footer `hold s` = global default; EDIT SELECTED `hold s` = per-component override.
 
-**Preview:** footer `▶ play` (step) / `⏩ auto` (timed, no recording).
+**Preview:** header `▶ play` (step) / `⏩ auto` (timed, no recording).
 **Record:** `⏺ REC → step` (you press Space) / `⏩ auto` (plays all with hold timing) → MP4.
+Transport lives in the header (play/auto/hold always; next/back/exit appear while playing);
+the footer strip is dots-only timeline. Reorder via Sequence tab ↑↓ or `Alt+↑↓`, duplicate via `Ctrl+D`.
+While playing/recording the Sequence tab auto-opens as a teleprompter: shown steps dim,
+the NEXT step glows amber with a `NEXT ▸` pill and auto-scrolls into view; selecting canvas
+comps mid-take no longer yanks the tab away; Esc exits back to Edit.
 Capture is cropped to the canvas (Region Capture) — window title, URL and editor UI never reach the clip. Popout (`⧉`) remains for OBS users and as REC fallback.
 **One-click export:** `🎞 export` → SVG still / animated GIF / WebM video. Renders every sequence state full-res via html-to-image — no capture picker. GIF via gif.js CDN, video via canvas.captureStream + MediaRecorder.
 **Nodes + edges (GravelGraph-style):** `gnode` comps are service cards (icon chip + title + sub). Every component exposes 4 edge ports — select it and drag a 🔗 dot onto any component. Links live in the `edges[]` layer (NOT comps): `smooth`/`step`/`straight`/`curved` routing, protocol presets (HTTPS/gRPC/SQL/Event/Success/Error), branch tint, weight, direction, dots/dash/pulse + speed.   An edge draws when both endpoints are visible, so wires pop in as nodes reveal. Click an edge

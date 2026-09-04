@@ -142,6 +142,13 @@ body button.mini.primary:hover {
   box-shadow: 0 0 16px rgba(0,246,255,0.45), inset 0 1px 0 0 rgba(255,255,255,0.25);
 }
 body button.mini.danger, body ul.clean button.danger { color: var(--ch-red); }
+/* inline shortcut hints on transport buttons */
+body button.mini kbd {
+  font-family: var(--ch-mono); font-size: 9px; font-weight: 400;
+  color: var(--ch-dim); border: 1px solid var(--ch-line); border-bottom-width: 2px;
+  border-radius: 3px; padding: 0 4px; margin-left: 5px; text-transform: lowercase;
+}
+body button.mini.primary kbd { color: #00363d; border-color: rgba(0,0,0,.45); }
 body button.mini.danger:hover, body ul.clean button.danger:hover {
   color: var(--ch-red); border-color: var(--ch-red); background: var(--ch-bg3);
 }
@@ -154,12 +161,85 @@ header#transport #btn-new-project { color: var(--ch-red); }
 
 /* ---------- sidebar ---------- */
 body aside { width: 360px; background: var(--ch-bg2); border-left: 1px solid var(--ch-line); }
+/* right-rail Edit / Sequence tabs */
+body aside#rail-right { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+body #rail-tabs { display: flex; gap: 4px; padding: 8px 12px 0; flex: none; }
+body #rail-tabs button,
+body #comp-tabs button {
+  flex: 1; font-family: var(--ch-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 7px 4px; cursor: pointer; border-radius: 4px 4px 0 0;
+  background: transparent; color: var(--ch-mut);
+  border: 1px solid transparent; border-bottom: none;
+}
+body #rail-tabs button.on,
+body #comp-tabs button.on {
+  color: var(--ch-cyan-soft); background: var(--ch-bg3);
+  border-color: var(--ch-line);
+}
+body #comp-tabs { display: flex; gap: 4px; padding: 8px 12px 0; flex: none; }
+body #rail-right .tabpane { min-height: 0; display: flex; flex-direction: column; flex: 1; overflow-y: auto; }
+body #rail-right .tabpane > .hint { margin: 8px 14px 4px; }
+body #rail-right #complist { padding: 0 8px 12px; overflow-y: auto; }
+/* sequence reorder: drag rows, drop indicator is a cyan edge line */
+body #rail-right #complist li[draggable="true"] { cursor: grab; }
+body #rail-right #complist li.dragging { opacity: .4; }
+body #rail-right #complist li.drop-before { box-shadow: 0 -2px 0 var(--ch-cyan); }
+body #rail-right #complist li.drop-after { box-shadow: 0 2px 0 var(--ch-cyan); }
+/* take-mode rows: text-only narration script (edit rows keep per-row buttons) */
+body #rail-right #complist li.seqrow {
+  display: block; padding: 5px 10px; cursor: pointer;
+}
+body #rail-right #complist li.seqrow:hover { border-color: var(--ch-cyan); }
+body #rail-right #complist li.seqrow .l1 {
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  font-family: var(--ch-mono); font-size: 12px; color: var(--ch-text);
+}
+body #rail-right #complist li.seqrow .n { color: var(--ch-dim); flex: none; }
+body #rail-right #complist li.seqrow .t { font-weight: 700; flex: none; }
+body #rail-right #complist li.seqrow .marks { color: var(--ch-amber); font-size: 11px; flex: none; }
+body #rail-right #complist li.seqrow .txt {
+  flex: 1; min-width: 0; font-size: 11px; color: var(--ch-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body #rail-right #complist li.seqrow .nexttag { margin-left: auto; }
+/* take-mode revisit states: seen = visited but behind the head (clickable),
+   head = furthest visited (◉ marker stays while you browse behind it),
+   locked = not revealed yet (disabled until Space gets there) */
+body #rail-right #complist li.seqrow.take { cursor: pointer; }
+body #rail-right #complist li.seqrow.seen { opacity: .92; }
+body #rail-right #complist li.seqrow.seen .n { color: var(--ch-green-hi); }
+body #rail-right #complist li.seqrow.head .n { color: var(--ch-green-hi); font-weight: 700; }
+body #rail-right #complist .headtag {
+  flex: none; font-family: var(--ch-mono); font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  color: var(--ch-bg); background: var(--ch-green);
+  border-radius: 3px; padding: 1px 5px; white-space: nowrap;
+}
+body #rail-right #complist li.seqrow.locked { opacity: .32; cursor: not-allowed; }
+body #rail-right #complist li.seqrow.locked:hover { border-color: var(--ch-line); }
+body #rail-right #complist li.seqrow.parked { opacity: .45; }
+body #rail-right #complist li.seqrow.parked:hover { opacity: .9; border-color: var(--ch-green); }
+/* teleprompter: while playing/recording, done steps dim, NEXT glows amber */
+body #rail-right #complist li.seqrow.done { opacity: .5; }
+body #rail-right #complist li.seqrow.next {
+  border-color: var(--ch-amber); background: rgba(255,176,0,.10);
+  box-shadow: 0 0 0 1px var(--ch-amber), 0 0 12px rgba(255,176,0,.25);
+}
+body #rail-right #complist li.seqrow.next .l1 { color: var(--ch-amber-hi); }
+body #rail-right #complist li.seqrow.next .txt { color: var(--ch-amber-hi); opacity: .8; }
+body #rail-right #complist .nexttag {
+  flex: none; font-family: var(--ch-mono); font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  color: var(--ch-amber-hi); background: none;
+  padding: 1px 0 1px 5px; white-space: nowrap;
+}
 /* workbench rails: stencils left, canvas middle, inspector right */
 body main .stage-wrap { order: 1; }
 body aside#rail-left {
   order: 0; width: 300px; flex: none;
   border-left: none; border-right: 1px solid var(--ch-line);
+  overflow: hidden;
 }
+body aside#rail-left .tabpane { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 body #sidebar-rsz { order: 2; }
 body aside#rail-right { order: 3; }
 body aside section { border-bottom: 1px solid var(--ch-line); }
@@ -199,9 +279,7 @@ body aside .pal-h .gtag {
   flex: none; font-size: 9px; font-weight: 400;
   color: color-mix(in srgb, var(--gc) 55%, transparent);
 }
-/* closed state dims only — metrics identical so rows never jump */
-body aside .pal-h.closed { opacity: .55; }
-body aside .pal-h.closed .gname { color: var(--ch-mut); }
+/* closed headers read exactly like open ones (no `>` marker is the state cue) */
 /* search with icon */
 body aside .pal-search { position: relative; }
 body aside .pal-ico {
