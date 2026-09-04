@@ -454,6 +454,12 @@ body .scene .comp .portdot {
 body .scene .comp .portdot:hover {
   background: var(--ch-cyan); box-shadow: 0 0 12px rgba(6,182,212,.8);
 }
+body .scene .comp .sizedot {
+  border-color: var(--ch-amber); background: var(--ch-bg0);
+}
+body .scene .comp .sizedot:hover {
+  background: var(--ch-amber); box-shadow: 0 0 12px rgba(255,176,0,.8);
+}
 body #connect-wire line { stroke: var(--ch-cyan); }
 body #connect-wire circle.endhl { stroke: var(--ch-amber); }
 body #gv, body #gh { background: rgba(99,102,241,.55); }
