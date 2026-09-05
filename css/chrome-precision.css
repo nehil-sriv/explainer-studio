@@ -585,8 +585,71 @@ body #sel-tools .al-sep {
 }
 body #sel-tools button.al { font-size: 15px; padding: 6px 7px; }
 body #sel-tools button.al:hover { color: var(--ch-cyan); border-color: var(--ch-cyan); }
+/* ---------- merged steps (shared stepId — one Space press) ---------- */
+body #rail-right #complist li.merged { border-left: 3px solid var(--ch-purple, #a78bfa); }
+body #rail-right #complist li.strow.merged { border-left-color: var(--ch-purple, #a78bfa); }
+body footer#beatbar #strip .sqpill.merged { border-bottom: 2px solid var(--ch-purple, #a78bfa); }
 /* ---------- code editor (paste-safe: pre, no wrap, mono, Tab-friendly) ---------- */
 body aside #inspector .cd-row textarea.cd-edit {
   white-space: pre; overflow-x: auto; overflow-y: auto; tab-size: 4;
   font-family: var(--ch-mono); font-size: 12px; min-height: 240px;
 }
+/* ---------- scenes: Sequence → Scene → Components tree ---------- */
+body #rail-right .scenerow { display: flex; gap: 6px; padding: 8px 8px 4px; flex: none; }
+body #rail-right .scenerow select {
+  flex: 1; min-width: 0; background: var(--ch-bg1); border: 1px solid var(--ch-line);
+  color: var(--ch-text); font-family: var(--ch-mono); font-size: 12px; padding: 4px 6px; border-radius: 4px;
+}
+body #rail-right #complist li.scenehead {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  background: var(--ch-bg3); border-color: var(--ch-line);
+  font-family: var(--ch-mono); font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  margin-top: 8px;
+}
+body #rail-right #complist li.scenehead:first-child { margin-top: 0; }
+body #rail-right #complist li.scenehead .fold { color: var(--ch-dim); flex: none; }
+body #rail-right #complist li.scenehead .sname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ch-text); }
+body #rail-right #complist li.scenehead .scount { color: var(--ch-mut); font-weight: 400; flex: none; }
+body #rail-right #complist li.scenehead .sactive { color: var(--ch-green); flex: none; }
+body #rail-right #complist li.scenehead.active { border-color: var(--ch-green); }
+body #rail-right #complist li.scenehead button { flex: none; }
+body #rail-right #complist li.scenehead.dragging { opacity: .4; }
+body #rail-right #complist li.scenehead.drop-before { box-shadow: 0 -2px 0 var(--ch-cyan); }
+body #rail-right #complist li.scenehead.drop-after { box-shadow: 0 2px 0 var(--ch-cyan); }
+body #rail-right #complist li.scenehint {
+  margin-left: 18px; font-size: 11px; color: var(--ch-mut); font-style: italic;
+  border: 1px dashed var(--ch-line); cursor: default;
+}
+body #rail-right #complist li:not(.scenehead):not(.scenehint) { margin-left: 18px; }
+/* ---------- composition library (Kits tab) ---------- */
+body #rail-left #sec-complib #btn-savecomp { margin-bottom: 8px; }
+body #rail-left #sec-complib .hint { margin-top: 6px; }
+/* ---------- scene actions menu (body level — never clipped by the rail) ---------- */
+body #scene-menu {
+  position: fixed; z-index: 9999; display: none; width: 230px;
+  background: var(--ch-bg3); border: 1px solid var(--ch-line); border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.6); padding: 6px;
+}
+body #scene-menu .sm-cap {
+  font-family: var(--ch-mono); font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  color: var(--ch-text); padding: 4px 8px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body #scene-menu button.mini { display: block; width: 100%; text-align: left; margin-bottom: 2px; }
+/* ---------- scene dialog (rename / delete / move / template params) ---------- */
+body #scene-dlg {
+  position: fixed; inset: 0; z-index: 10000; display: none;
+  align-items: center; justify-content: center; background: rgba(0,0,0,.55);
+}
+body #scene-dlg-card {
+  width: 420px; max-width: 92vw; background: var(--ch-bg2);
+  border: 1px solid var(--ch-line); border-radius: 10px; padding: 16px 18px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.7);
+}
+body #scene-dlg-title { font-family: var(--ch-mono); font-size: 14px; font-weight: 700; color: var(--ch-text); margin-bottom: 12px; }
+body #scene-dlg-body .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+body #scene-dlg-body .row label { width: 110px; flex: none; color: var(--ch-dim); }
+body #scene-dlg-body .row input, body #scene-dlg-body .row select {
+  flex: 1; min-width: 0; background: var(--ch-bg1); border: 1px solid var(--ch-line);
+  color: var(--ch-text); font-family: var(--ch-mono); font-size: 12px; padding: 5px 8px; border-radius: 4px;
+}
+body #scene-dlg-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }

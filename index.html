@@ -278,7 +278,7 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
     <div id="marquee" style="display:none"></div>
     <div id="multi-box" style="display:none"><div id="multi-size" title="drag to scale the set"></div></div>
@@ -288,7 +288,7 @@ body {
 
   <aside id="rail-left">
     <div id="comp-tabs">
-      <button id="ctabbtn-avail" class="on">Library</button><button id="ctabbtn-saved">Saved</button>
+      <button id="ctabbtn-avail" class="on">Library</button><button id="ctabbtn-saved">Saved</button><button id="ctabbtn-kits">Kits</button>
     </div>
     <div class="tabpane" id="ctabpane-avail">
     <section id="sec-palette">
@@ -309,6 +309,13 @@ body {
       <ul id="savedlist" class="clean"></ul>
     </section>
     </div>
+    <div class="tabpane" id="ctabpane-kits" style="display:none">
+    <section id="sec-complib">
+      <p class="hint">stamp a fragment — wires + states come along · twice is safe (fresh ids)</p>
+      <button class="mini" id="btn-savecomp" title="save the current selection as a reusable kit">＋ save selection as kit</button>
+      <ul id="complist-lib" class="clean"></ul>
+    </section>
+    </div>
   </aside>
 
   <div id="sidebar-rsz"></div>
@@ -318,6 +325,7 @@ body {
     </div>
     <div class="tabpane" id="tabpane-seq" style="display:none">
       <p class="hint">list order = play order · drag rows to reorder · Space plays next · take shows script — click visited to revisit</p>
+      <div class="scenerow"><select id="scene-pick" title="active scene — new components land here"></select><button class="mini" id="scene-new" title="new empty scene">+ scene</button></div>
       <ul id="complist" class="clean"></ul>
     </div>
     <div class="tabpane" id="tabpane-edit">
@@ -329,6 +337,14 @@ body {
   </aside>
 </main>
 
+<div id="scene-menu" data-for="" style="display:none"></div>
+<div id="scene-dlg" style="display:none">
+  <div id="scene-dlg-card">
+    <div id="scene-dlg-title"></div>
+    <div id="scene-dlg-body"></div>
+    <div id="scene-dlg-btns"></div>
+  </div>
+</div>
 <div id="tour" style="display:none">
     <div id="tour-card">
       <div id="tour-stepnum"></div>
@@ -523,9 +539,9 @@ document.addEventListener('click', e=>{
   sec.style.maxHeight = collapsing ? 'none'   : '';
   sec.style.overflow  = collapsing ? 'hidden' : '';
 });
-/* start with the working set open — palette, saved library, story canvas, inspector */
+/* start with the working set open — palette, saved library, kits, story canvas, inspector */
 document.querySelectorAll('aside section').forEach(s=>{
-  const open=['sec-palette','sec-saved','inspector'].includes(s.id);
+  const open=['sec-palette','sec-saved','sec-complib','inspector'].includes(s.id);
   s.classList.toggle('collapsed', !open);
 });
 </script>
@@ -560,6 +576,110 @@ let beatStep={};      // legacy — kept so old code paths don't crash
    comps array order === show order. SEQ.active=false → edit mode (show all).
    SEQ.active=true → playback/record: show first SEQ.shown comps. Space = next. */
 const SEQ={ active:false, shown:0, maxShown:0, auto:false, autoTimer:null, holdDefault:1.6 };
+/* ===== MERGED STEPS (shared stepId — one Space press reveals a run) =====
+   Why: one Space press revealed exactly one comps entry. "The node appears
+   and its wire turns red" needed two presses.
+   Why it's cheap: compVisible is purely index-based (i < SEQ.shown), so
+   merging changes only how far SEQ.shown jumps — visibility logic untouched.
+   No stepId → runEnd(i)===i+1: byte-identical old behaviour, no migration. */
+function runStart(i){
+  const s=comps[i]&&comps[i].stepId;
+  if(!s) return i;
+  let j=i; while(j>0&&comps[j-1]&&comps[j-1].stepId===s) j--;
+  return j;
+}
+function runEnd(i){
+  const s=comps[i]&&comps[i].stepId;
+  if(!s) return i+1;
+  let j=i; while(j+1<comps.length&&comps[j+1]&&comps[j+1].stepId===s) j++;
+  return j+1;
+}
+function runBoundaries(){ const out=[]; let i=0; while(i<comps.length){ out.push(i); i=runEnd(i); } return out; }
+function runMembers(i){ return comps.slice(runStart(i),runEnd(i)); }
+function runCount(){ return runBoundaries().length; }
+function runIndexOf(i){ return runBoundaries().filter(b=>b<=i).length-1; }
+/* merge makes entries contiguous — a run MUST be adjacent, because SEQ.shown
+   is a single index and half a merged beat is a state a take never has. */
+function mergeSteps(){
+  const picked=selList().filter(c=>comps.includes(c));
+  if(picked.length<2){ toastMsg('pick 2+ rows or components, then merge them into one Space press'); return; }
+  if(typeof SCENES!=='undefined'&&SCENES.length){
+    const scenes=new Set(picked.map(c=>c.sceneId));
+    if(scenes.size>1){ toastMsg('merges stay inside one scene — move them together first'); return; }
+  }
+  snap(); if(SEQ.active) seqExit();
+  const idx=picked.map(c=>comps.indexOf(c)).sort((a,b)=>a-b);
+  const ordered=idx.map(i=>comps[i]);
+  const sid='st'+uid();
+  ordered.forEach(c=>c.stepId=sid);
+  comps=comps.filter(c=>!ordered.includes(c));
+  comps.splice(Math.min(idx[0],comps.length),0,...ordered);
+  render(); renderStrip();
+  toastMsg(`merged ${ordered.length} into one step — one Space press reveals all`);
+}
+/* splitting always clears the whole run — never half. */
+function splitBySids(sids){
+  if(!sids||!sids.size) return;
+  snap(); if(SEQ.active) seqExit();
+  let n=0;
+  comps.forEach(c=>{ if(c.stepId&&sids.has(c.stepId)){ delete c.stepId; n++; } });
+  render(); renderStrip();
+  if(n) toastMsg(`split ${n} back into single steps`);
+}
+function splitSteps(){
+  const sids=new Set(selList().filter(c=>c.stepId).map(c=>c.stepId));
+  if(!sids.size){ toastMsg('selection has no merged step — merge first (M)'); return; }
+  splitBySids(sids);
+}
+function splitStepsAt(i){
+  const c=comps[i];
+  if(!c||!c.stepId){ toastMsg('this row is not merged'); return; }
+  splitBySids(new Set([c.stepId]));
+}
+
+/* ===== SCENES — Sequence → Scene → Components =====
+   Same shared-field pattern as runs: c.sceneId plus an ordered SCENES array.
+   comps stays one flat array (every render path depends on that), sorted so
+   each scene's entries are contiguous — which is what lets a scene play alone
+   by windowing SEQ.shown. No component lives outside a scene: anything
+   unassigned is adopted by Scene 1 (ensureDefaultScene). */
+let SCENES=[];
+let activeScene=null;   // new components land here
+const SCENE_FOLD_KEY='phosphor-scenefold';
+let sceneFolded=new Set();
+try{ sceneFolded=new Set(JSON.parse(localStorage.getItem(SCENE_FOLD_KEY))||[]); }catch(_){}
+function storeFolded(){ try{ localStorage.setItem(SCENE_FOLD_KEY,JSON.stringify([...sceneFolded])); }catch(_){} }
+function ensureDefaultScene(){
+  if(!SCENES.length) SCENES=[{id:'sc'+uid(),name:'Scene 1'}];
+  const known=new Set(SCENES.map(s=>s.id));
+  const home=SCENES[0].id;
+  let moved=0;
+  comps.forEach(c=>{ if(!c.sceneId||!known.has(c.sceneId)){ c.sceneId=home; moved++; } });
+  if(!activeScene||!known.has(activeScene)) activeScene=SCENES[SCENES.length-1].id;
+  if(moved) normalizeScenes();
+  return moved;
+}
+function activeSceneId(){ return (activeScene&&SCENES.some(s=>s.id===activeScene))?activeScene:(SCENES.length?SCENES[SCENES.length-1].id:null); }
+function targetSceneId(){ ensureDefaultScene(); return activeSceneId()||SCENES[SCENES.length-1].id; }
+function sceneComps(sid){ return comps.filter(c=>c.sceneId===sid); }
+function sceneRange(sid){
+  let start=-1,end=-1;
+  comps.forEach((c,i)=>{ if(c.sceneId===sid){ if(start<0) start=i; end=i+1; } });
+  return start<0?null:{start,end};
+}
+/* unassigned comps sort to the front; each scene's block stays contiguous.
+   Stable — same-scene runs (mergeSteps) are never split apart. */
+function normalizeScenes(){
+  if(!SCENES.length) return;
+  const order=new Map(SCENES.map((s,i)=>[s.id,i]));
+  comps.map((c,i)=>({c,i})).sort((a,b)=>{
+    const ao=(a.c.sceneId&&order.has(a.c.sceneId))?order.get(a.c.sceneId)+1:-1;
+    const bo=(b.c.sceneId&&order.has(b.c.sceneId))?order.get(b.c.sceneId)+1:-1;
+    return (ao-bo)||(a.i-b.i);
+  }).forEach((d,k)=>{ comps[k]=d.c; });
+}
+function seqStartIndex(){ if(SEQ.scene){ const r=sceneRange(SEQ.scene); if(r) return r.start; } return 0; }
+function seqEndIndex(){ if(SEQ.scene){ const r=sceneRange(SEQ.scene); if(r) return r.end; } return comps.length; }
 /* ===== STATE STEPS (patch entries — no clones) =====
    A state step is an ordinary entry in comps that draws nothing and instead
    patches another component's props — or an edge's settings — from its
@@ -2220,7 +2340,10 @@ function startDraft(type){
             props:structuredClone(REGISTRY[type].props),
             draft:true };
   if(SEQ.active) seqExit();   // adding while playing → back to edit so you see it
+  const sc=targetSceneId();
+  if(sc){ c.sceneId=sc; }
   comps.push(c);
+  if(sc) normalizeScenes();
   draft=type; selId=c.id; render();
 }
 
@@ -2465,6 +2588,8 @@ function compLabel(c){
 }
 function renderList(){
   const list=document.getElementById('complist'); if(!list) return;
+  ensureDefaultScene();   // old projects migrate silently into one default scene
+  renderSceneBar();
   list.innerHTML='';
   const parkedNow=comps.filter(c=>c.parked);
   // teleprompter state: while playing/recording, the NEXT comp to appear is
@@ -2480,7 +2605,9 @@ function renderList(){
       driveCur=(typeof lastDrv.revealed==='number')?lastDrv.revealed:driveTotal;
       if(driveCur<driveTotal) driveId=lastDrv.id; }
   }
-  comps.forEach((c,i)=>{
+  // one row renderer, driven scene by scene below (folding is view-only —
+  // compVisible and playback never consult it)
+  const emitRow=(c,i)=>{
     if(c.parked) return;                                // parked list rendered below
     const li=document.createElement('li');
     const hideN=(Array.isArray(c.hides)?c.hides.length:0);
@@ -2491,20 +2618,23 @@ function renderList(){
       return b; };
     if(!playing && isState(c)){
       const t=stateTarget(c);
-      li.className='strow'+(selIds.has(c.id)?' sel':'')+(!t?' orphan':'');
-      li.innerHTML=`<span class="name"><span class="marks">⇄ </span>${i+1}. state <span class="pos">${compLabel(c).slice(0,28).replace(/</g,'&lt;')}</span></span>`;
-      li.title=!t?`${i+1}. state — target missing, this step does nothing`
-        :`${i+1}. state → ${t.type} — ${stateSummary(c)}`;
+      const rn=runIndexOf(i)+1;   // merged runs share one step number — beats, not entries
+      li.className='strow'+(selIds.has(c.id)?' sel':'')+(!t?' orphan':'')+(c.stepId?' merged':'');
+      li.innerHTML=`<span class="name"><span class="marks">⇄ </span>${rn}. state <span class="pos">${compLabel(c).slice(0,28).replace(/</g,'&lt;')}</span></span>`;
+      li.title=!t?`${rn}. state — target missing, this step does nothing`
+        :`${rn}. state → ${t.type} — ${stateSummary(c)}`;
       li.append(
         mk('⧉','duplicate this state step',()=>{ snap(); const d=structuredClone(c); delete d._played; delete d._stateAt; d.id=uid(); comps.splice(i+1,0,d); render(); renderStrip(); }),
         mk('🗑','remove this state change (the target component is untouched)',()=>{ snap(); const dead=c.id; comps=comps.filter(x=>x.id!==dead); if(selId===dead)selId=null; if(statePreview===dead)statePreview=null; render(); renderStrip(); },'danger')
       );
+      if(c.stepId) li.append(mk('u','split this merged step back into single steps',()=>splitStepsAt(i)));
     } else if(!playing){
       // === edit mode: full step controls per row ===
-      li.className=selIds.has(c.id)?'sel':'';
+      const rn=runIndexOf(i)+1;
+      li.className=(selIds.has(c.id)?'sel':'')+(c.stepId?' merged':'');
       const nStates=comps.filter(x=>isState(x)&&x.target===c.id).length;
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+((c.clearBefore||c.pin)?' ':'')+(hideN?`⊘${hideN} `:'');
-      li.innerHTML=`<span class="name"><span class="marks">${marks}</span>${i+1}. ${c.type} <span class="pos">${compLabel(c).slice(0,24)}</span>${nStates?`<span class="statec" title="${nStates} state change(s) target this">⇄${nStates}</span>`:''}</span>`;
+      li.innerHTML=`<span class="name"><span class="marks">${marks}</span>${rn}. ${c.type} <span class="pos">${compLabel(c).slice(0,24)}</span>${nStates?`<span class="statec" title="${nStates} state change(s) target this">⇄${nStates}</span>`:''}</span>`;
       li.append(
         mk('🧹','clear screen before this step (earlier comps hide — 📌 pinned survive)',()=>{ snap(); c.clearBefore=!c.clearBefore; render(); renderStrip(); },'',!!c.clearBefore),
         mk('📌','pin: stays on screen through clears',()=>{ snap(); c.pin=!c.pin; render(); renderStrip(); },'',!!c.pin),
@@ -2513,6 +2643,7 @@ function renderList(){
                                  comps.splice(i+1,0,d); render(); renderStrip(); }),
         mk('🗑','remove from recording scene (attached edges go too)',()=>{ snap(); const dead=c.id; comps=comps.filter(x=>x.id!==dead); if(selId===dead)selId=null; dropDependents(dead); render(); },'danger')
       );   // end step-control buttons
+      if(c.stepId) li.append(mk('u','split this merged step back into single steps',()=>splitStepsAt(i)));
     } else {
       // === take mode (play/record): text-only narration script ===
       // visited steps are clickable (jump back and return); past-the-head is locked;
@@ -2521,14 +2652,15 @@ function renderList(){
       // the next component row must not glow (Space reveals a point, not the component)
       const locked=i>SEQ.maxShown||(driveId&&i>=SEQ.shown&&c.id!==driveId);
       const isNext=c.id===nextId&&!driveId, isHead=SEQ.shown<SEQ.maxShown && i===SEQ.maxShown-1;
-      li.className='seqrow take'+(selIds.has(c.id)?' sel':'')
+      const rn=runIndexOf(i)+1;
+      li.className='seqrow take'+(selIds.has(c.id)?' sel':'')+(c.stepId?' merged':'')
         +(locked?' locked':(isNext?' next':(i<SEQ.shown?' done':' seen'))) + (isHead?' head':'');
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+(hideN?`⊘${hideN}`:'');
       const tname=isState(c)?'state':c.type;
       const label=compLabel(c);
-      li.title=locked?`${i+1}. ${tname} — not visited yet, Space reveals it`
-        :`${i+1}. ${tname}${label?' — '+label:''} · click to jump here`;
-      li.innerHTML=`<span class="l1"><span class="n">${i+1}.</span><span class="t">${tname}</span>${marks?`<span class="marks">${marks}</span>`:''}${label?`<span class="txt">${label.replace(/</g,'&lt;')}</span>`:''}${isHead?'<span class="headtag" title="furthest visited — click to jump back here">⌂ you were here</span>':''}${isNext?'<span class="nexttag">NEXT ▸</span>':''}</span>`;
+      li.title=locked?`${rn}. ${tname} — not visited yet, Space reveals it`
+        :`${rn}. ${tname}${label?' — '+label:''} · click to jump here`;
+      li.innerHTML=`<span class="l1"><span class="n">${rn}.</span><span class="t">${tname}</span>${marks?`<span class="marks">${marks}</span>`:''}${label?`<span class="txt">${label.replace(/</g,'&lt;')}</span>`:''}${isHead?'<span class="headtag" title="furthest visited — click to jump back here">⌂ you were here</span>':''}${isNext?'<span class="nexttag">NEXT ▸</span>':''}</span>`;
       li.onclick=()=>seqJump(i);
     }
     if(!playing){   // edit rows reorder by drag — take rows stay click-to-jump
@@ -2540,12 +2672,14 @@ function renderList(){
         li.classList.toggle('drop-before',halfBefore(e)); li.classList.toggle('drop-after',!halfBefore(e)); };
       li.ondragleave=()=>li.classList.remove('drop-before','drop-after');
       li.ondrop=e=>{ e.preventDefault();
+        if(e.dataTransfer.getData('text/scene')) return;   // headers drop on headers only
         const id=e.dataTransfer.getData('text/plain'); if(!id||id===c.id) return;
         const from=comps.findIndex(x=>x.id===id); if(from<0) return;
         snap();
         const [mv]=comps.splice(from,1);
+        mv.sceneId=c.sceneId;   // row in another scene joins this scene
         let to=comps.indexOf(c); if(!halfBefore(e)) to++;
-        comps.splice(to,0,mv); render(); renderStrip();
+        comps.splice(to,0,mv); normalizeScenes(); render(); renderStrip();
       };
       li.onclick=e=>select(c.id, {toggle:!!(e.shiftKey||e.metaKey||e.ctrlKey), solo:!!e.altKey});
     }
@@ -2558,15 +2692,69 @@ function renderList(){
         const n=k+1, txt=(ln.textContent||'').trim()||`point ${n}`;
         const r=document.createElement('li');
         r.className='seqrow take lnrow'+(n<=driveCur?' done':(n===driveCur+1?' next':''));
-        r.title=`${i+1}.${n} ${txt} — click to show through here`;
-        r.innerHTML=`<span class="l1"><span class="n">${i+1}.${n}</span><span class="txt">${txt.replace(/</g,'&lt;')}</span>${n===driveCur+1?'<span class="nexttag">NEXT ▸</span>':''}</span>`;
+        r.title=`${runIndexOf(i)+1}.${n} ${txt} — click to show through here`;
+        r.innerHTML=`<span class="l1"><span class="n">${runIndexOf(i)+1}.${n}</span><span class="txt">${txt.replace(/</g,'&lt;')}</span>${n===driveCur+1?'<span class="nexttag">NEXT ▸</span>':''}</span>`;
         r.onclick=()=>{ const t=comps.find(x=>x.id===driveId);
           if(t){ t.revealed=n; render(); renderStrip(); } };
         list.appendChild(r);
       });
     }
+  };
+  /* the tree: Scene → Components. Folding is view-only; playback never sees it.
+     (Bug shape to remember: the old global empty-wipe used innerHTML= AFTER the
+     headers were appended and erased them — each empty scene renders its own
+     scoped hint instead.) */
+  SCENES.forEach(s=>{
+    const mine=comps.filter(c=>c.sceneId===s.id&&!c.parked);
+    const folded=!playing&&sceneFolded.has(s.id);   // takes always show every row
+    const hd=document.createElement('li');
+    hd.className='scenehead'+(s.id===activeSceneId()?' active':'')+(folded?' folded':'');
+    hd.dataset.sid=s.id;
+    hd.title=`${s.name} — ${mine.length} step(s) · click to fold/unfold`;
+    hd.innerHTML=`<span class="fold">${folded?'▸':'▾'}</span><span class="sname">${String(s.name).replace(/</g,'&lt;')}</span><span class="scount">${mine.length}</span>${s.id===activeSceneId()?'<span class="sactive" title="new components land here">●</span>':''}`;
+    const pb=document.createElement('button'); pb.textContent='▶'; pb.title='play only this scene';
+    pb.onclick=e=>{ e.stopPropagation(); playScene(s.id); };
+    const mb=document.createElement('button'); mb.textContent='⋯'; mb.title='scene actions';
+    mb.onclick=e=>{ e.stopPropagation(); openSceneMenu(mb,s.id); };
+    hd.append(pb,mb);
+    hd.onclick=()=>{ sceneFolded.has(s.id)?sceneFolded.delete(s.id):sceneFolded.add(s.id); storeFolded(); renderList(); };
+    hd.draggable=true;
+    hd.ondragstart=e=>{ e.dataTransfer.setData('text/scene',s.id); e.dataTransfer.effectAllowed='move'; hd.classList.add('dragging'); };
+    hd.ondragend=()=>list.querySelectorAll('.dragging,.drop-before,.drop-after').forEach(x=>x.classList.remove('dragging','drop-before','drop-after'));
+    const halfBeforeH=e=>{ const r=hd.getBoundingClientRect(); return (e.clientY-r.top)<r.height/2; };
+    hd.ondragover=e=>{ e.preventDefault(); e.dataTransfer.dropEffect='move';
+      hd.classList.toggle('drop-before',halfBeforeH(e)); hd.classList.toggle('drop-after',!halfBeforeH(e)); };
+    hd.ondragleave=()=>hd.classList.remove('drop-before','drop-after');
+    hd.ondrop=e=>{ e.preventDefault();
+      const dragSid=e.dataTransfer.getData('text/scene');
+      if(dragSid){   // header → header: reorder scenes
+        if(dragSid===s.id) return;
+        const from=SCENES.findIndex(x=>x.id===dragSid); if(from<0) return;
+        snap();
+        const [mv]=SCENES.splice(from,1);
+        let to=SCENES.findIndex(x=>x.id===s.id); if(!halfBeforeH(e)) to++;
+        SCENES.splice(to,0,mv); normalizeScenes(); render(); renderStrip();
+        return;
+      }
+      const id=e.dataTransfer.getData('text/plain');   // component row → header: joins at end
+      if(!id) return;
+      const from=comps.findIndex(x=>x.id===id); if(from<0) return;
+      snap();
+      const [mv]=comps.splice(from,1);
+      mv.sceneId=s.id;
+      const r=sceneRange(s.id);
+      comps.splice(r?r.end:comps.length,0,mv); normalizeScenes(); render(); renderStrip();
+    };
+    list.appendChild(hd);
+    if(folded) return;
+    if(!mine.length){
+      const h=document.createElement('li');
+      h.className='scenehint';
+      h.textContent='empty — drag rows here or stamp a kit';
+      list.appendChild(h); return;
+    }
+    mine.forEach(c=>emitRow(c,comps.indexOf(c)));
   });
-  if(!comps.length && !parkedNow.length) list.innerHTML='<div class="hint" style="padding:4px">empty — click a component above to begin</div>';
   // 🅿 parked comps — hidden from the story, one click brings them back
   if(parkedNow.length){
     const hd=document.createElement('div');
@@ -2653,6 +2841,9 @@ function renderSelTools(){
     const ub=bar.querySelector('[data-t="ungroup"]');
     if(ub) ub.style.display=selList().some(m=>m.groupId)?'':'none';
     bar.querySelectorAll('.al,.al-sep').forEach(x=>x.style.display='');
+    const mg=bar.querySelector('[data-t="merge"]'); if(mg) mg.style.display='';
+    const sp=bar.querySelector('[data-t="split"]');
+    if(sp) sp.style.display=selList().some(m=>m.stepId)?'':'none';
     return;
   }
   if(boxEl) boxEl.style.display='none';
@@ -2661,6 +2852,9 @@ function renderSelTools(){
   const ub1=bar.querySelector('[data-t="ungroup"]');
   if(ub1) ub1.style.display=c.groupId?'':'none';
   bar.querySelectorAll('.al,.al-sep').forEach(x=>x.style.display='none');
+  const mg1=bar.querySelector('[data-t="merge"]'); if(mg1) mg1.style.display='none';
+  const sp1=bar.querySelector('[data-t="split"]');
+  if(sp1) sp1.style.display=c.stepId?'':'none';
   const h=(c._rh||c.hpx||120);
   bar.style.display='flex';
   bar.style.transform=`scale(${1/s})`;
@@ -2676,6 +2870,9 @@ document.querySelectorAll('#sel-tools button').forEach(b=>{
   b.onclick=e=>{ e.stopPropagation();
     const k=b.dataset.t;
     if(k.startsWith('al-')){ alignSel(k.slice(3)); return; }
+    else if(k==='merge'){ mergeSteps(); }
+    else if(k==='split'){ splitSteps(); }
+    else if(k==='savecomp'){ saveCompositionFromSelection(); }
     if(k==='edit'){ const c=comps.find(x=>x.id===selId); if(!c) return; showRailTab('edit');
       const f=document.querySelector('#fields textarea,#fields input,#fields select'); if(f) f.focus(); }
     else if(k==='dup'){ duplicateSelection(); }
@@ -3298,6 +3495,234 @@ function renderInspector(){
   wrap.appendChild(save);
 }
 
+/* ============ compositions — reusable fragments ============
+   Why: every RAG diagram is the same six nodes and five wires placed by hand.
+   Data shape: ids inside a composition are LOCAL tokens (n0/w0/g0); insert
+   mints real ids for each. This is what makes stamping twice safe — every
+   wire and state step points inside its own stamp. stepIds are reminted per
+   stamp too, or two stamps of one kit would fuse into a single mega-run. */
+const CP_RUNTIME=['_rw','_rh','_played','_stateAt','draft','_lx','_ly'];
+const CP_KEY='phosphor-compositions-v1';
+function loadCompositions(){ try{ return JSON.parse(localStorage.getItem(CP_KEY))||[]; }catch{ return []; } }
+function storeCompositions(l){
+  try{ localStorage.setItem(CP_KEY,JSON.stringify(l)); return true; }
+  catch(_){ toastMsg('⚠ could not save composition — browser storage blocked or full'); return false; }
+}
+/* authoring helpers for built-ins: C = comp, S = state step, W = wire.
+   CP() assigns local lids in order — no id can ever leak across stamps. */
+function C(type,props,x,y,extra){ return {kind:'c', type,
+  props:{...(REGISTRY[type]?structuredClone(REGISTRY[type].props):{}),...(props||{})},
+  x:x==null?120:x, y:y==null?120:y, ...(extra||{})}; }
+function S(targetLid,label,patch,stepId){ const o={kind:'s', type:STATE_TYPE, targetLid, label:label||'', patch:patch||{}}; if(stepId) o.stepId=stepId; return o; }
+function W(fromLid,toLid,opts){ return {kind:'w', fromLid, toLid, ...(opts||{})}; }
+function CP(name,desc,list){
+  let n=0,w=0; const comps=[],edges=[];
+  list.forEach(it=>{ if(it.kind==='w'){ it.lid=it.lid||('w'+(w++)); delete it.kind; edges.push(it); }
+    else { it.lid=it.lid||('n'+(n++)); delete it.kind; comps.push(it); } });
+  return {name,desc,builtin:true,comps,edges};
+}
+function compositionFromSelection(name){
+  const picked=selList().filter(c=>!c.parked&&comps.includes(c));
+  if(!picked.length){ toastMsg('select components first — then save as a composition'); return null; }
+  const pickedIds=new Set(picked.map(c=>c.id));
+  const wires=edges.filter(e=>pickedIds.has(e.from)&&pickedIds.has(e.to));
+  const wireIds=new Set(wires.map(e=>e.id));
+  const keep=c=>pickedIds.has(c.id)||(isState(c)&&(pickedIds.has(c.target)||wireIds.has(c.target)));
+  const all=comps.filter(keep);
+  const nMap=new Map(), wMap=new Map(), gMap=new Map();
+  all.forEach(c=>{ if(!nMap.has(c.id)) nMap.set(c.id,'n'+nMap.size); });
+  wires.forEach(e=>{ if(!wMap.has(e.id)) wMap.set(e.id,'w'+wMap.size); });
+  const cc=all.map(c=>{
+    const o={lid:nMap.get(c.id), type:c.type, x:c.x, y:c.y,
+      scale:c.scale, rot:c.rot, opacity:c.opacity, props:structuredClone(c.props||{})};
+    ['label','patch','anim','animDur','animDelay','seqHold','clearBefore','pin','hides','stepId','fscale'].forEach(k=>{ if(c[k]!==undefined) o[k]=structuredClone(c[k]); });
+    if(c.parentId&&nMap.has(c.parentId)) o.parentLid=nMap.get(c.parentId);
+    if(c.groupId){ if(!gMap.has(c.groupId)) gMap.set(c.groupId,'g'+gMap.size); o.groupLid=gMap.get(c.groupId); }
+    if(isState(c)){
+      if(nMap.has(c.target)) o.targetLid=nMap.get(c.target);
+      else if(wMap.has(c.target)) o.targetLid=wMap.get(c.target);
+      // else: target lives outside the stamp — insert drops this state step
+    }
+    return o;
+  });
+  const ee=wires.map(e=>{
+    const o={lid:wMap.get(e.id), fromLid:nMap.get(e.from), toLid:nMap.get(e.to),
+      fromPort:e.fromPort, toPort:e.toPort, preset:e.preset, label:e.label, caption:e.caption,
+      routing:e.routing, branch:e.branch, weight:e.weight, dir:e.dir,
+      style:e.style, speed:e.speed, animate:e.animate};
+    if(e.accent) o.accent=e.accent;
+    return o;
+  });
+  return {name:name||('kit-'+new Date().toISOString().slice(0,10)), desc:`${cc.length} comps · ${ee.length} wires`, builtin:false, comps:cc, edges:ee};
+}
+/* insert mints fresh EVERYTHING — the assertion that matters. */
+function insertComposition(cp, opts={}){
+  if(!cp||!Array.isArray(cp.comps)||!cp.comps.length){ if(!opts.silent) toastMsg('composition is empty'); return null; }
+  if(!opts.noSnap) snap();
+  if(SEQ.active) seqExit();
+  const nNew=new Map(), wNew=new Map(), gNew=new Map(), sNew=new Map();
+  cp.comps.forEach(c=>nNew.set(c.lid,uid()));
+  (cp.edges||[]).forEach(e=>wNew.set(e.lid,uidEdge()));
+  const mint=(m,v,p)=>{ if(v==null) return undefined; if(!m.has(v)) m.set(v,p+uid()); return m.get(v); };
+  const sceneId=opts.sceneId||(typeof targetSceneId==='function'?targetSceneId():undefined);
+  const stamped=[];
+  cp.comps.forEach(c=>{
+    if(!REGISTRY[c.type]&&c.type!==STATE_TYPE) return;
+    const o={id:nNew.get(c.lid), type:c.type, x:(c.x||0), y:(c.y||0),
+      scale:(c.scale==null?1:c.scale), rot:c.rot||0, z:comps.length+10+stamped.length,
+      opacity:(c.opacity==null?1:c.opacity), props:structuredClone(c.props||{}), draft:false};
+    ['label','patch','anim','animDur','animDelay','seqHold','clearBefore','pin','hides','fscale'].forEach(k=>{ if(c[k]!==undefined) o[k]=structuredClone(c[k]); });
+    if(c.stepId) o.stepId=mint(sNew,c.stepId,'st');
+    if(c.parentLid&&nNew.has(c.parentLid)) o.parentId=nNew.get(c.parentLid);
+    if(c.groupLid) o.groupId=mint(gNew,c.groupLid,'g');
+    if(o.type===STATE_TYPE){
+      o.target=(c.targetLid&&(nNew.get(c.targetLid)||wNew.get(c.targetLid)))||undefined;
+      if(!o.target) return;   // target outside this stamp — drop the state step
+    }
+    if(sceneId) o.sceneId=sceneId;
+    if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
+    comps.push(o); stamped.push(o);
+  });
+  (cp.edges||[]).forEach(e=>{
+    const A=nNew.get(e.fromLid), B=nNew.get(e.toLid);
+    if(!A||!B) return;
+    if(!comps.some(c=>c.id===A)||!comps.some(c=>c.id===B)) return;
+    const ne={id:wNew.get(e.lid), from:A, fromPort:e.fromPort||'auto', to:B, toPort:e.toPort||'auto',
+      preset:e.preset||'none', label:e.label||'', caption:e.caption||'', routing:e.routing||'smooth',
+      branch:e.branch||'none', weight:(e.weight==null?2:e.weight), dir:e.dir||'fwd',
+      style:e.style||'dots', speed:(e.speed==null?1:e.speed), animate:e.animate!==false};
+    if(e.accent) ne.accent=e.accent;
+    edges.push(ne);
+  });
+  compositionOffset(stamped);
+  if(sceneId&&typeof normalizeScenes==='function') normalizeScenes();
+  if(stamped.length) selectMany(stamped.map(c=>c.id));
+  else { render(); renderStrip(); }
+  if(!opts.silent) toastMsg(`stamped ${cp.name||'composition'} — ${stamped.length} comp(s)`);
+  return stamped;
+}
+/* a stamp lands below existing content — never on top of it. */
+function compositionOffset(stamped){
+  const box=(stamped||[]).filter(c=>!isState(c));
+  if(!box.length) return;
+  let exB=-1e9;
+  comps.forEach(c=>{ if(box.includes(c)||isState(c)||c.parked) return;
+    exB=Math.max(exB,c.y+(c._rh||c.hpx||120)*(c.scale||1)); });
+  if(exB===-1e9) return;
+  const top=Math.min(...box.map(c=>c.y));
+  const dy=Math.round(exB+70-top);
+  if(dy>0) box.forEach(c=>{ c.y=Math.max(10,c.y+dy); });
+}
+function saveCompositionFromSelection(){
+  const picked=selList().filter(c=>!c.parked&&comps.includes(c));
+  if(picked.length<1){ toastMsg('select components first — then save as a composition'); return; }
+  const name=prompt('Composition name:', picked.length+'-part kit');
+  if(name==null) return;
+  const cp=compositionFromSelection((name||'').trim()||'untitled kit');
+  if(!cp) return;
+  const all=loadCompositions(); all.push(cp);
+  if(storeCompositions(all)){ renderComplib(); showCompTab('kits'); toastMsg(`✔ saved “${cp.name}” to Components ▸ Kits`); }
+}
+/* seven built-ins (read-only), authored with C/S/W above. */
+const CP_BUILTINS=[
+  CP('Intro','kicker + big title',[
+    C('kicker',{text:'EP.003 // INTRO'},200,300),
+    C('title',{text:'THE PROBLEM',glitch:'',size:150},200,430),
+  ]),
+  CP('Chapter card','title + caption',[
+    C('title',{text:'CHAPTER 2',glitch:'',size:120},200,330),
+    C('caption',{text:'where the [a]cache[/a] saves us'},200,520),
+  ]),
+  CP('Outro','stamp + sign-off',[
+    C('stamp',{text:'THANKS FOR WATCHING'},200,350),
+    C('caption',{text:'next: [g]we break prod[/g] on purpose'},200,540),
+  ]),
+  CP('RAG pipeline','prompt → index → vdb → model',[
+    C('prompt',{text:'why did prod fall over?'},120,450),
+    C('index',{label:'inverted index'},520,450),
+    C('vdb',{label:'pgvector',sub:'cosine'},920,450),
+    C('model',{label:'llama-3'},1320,450),
+    W('n0','n1',{label:'ask'}), W('n1','n2',{label:'hits'}), W('n2','n3',{label:'context'}),
+  ]),
+  CP('Agent loop','model ⇄ reason → act',[
+    C('model',{label:'agent'},200,450),
+    C('loopbox',{text:'↻ reason → act → observe'},700,450),
+    W('n0','n1',{label:'act'}), W('n1','n0',{label:'observe'}),
+  ]),
+  CP('Three-tier app','user → api → db',[
+    C('user',{label:'user'},200,450),
+    C('gnode',{icon:'api',title:'API',sub:'REST service'},600,450),
+    C('db',{label:'orders'},1000,450),
+    W('n0','n1',{preset:'https'}), W('n1','n2',{preset:'sql'}),
+  ]),
+  CP('Incident sequence','4 comps · 2 wires · 3 states · 2 runs — the showcase',[
+    C('svc',{name:'checkout-svc',sub:'go · grpc',state:'healthy'},200,330,{stepId:'st-inc-a'}),
+    C('db',{label:'orders'},700,330,{stepId:'st-inc-a'}),
+    W('n0','n1',{preset:'sql'}),
+    C('toast',{text:'p99 latency 8s ⚠'},200,640,{stepId:'st-inc-b'}),
+    C('stamp',{text:'INCIDENT'},700,640,{stepId:'st-inc-b'}),
+    W('n1','n2',{label:'slow query'}),
+    S('n0','checkout down',{state:'error'},'st-inc-b'),
+    S('n1','orders red',{accent:'#FF5555'},'st-inc-b'),
+    S('n2','page the on-call',{text:'p99 8s — checkout DOWN'},'st-inc-b'),
+  ]),
+];
+
+/* five parameterised scene templates — each build(p) returns a composition,
+   so they reuse the whole stamping engine. They live in the Kits library;
+   the Sequence tab's + scene button makes plain empty scenes. */
+const SCENE_TEMPLATES=[
+  {key:'intro', name:'Intro', desc:'episode opener', fields:[
+    {k:'ep',label:'episode #',def:'003'},{k:'channel',label:'channel',def:'llmao.md'},
+    {k:'title',label:'title',def:'THE PROBLEM'},{k:'hook',label:'hook',def:'it works — until it doesn’t'}],
+   build:p=>CP('Intro',`ep ${p.ep}`,[
+    C('kicker',{text:`EP.${p.ep} // ${p.channel}`},200,300),
+    C('title',{text:p.title||'TITLE',glitch:'',size:150},200,430),
+    C('caption',{text:p.hook||''},200,620),
+  ])},
+  {key:'problem', name:'Problem', desc:'title + stake', fields:[
+    {k:'title',label:'title',def:'THE CACHE LIES'},{k:'stake',label:'stake',def:'every cache hit is a gamble'}],
+   build:p=>CP('Problem',p.title,[
+    C('title',{text:p.title||'PROBLEM',glitch:'',size:130},200,330),
+    C('caption',{text:p.stake||''},200,520),
+  ])},
+  {key:'arch', name:'Architecture', desc:'service → store', fields:[
+    {k:'svc',label:'service',def:'API'},{k:'store',label:'store',def:'postgres'}],
+   build:p=>CP('Architecture',`${p.svc} → ${p.store}`,[
+    C('gnode',{icon:'api',title:p.svc||'API',sub:'service'},200,450),
+    C('db',{label:p.store||'db'},700,450),
+    W('n0','n1',{preset:'sql'}),
+  ])},
+  {key:'demo', name:'Demo', desc:'code + note', fields:[
+    {k:'file',label:'file',def:'query.py'},{k:'note',label:'note',def:'watch the index hit'}],
+   build:p=>CP('Demo',p.file,[
+    C('code',{title:p.file||'demo.py'},150,300),
+    C('caption',{text:p.note||''},150,640),
+  ])},
+  {key:'outro', name:'Outro', desc:'sign-off + end screens', fields:[
+    {k:'signoff',label:'sign-off',def:'THANKS FOR WATCHING'},{k:'label1',label:'end screen 1',def:'next: we break prod'},
+    {k:'label2',label:'end screen 2',def:'subscribe for the postmortem'},{k:'channel',label:'channel',def:'llmao.md'}],
+   build:p=>CP('Outro',p.signoff,[
+    C('stamp',{text:p.signoff||'BYE'},200,300),
+    C('caption',{text:p.label1||''},200,480),
+    C('caption',{text:p.label2||''},200,600),
+    C('kicker',{text:p.channel||''},200,720),
+  ])},
+];
+function runSceneTemplate(t){
+  openSceneDlg({
+    title:`Stamp “${t.name}”`,
+    body:t.fields.map(f=>`<div class="row"><label>${f.label}</label><input data-tp="${f.k}" type="text" value="${String(f.def).replace(/"/g,'&quot;')}" style="flex:1;min-width:0"></div>`).join(''),
+    buttons:[{id:'ok',label:'stamp',primary:true},{id:'cancel',label:'cancel'}],
+    onAction:(act)=>{
+      if(act!=='ok') return;
+      const p={};
+      document.querySelectorAll('#scene-dlg-body [data-tp]').forEach(inp=>p[inp.dataset.tp]=inp.value);
+      insertComposition(t.build(p));
+    }
+  });
+}
+
 /* ============ saved components (localStorage) ============ */
 const SKEY='phosphor-saved-v1';
 function loadSaved(){ try{ return JSON.parse(localStorage.getItem(SKEY))||[]; }catch{ return []; } }
@@ -3343,14 +3768,16 @@ function renderSaved(){
 }
 
 /* ============ story (beats) ============ */
-let currentSceneName=null;   // legacy name — kept so old project files load clean
+let currentSceneName=null;   // legacy PROJECT name (export filename) — not a Scene
 
 function addCompFrom(src){
   const c=structuredClone(src);
   delete c._played;
   c.id=uid(); c.draft=false; c.z=comps.length+10; delete c.beat;
   if(SEQ.active) seqExit();
+  const sc=targetSceneId(); if(sc) c.sceneId=sc;   // new work always joins a scene
   comps.push(c);
+  if(sc) normalizeScenes();
   return c;
 }
 /* 🔍 alignment debugger — compare builder coords vs popup reality */
@@ -3793,6 +4220,10 @@ addEventListener('keydown',e=>{
     return;
   }
   if(e.key==='Escape' && !typing){
+    const sm=document.getElementById('scene-menu');
+    if(sm && sm.style.display!=='none'){ closeSceneMenu(); e.preventDefault(); return; }
+    const sd=document.getElementById('scene-dlg');
+    if(sd && sd.style.display==='flex'){ closeSceneDlg(); e.preventDefault(); return; }
     const fm=document.getElementById('file-menu');
     if(fm && !fm.hidden){ fm.hidden=true; e.preventDefault(); return; }
     const dp=document.getElementById('dsl-pop');
@@ -3822,6 +4253,13 @@ addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey) && (e.key==='g'||e.key==='G') && !typing){
     if(e.shiftKey) ungroupSelection(); else groupSelection();
     e.preventDefault(); return;
+  }
+  // ---- merged steps (edit mode, not typing) ----
+  if(!typing && !REC.active && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key==='m'||e.key==='M')){
+    mergeSteps(); e.preventDefault(); return;
+  }
+  if(!typing && !REC.active && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key==='u'||e.key==='U')){
+    splitSteps(); e.preventDefault(); return;
   }
 
   // ---- selection keys ----
@@ -3864,6 +4302,7 @@ const beatFresh={};    // legacy — unused
 function seqIndex(c){ return comps.indexOf(c); }
 function compVisible(c){
   if(c.parked) return false;                           // 🅿 out of the story — hidden but kept
+  if(SEQ.scene && c.sceneId!==SEQ.scene) return false;   // scene take — only this scene plays
   if(!SEQ.active) return true;                         // edit mode: show everything
   const k=SEQ.shown, i=seqIndex(c);
   if(i<0 || i>=k) return false;                        // not reached yet
@@ -3884,27 +4323,189 @@ function seqHoldFor(c){
   if(isFinite(per) && per>=0) return per;
   return SEQ.holdDefault;
 }
-function seqPlay(from=0){
+function seqPlay(from=0,keepScene){
   if(!comps.filter(c=>!c.parked).length){ toastMsg('nothing to play — add components first'); return; }
   snap();
+  if(!keepScene) SEQ.scene=null;   // footer dots always return to the whole sequence
   SEQ.active=true; SEQ.auto=false; seqStopAutoTimer();
-  SEQ.shown=Math.max(0, Math.min(from, comps.length));
+  if(from<=0) SEQ.shown=0;   // from blank
+  else if(from>=comps.length) SEQ.shown=comps.length;
+  else SEQ.shown=runEnd(from-1);   // smallest whole beat covering `from` — never half a beat
   SEQ.maxShown=SEQ.shown;   // revisit head — jumps never pass what the take has revealed
   selId=null; statePreview=null;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
-  // re-arm entrance of the first shown comp so ▶ always plays it
+  // re-arm entrances of the shown run so ▶ always plays them
   comps.forEach(c=>{ delete c._played; delete c._stateAt; if(typeof c.revealed!=='undefined' && c.props && c.props.stepped) c.revealed=0; });
   // inbuilt one-shots (.comp.fresh gate: swarm cells, gauge fill, splitter, boot draw)
   // replay on take reveals too — not just first arrival in edit
-  { const fst=comps[SEQ.shown-1]; if(fst) freshTrack.delete(fst); }
+  runMembers(Math.max(0,SEQ.shown-1)).forEach(fst=>freshTrack.delete(fst));
   // a stepped first comp opens on its first line, not an empty box
-  const first=comps[SEQ.shown-1];
-  if(first && first.props && first.props.stepped){
-    first.revealed=Math.min(1,stepTotal(first));
-  }
+  runMembers(Math.max(0,SEQ.shown-1)).forEach(first=>{
+    if(first && first.props && first.props.stepped) first.revealed=Math.min(1,stepTotal(first));
+  });
   render(); renderStrip(); try{ camSyncForSeq(); }catch(_){}
   showRailTab('seq');   // playing = narrating — keep the teleprompter list up
-  toastMsg(SEQ.shown===0 ? '▶ from blank — Space = next component · Esc = exit' : `▶ ${SEQ.shown}/${comps.length} shown — Space continues · Esc = exit`);
+  toastMsg(SEQ.shown===0 ? '▶ from blank — Space = next component · Esc = exit' : `▶ ${runIndexOf(Math.max(0,SEQ.shown-1))+1}/${runCount()} shown — Space continues · Esc = exit`);
+}
+/* play one scene alone — SEQ.shown windows to its block, exit returns to all. */
+function playScene(sid){
+  const r=sceneRange(sid);
+  if(!r){ toastMsg('scene is empty — add components first'); return; }
+  SEQ.scene=sid; activeScene=sid;
+  seqPlay(r.start,true);
+}
+/* ============ scene operations ============ */
+function renderSceneBar(){
+  const pick=document.getElementById('scene-pick'); if(!pick) return;
+  pick.innerHTML='';
+  SCENES.forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.id; o.textContent=`${s.name} (${sceneComps(s.id).filter(c=>!c.parked).length})`;
+    pick.appendChild(o);
+  });
+  pick.value=activeSceneId()||'';
+}
+function addScene(name){
+  ensureDefaultScene();
+  snap();   // one entry — insertComposition is not involved, so no double-snap trap
+  SCENES.push({id:'sc'+uid(),name:(name||'').trim()||('Scene '+(SCENES.length+1))});
+  activeScene=SCENES[SCENES.length-1].id;
+  render(); renderStrip();
+  toastMsg(`✔ ${SCENES[SCENES.length-1].name} — new components land here`);
+}
+function renameScene(sid){
+  const s=SCENES.find(x=>x.id===sid); if(!s) return;
+  const name=prompt('Rename scene:',s.name);
+  if(name==null) return;
+  snap(); s.name=(name||'').trim()||s.name;
+  render(); renderStrip();
+}
+function moveScene(sid,d){
+  const i=SCENES.findIndex(x=>x.id===sid); const j=i+d;
+  if(i<0||j<0||j>=SCENES.length) return;
+  snap(); [SCENES[i],SCENES[j]]=[SCENES[j],SCENES[i]];
+  normalizeScenes(); render(); renderStrip();
+}
+function assignSelectionToScene(sid){
+  const team=selList().filter(c=>!c.parked&&comps.includes(c));
+  if(!team.length){ toastMsg('select components first — then move them here'); return; }
+  snap();
+  team.forEach(c=>c.sceneId=sid);
+  normalizeScenes(); render(); renderStrip();
+  toastMsg(`moved ${team.length} into ${(SCENES.find(s=>s.id===sid)||{}).name||'scene'}`);
+}
+function selectScene(sid){
+  selectMany(sceneComps(sid).filter(c=>!c.parked).map(c=>c.id));
+}
+/* a scene never clears anything by itself — this just toggles the ordinary
+   clearBefore flag on the scene's first component. */
+function toggleSceneClear(sid){
+  const mine=sceneComps(sid).filter(c=>!c.parked);
+  if(!mine.length){ toastMsg('scene is empty'); return; }
+  snap();
+  const first=mine[0];
+  if(first.clearBefore) delete first.clearBefore; else first.clearBefore=true;
+  render(); renderStrip();
+}
+/* duplicate reuses the composition capture — exactly one id-remapping path. */
+function duplicateScene(sid){
+  const src=SCENES.find(x=>x.id===sid); if(!src) return;
+  const mine=sceneComps(sid).filter(c=>!c.parked);
+  if(!mine.length){ toastMsg('scene is empty — nothing to duplicate'); return; }
+  const keepSel=new Set(selIds), keepAnchor=selId;
+  selIds=new Set(mine.map(c=>c.id));
+  const cp=compositionFromSelection(src.name+' copy');
+  selIds=keepSel; selId=keepAnchor;
+  if(!cp) return;
+  snap();
+  const nid='sc'+uid();
+  SCENES.splice(SCENES.findIndex(s=>s.id===sid)+1,0,{id:nid,name:src.name+' copy'});
+  insertComposition(cp,{sceneId:nid,silent:true,noSnap:true});   // insert would snap again — one action, one undo
+  render(); renderStrip();
+  toastMsg(`✔ duplicated as “${src.name} copy”`);
+}
+/* delete asks explicitly — move contents elsewhere, or delete scene AND contents. */
+function askDeleteScene(sid){
+  const src=SCENES.find(x=>x.id===sid); if(!src) return;
+  if(SCENES.length<=1){ toastMsg('the last scene cannot be deleted — clear the canvas instead'); return; }
+  const others=SCENES.filter(s=>s.id!==sid);
+  openSceneDlg({
+    title:`Delete “${src.name}”?`,
+    body:`<p style="margin:0 0 10px">${sceneComps(sid).length} component(s) live here.</p>
+      <div class="row"><label>move to</label><select id="sdlg-target">${others.map(s=>`<option value="${s.id}">${String(s.name).replace(/</g,'&lt;')}</option>`).join('')}</select></div>`,
+    buttons:[{id:'move',label:'move contents',primary:true},{id:'del',label:'delete scene + contents'},{id:'cancel',label:'cancel'}],
+    onAction:(act)=>{
+      if(act==='cancel') return;
+      snap();
+      if(act==='move'){
+        const tid=document.getElementById('sdlg-target').value;
+        sceneComps(sid).forEach(c=>c.sceneId=tid);
+      } else {
+        // they move to a surviving scene — never outside one (no-loose rule)
+        const ids=new Set(sceneComps(sid).map(c=>c.id));
+        comps=comps.filter(c=>!ids.has(c.id));
+        ids.forEach(id=>{ edges=edges.filter(x=>x.from!==id&&x.to!==id);
+          comps=comps.filter(x=>!(isState(x)&&x.target===id)); });
+      }
+      SCENES=SCENES.filter(s=>s.id!==sid);
+      sceneFolded.delete(sid); storeFolded();
+      ensureDefaultScene(); normalizeScenes(); render(); renderStrip();
+    }
+  });
+}
+/* ============ generic scene dialog (rename/delete/move/template params) ============ */
+function openSceneDlg(o){
+  const pop=document.getElementById('scene-dlg'); if(!pop) return;
+  document.getElementById('scene-dlg-title').textContent=o.title||'';
+  document.getElementById('scene-dlg-body').innerHTML=o.body||'';
+  const btns=document.getElementById('scene-dlg-btns'); btns.innerHTML='';
+  (o.buttons||[{id:'ok',label:'OK',primary:true}]).forEach(b=>{
+    const btn=document.createElement('button');
+    btn.className='mini'+(b.primary?' primary':''); btn.textContent=b.label;
+    btn.onclick=()=>{ const keep=o.onAction?o.onAction(b.id):true; if(keep!==false) closeSceneDlg(); };
+    btns.appendChild(btn);
+  });
+  if(o.onOpen) o.onOpen(document.getElementById('scene-dlg-body'));
+  pop.style.display='flex';
+  const f=pop.querySelector('input,select,textarea'); if(f) f.focus();
+}
+function closeSceneDlg(){ const pop=document.getElementById('scene-dlg'); if(pop) pop.style.display='none'; }
+/* ============ scene actions menu (one ⋯ per header — replaces ten buttons) ============
+   Appended at body level, never inside the rail: the sidebar's overflow would
+   clip it. One element reused by every scene, rebuilt on open. Closes on
+   outside click, Esc, resize, and after any action. */
+function closeSceneMenu(){ const m=document.getElementById('scene-menu'); if(m){ m.style.display='none'; m.dataset.for=''; } }
+function openSceneMenu(btn,sid){
+  const m=document.getElementById('scene-menu'); if(!m) return;
+  if(m.style.display!=='none'&&m.dataset.for===sid){ closeSceneMenu(); return; }
+  const s=SCENES.find(x=>x.id===sid); if(!s) return;
+  const idx=SCENES.findIndex(x=>x.id===sid);
+  const mine=sceneComps(sid).filter(c=>!c.parked);
+  const clearOn=mine.length&&mine[0].clearBefore;
+  const item=(label,fn,opts={})=>{
+    const b=document.createElement('button');
+    b.className='mini'; b.textContent=label; b.title=opts.title||label;
+    if(opts.disabled){ b.disabled=true; b.style.opacity='.4'; }
+    b.onclick=e=>{ e.stopPropagation(); closeSceneMenu(); fn(); };
+    m.appendChild(b); return b;
+  };
+  m.innerHTML=''; m.dataset.for=sid;
+  const cap=document.createElement('div'); cap.className='sm-cap'; cap.textContent=s.name;
+  m.appendChild(cap);
+  item('▶ play only this scene',()=>playScene(sid),{title:'Space walks this scene alone'});
+  item('✎ rename…',()=>renameScene(sid));
+  item('⧉ duplicate scene',()=>duplicateScene(sid));
+  item('◎ select all components',()=>selectScene(sid));
+  item('◉ add components here',()=>{ activeScene=sid; render(); renderStrip(); toastMsg(`✔ new components land in “${s.name}”`); });
+  item('➜ move selection here',()=>assignSelectionToScene(sid));
+  item((clearOn?'✓ ':'')+'🧹 clear before scene',()=>toggleSceneClear(sid),{title:'toggles clearBefore on the first component'});
+  item('↑ move scene up',()=>moveScene(sid,-1),{disabled:idx<=0});
+  item('↓ move scene down',()=>moveScene(sid,+1),{disabled:idx>=SCENES.length-1});
+  item('🗑 delete scene…',()=>askDeleteScene(sid));
+  const r=btn.getBoundingClientRect(), w=230, h=340;
+  m.style.left=Math.max(8,Math.min(r.right-w,innerWidth-w-8))+'px';
+  m.style.top=(r.bottom+6+h>innerHeight?Math.max(8,r.top-6-h):r.bottom+6)+'px';
+  m.style.display='block';
 }
 /* stepped line count — RENDERED lines, not source matches: loop-generated lists
    (checklist/bullets) carry one cline in source but N in output, and source-regex
@@ -3927,10 +4528,13 @@ function seqNext(){
     const cur=(typeof last.revealed==='number')?last.revealed:total;
     if(cur<total){ last.revealed=cur+1; renderCanvas(); renderInspector(); renderList(); renderStrip(); return; }
   }
-  if(SEQ.shown < comps.length){
-    const nxt=comps[SEQ.shown];
-    if(nxt){ delete nxt._played; freshTrack.delete(nxt); if(nxt.props&&nxt.props.stepped) nxt.revealed=1; }
-    SEQ.shown++;
+  if(SEQ.shown < seqEndIndex()){
+    const from=SEQ.shown, to=Math.min(runEnd(from),seqEndIndex());
+    for(let k=from;k<to;k++){   // one member re-armed = the rest never animate
+      const nxt=comps[k];
+      if(nxt){ delete nxt._played; freshTrack.delete(nxt); if(nxt.props&&nxt.props.stepped) nxt.revealed=1; }
+    }
+    SEQ.shown=to;
     SEQ.maxShown=Math.max(SEQ.maxShown,SEQ.shown);
     render(); renderStrip(); try{ camSyncForSeq(); }catch(_){}
   } else {
@@ -3939,7 +4543,8 @@ function seqNext(){
 }
 function seqPrev(){
   if(!SEQ.active) return;
-  SEQ.shown=Math.max(0, SEQ.shown-1);
+  const lo=seqStartIndex();
+  SEQ.shown=SEQ.shown<=lo?lo:Math.max(lo,runStart(SEQ.shown-1));   // back leaves the whole beat
   render(); renderStrip();
 }
 /* revisit jump — click any VISITED step to show the story as it was there.
@@ -3948,20 +4553,23 @@ function seqPrev(){
    compVisible (🧹📌⊘ rules re-evaluate at the jumped position). */
 function seqJump(i){
   if(!SEQ.active) return;
+  const lo=seqStartIndex(), hi=seqEndIndex();
   SEQ.maxShown=Math.max(SEQ.maxShown||0, SEQ.shown);
   if(i>SEQ.maxShown){ toastMsg('not visited yet — Space reveals it first'); return; }
+  i=Math.max(lo,Math.min(i,hi-1));   // takes never leave their scene window
   if(SEQ.auto) seqStopAuto();
   if(i===SEQ.shown){ seqNext(); return; }   // already there — step forward like Space
-  SEQ.shown=Math.max(0, Math.min(i+1, comps.length));
+  SEQ.shown=runEnd(i);   // land on whole beats only
+  if(SEQ.shown>hi) SEQ.shown=hi;
   // landing past the old head (e.g. NEXT row while rewound) extends the head —
   // the take continues with full context visible, nothing to re-walk on the clip
   SEQ.maxShown=Math.max(SEQ.maxShown, SEQ.shown);
   render(); renderStrip(); try{ camSyncForSeq(); }catch(_){}
-  toastMsg(`⏪ step ${SEQ.shown}/${comps.length} — furthest visited ${SEQ.maxShown}/${comps.length}`);
+  toastMsg(`⏪ step ${runIndexOf(Math.max(0,SEQ.shown-1))+1}/${runCount()} — furthest visited ${runIndexOf(Math.max(0,SEQ.maxShown-1))+1}/${runCount()}`);
 }
 function seqExit(ended){
   seqStopAutoTimer();
-  SEQ.active=false; SEQ.auto=false; SEQ.shown=comps.length; SEQ.maxShown=0;
+  SEQ.active=false; SEQ.auto=false; SEQ.shown=comps.length; SEQ.maxShown=0; SEQ.scene=null;
   statePreview=null;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   render(); renderStrip();
@@ -3972,11 +4580,11 @@ function seqExit(ended){
 function seqStopAutoTimer(){ if(SEQ.autoTimer){ clearTimeout(SEQ.autoTimer); SEQ.autoTimer=null; } }
 function seqAutoStep(done){
   if(!SEQ.active || !SEQ.auto) return;
-  if(SEQ.shown >= comps.length){ SEQ.auto=false; if(done) done(); seqExit(true); return; }
+  if(SEQ.shown >= seqEndIndex()){ SEQ.auto=false; if(done) done(); seqExit(true); return; }
   seqNext();
-  const cur=comps[SEQ.shown-1];
-  const hold=cur?seqHoldFor(cur):SEQ.holdDefault;
-  const anim=(cur&&(cur.animDelay||0)+(cur.animDur||0.6))||0.6;
+  const mem=runMembers(Math.max(0,SEQ.shown-1));
+  const hold=mem.length?Math.max(...mem.map(seqHoldFor)):SEQ.holdDefault;
+  const anim=mem.length?Math.max(...mem.map(c=>(c.animDelay||0)+(c.animDur||0.6))):0.6;
   SEQ.autoTimer=setTimeout(()=>seqAutoStep(done), Math.round((anim+hold)*1000));
 }
 function seqAutoPlay(){
@@ -3993,7 +4601,9 @@ function seqMoveSel(d){   // reorder the SELECTED component in the play order
   const j=i+d;
   if(j<0||j>=comps.length) return;
   snap(); [comps[i],comps[j]]=[comps[j],comps[i]];
-  render(); renderStrip();
+  const mv=comps[j], nb=comps[j+(d>0?1:-1)]||comps[j+(d>0?-1:1)];   // crossing a scene edge joins the new scene
+  if(mv&&nb&&nb.sceneId&&mv.sceneId!==nb.sceneId) mv.sceneId=nb.sceneId;
+  normalizeScenes(); render(); renderStrip();
 }
 function seqDuplicateSel(){
   const i=comps.findIndex(x=>x.id===selId);
@@ -4069,10 +4679,15 @@ function camSyncForSeq(){
 function renderStrip(){
   const strip=document.getElementById('strip'); if(!strip) return;
   strip.innerHTML='';
-  // transport
+  // transport — counts beats (runs), not entries; they diverge once runs exist.
+  // a scene take windows the counts to its own block.
+  const lo=seqStartIndex(), hi=seqEndIndex();
+  const sbs=runBoundaries().filter(b=>b>=lo&&b<hi);
+  const curRun=SEQ.shown<=lo?0:sbs.filter(b=>b<SEQ.shown).length;
+  const scName=SEQ.scene?((SCENES.find(s=>s.id===SEQ.scene)||{}).name||''):'';
   const mode=document.createElement('span');
   mode.className='sqmode'+(SEQ.active?(SEQ.auto?' auto':' on'):'');
-  mode.textContent=SEQ.active? (SEQ.auto?`● AUTO ${SEQ.shown}/${comps.length}` : `▶ STEP ${SEQ.shown}/${comps.length}`) : `SEQUENCE · ${comps.length}`;
+  mode.textContent=SEQ.active? (SEQ.auto?`● AUTO ${curRun}/${sbs.length}${scName?' · '+scName:''}` : `▶ STEP ${curRun}/${sbs.length}${scName?' · '+scName:''}`) : `SEQUENCE · ${runCount()} step${runCount()===1?'':'s'}`;
   strip.appendChild(mode);
   // header transport mirrors playback state (footer keeps dots only)
   const vis=(id,show)=>{ const b=document.getElementById(id); if(b) b.style.display=show?'':'none'; };
@@ -4082,14 +4697,15 @@ function renderStrip(){
   if(tAuto) tAuto.textContent=SEQ.auto?'⏸ stop auto':'⏩ auto';
   const tHold=document.getElementById('t-hold');
   if(tHold && document.activeElement!==tHold) tHold.value=SEQ.holdDefault;
-  // sequence dots — click jumps to that step
+  // sequence dots — click jumps to that step (a scene take shows its own block)
   comps.forEach((c,i)=>{
+    if(SEQ.scene&&c.sceneId!==SEQ.scene) return;
     const shown=SEQ.active ? compVisible(c) : true;
     const tn=isState(c)?'state':c.type;
     const pill=document.createElement('span');
-    pill.className='sqpill'+(SEQ.active?(shown?' lit':' dim'):'');
-    pill.title=`${i+1}. ${tn}${c.clearBefore?' — 🧹 clears screen first':''}${c.pin?' — 📌 pinned':''} — click to ${SEQ.active?'jump here':'preview from here'}`;
-    const num=document.createElement('b'); num.textContent=i+1;
+    pill.className='sqpill'+(c.stepId?' merged':'')+(SEQ.active?(shown?' lit':' dim'):'');
+    pill.title=`${runIndexOf(i)+1}. ${tn}${c.clearBefore?' — 🧹 clears screen first':''}${c.pin?' — 📌 pinned':''} — click to ${SEQ.active?'jump here':'preview from here'}`;
+    const num=document.createElement('b'); num.textContent=runIndexOf(i)+1;
     pill.appendChild(num);
     const nm=document.createElement('span');
     const s=compLabel(c);
@@ -4341,24 +4957,27 @@ async function exportVideo(){
   const mime=pickRecMime();
   if(!mime){ st.textContent='no supported video mime (need mp4/webm)'; return; }
   EXP.busy=true; EXP.cancel=false;
-  const keepShown=SEQ.shown, keepActive=SEQ.active;
+  const keepShown=SEQ.shown, keepActive=SEQ.active, keepScene=SEQ.scene;
   try{
-    // 3 frames across each entrance (start/mid/settled) + full hold on the settled frame
-    SEQ.active=true;
+    // 3 frames across each entrance (start/mid/settled) + full hold on the settled frame.
+    // one frame set per run boundary — otherwise the export contains frames a live take never has.
+    SEQ.active=true; SEQ.scene=null;
     const states=[];
-    for(let k=0;k<=comps.length;k++){
+    const ends=[0,...runBoundaries().filter(b=>b>0)];
+    for(let bi=0;bi<ends.length;bi++){
+      const k=ends[bi];
       if(EXP.cancel) break;
       SEQ.shown=k; renderCanvas(); renderStrip();
-      st.textContent=`rendering step ${k}/${comps.length}… (Esc cancels)`;
+      st.textContent=`rendering step ${bi}/${ends.length-1}… (Esc cancels)`;
       if(k===0){ await sleep(150); states.push({cv:await expRaster(), dur:700}); continue; }
-      const c=comps[k-1];
-      const animMs=Math.round(((c.animDelay||0)+(c.animDur||0.6))*1000);
-      const holdMs=Math.round(seqHoldFor(c)*1000);
+      const mem=comps.slice(ends[bi-1],k);
+      const animMs=Math.round((mem.length?Math.max(...mem.map(c=>(c.animDelay||0)+(c.animDur||0.6))):0.6)*1000);
+      const holdMs=Math.round((mem.length?Math.max(...mem.map(seqHoldFor)):SEQ.holdDefault)*1000);
       await sleep(60); states.push({cv:await expRaster(), dur:Math.round(animMs*0.5)});
       await sleep(Math.max(80,animMs*0.5)); states.push({cv:await expRaster(), dur:Math.round(animMs*0.5)});
       await sleep(Math.max(80,animMs*0.5)); states.push({cv:await expRaster(), dur:holdMs});
     }
-    SEQ.shown=keepShown; SEQ.active=keepActive; render(); renderStrip();
+    SEQ.shown=keepShown; SEQ.active=keepActive; SEQ.scene=keepScene; render(); renderStrip();
     if(EXP.cancel || !states.length){ st.textContent='cancelled'; return; }
     const W=states[0].cv.width, H=states[0].cv.height;
     const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H;
@@ -4576,15 +5195,15 @@ document.getElementById('rec-auto').onclick=()=>{
 
 function recAutoDrive(){
   if(!REC.active || !REC.autoMode) return;
-  if(SEQ.shown >= comps.length){
+  if(SEQ.shown >= seqEndIndex()){
     // hold the final frame briefly, then stop — keeps tail from cutting off
     REC.autoTimer=setTimeout(()=>{ if(REC.recorder && REC.recorder.state==='recording') REC.recorder.stop(); }, 1200);
     return;
   }
   seqNext();
-  const cur=comps[SEQ.shown-1];
-  const hold=cur?seqHoldFor(cur):SEQ.holdDefault;
-  const anim=(cur&&(cur.animDelay||0)+(cur.animDur||0.6))||0.6;
+  const mem=runMembers(Math.max(0,SEQ.shown-1));
+  const hold=mem.length?Math.max(...mem.map(seqHoldFor)):SEQ.holdDefault;
+  const anim=mem.length?Math.max(...mem.map(c=>(c.animDelay||0)+(c.animDur||0.6))):0.6;
   REC.autoTimer=setTimeout(recAutoDrive, Math.round((anim+hold)*1000));
 }
 
@@ -4602,7 +5221,7 @@ async function startRec(autoMode){
   try{
     snap();
     seqStopAutoTimer();
-    SEQ.active=true; SEQ.auto=false; SEQ.shown=0; SEQ.maxShown=0;
+    SEQ.active=true; SEQ.auto=false; SEQ.shown=0; SEQ.maxShown=0; SEQ.scene=null;
     REC.autoMode=!!autoMode;
     comps.forEach(c=>{ delete c._played; delete c._stateAt; if(c.props&&c.props.stepped) c.revealed=0; });
     selId=null; statePreview=null;
@@ -4844,7 +5463,7 @@ function setSafe(on){
 document.getElementById('btn-safe').onclick=()=>setSafe(document.getElementById('safe-area').style.display==='none');
 try{ setSafe(localStorage.getItem('phosphor-safe')==='1'); }catch(_){}
 addEventListener('resize',fit); fit();
-renderSaved();
+renderSaved(); renderComplib();
 
 /* ============ resizable panels ============ */
 document.querySelectorAll('.rsz').forEach(h=>{
@@ -4872,9 +5491,9 @@ document.querySelectorAll('.rsz').forEach(h=>{
 /* autosave to localStorage — survives refresh; file save/load for permanence */
 const AKEY='phosphor-autosave-v3';   // v3: linear sequence (no beats)
 function autosave(){
-  try{ // canvas state only — never overwrite saved scenes from here
+  try{ // canvas state only — never overwrite saved compositions from here
     localStorage.setItem(AKEY, JSON.stringify({ scene:{w:parseInt(inW.value),h:parseInt(inH.value)},
-       comps:comps.map(c=>({...c, draft:!!c.draft})), edges, saved:loadSaved(), currentSceneName,
+       comps:comps.map(c=>({...c, draft:!!c.draft})), edges, scenes:SCENES, saved:loadSaved(), currentSceneName,
        script:dslScript, seqHoldDefault:SEQ.holdDefault })); }catch{}
 }
 (function restore(){
@@ -4893,33 +5512,86 @@ function autosave(){
            comps=fl0.comps; edges=edges.concat(fl0.fresh);
            pruneEdges();
            if(d.saved) { storeSaved(d.saved); renderSaved(); }
+           if(Array.isArray(d.scenes)) SCENES=d.scenes.filter(s=>s&&s.id).map(s=>({id:String(s.id),name:String(s.name||'Scene')}));
+           else if(d.episode&&Array.isArray(d.episode.scenes)) SCENES=d.episode.scenes.filter(s=>s&&s.id).map(s=>({id:String(s.id),name:String(s.name||'Scene')}));
            currentSceneName=d.currentSceneName||null;
            dslScript=d.script||'';
            if(d.seqHoldDefault!=null) SEQ.holdDefault=+d.seqHoldDefault||1.6;
            else if(d.holdDefault!=null) SEQ.holdDefault=+d.holdDefault||1.6;
            SEQ.active=false; SEQ.shown=comps.length; curBeat=0;
+           ensureDefaultScene();
            }
   }catch{}
 })();
 setInterval(autosave, 2000);
 SEQ.active=false; SEQ.shown=0;
+ensureDefaultScene();
 render(); renderStrip();
 /* right-rail tabs (defined here — after showRailTab exists) */
 document.getElementById('tabbtn-edit').onclick=()=>showRailTab('edit');
 document.getElementById('tabbtn-seq').onclick=()=>showRailTab('seq');
 try{ showRailTab(localStorage.getItem('phosphor-railtab')==='edit'?'edit':'seq'); }catch(_){ showRailTab('seq'); }
-/* left-rail tabs: Available vs Saved */
+/* left-rail tabs: Available vs Saved vs Kits */
 function showCompTab(which){
-  const avail=which!=='saved';
-  document.getElementById('ctabpane-avail').style.display=avail?'':'none';
-  document.getElementById('ctabpane-saved').style.display=avail?'none':'';
-  document.getElementById('ctabbtn-avail').classList.toggle('on',avail);
-  document.getElementById('ctabbtn-saved').classList.toggle('on',!avail);
-  try{ localStorage.setItem('phosphor-comptab',avail?'avail':'saved'); }catch(_){}
+  const panes={avail:'ctabpane-avail', saved:'ctabpane-saved', kits:'ctabpane-kits'};
+  const btns={avail:'ctabbtn-avail', saved:'ctabbtn-saved', kits:'ctabbtn-kits'};
+  if(!panes[which]) which='avail';
+  Object.entries(panes).forEach(([k,id])=>{ document.getElementById(id).style.display=k===which?'':'none'; });
+  Object.entries(btns).forEach(([k,id])=>{ document.getElementById(id).classList.toggle('on',k===which); });
+  try{ localStorage.setItem('phosphor-comptab',which); }catch(_){}
 }
 document.getElementById('ctabbtn-avail').onclick=()=>showCompTab('avail');
 document.getElementById('ctabbtn-saved').onclick=()=>showCompTab('saved');
-try{ showCompTab(localStorage.getItem('phosphor-comptab')==='saved'?'saved':'avail'); }catch(_){ showCompTab('avail'); }
+document.getElementById('ctabbtn-kits').onclick=()=>showCompTab('kits');
+try{ showCompTab(['avail','saved','kits'].includes(localStorage.getItem('phosphor-comptab'))?localStorage.getItem('phosphor-comptab'):'avail'); }catch(_){ showCompTab('avail'); }
+/* sequence scene bar: active-scene pick + plain empty scenes */
+document.getElementById('scene-new').onclick=()=>addScene();
+document.getElementById('scene-pick').onchange=e=>{ activeScene=e.target.value; render(); renderStrip(); };
+/* scene menu closes on outside click / resize / any action (actions close it themselves) */
+document.addEventListener('click',e=>{
+  const m=document.getElementById('scene-menu');
+  if(m&&m.style.display!=='none'&&!e.target.closest('#scene-menu')) closeSceneMenu();
+});
+addEventListener('resize',()=>closeSceneMenu());
+/* scene dialog closes on overlay click */
+document.getElementById('scene-dlg').addEventListener('mousedown',e=>{
+  if(e.target.id==='scene-dlg') closeSceneDlg();
+});
+/* compositions library list — built-ins (read-only) + your saved kits */
+function renderComplib(){
+  const list=document.getElementById('complist-lib'); if(!list) return;
+  list.innerHTML='';
+  const row=(name,desc,canDel,onAdd,onDel)=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<span class="name" title="${String(desc||'').replace(/"/g,'&quot;')}">${String(name).replace(/</g,'&lt;')}</span>`;
+    const add=document.createElement('button'); add.textContent='+ stamp'; add.title='stamp onto the canvas (below existing content)';
+    add.onclick=e=>{ e.stopPropagation(); onAdd(); };
+    li.appendChild(add);
+    if(canDel){ const del=document.createElement('button'); del.textContent='🗑'; del.className='danger'; del.title='delete this kit';
+      del.onclick=e=>{ e.stopPropagation(); onDel(); }; li.appendChild(del); }
+    list.appendChild(li);
+  };
+  CP_BUILTINS.forEach(b=>row(`▦ ${b.name}`,`${b.desc} · built-in`,false,()=>insertComposition(b)));
+  if(SCENE_TEMPLATES.length){
+    const hd=document.createElement('div');
+    hd.className='hint'; hd.style.cssText='padding:6px 2px 2px';
+    hd.textContent='scene templates (ask for details)';
+    list.appendChild(hd);
+  }
+  SCENE_TEMPLATES.forEach(t=>row(`◈ ${t.name}`,t.desc,false,()=>runSceneTemplate(t)));
+  const user=loadCompositions();
+  if(user.length){
+    const hd=document.createElement('div');
+    hd.className='hint'; hd.style.cssText='padding:6px 2px 2px';
+    hd.textContent=`yours (${user.length})`;
+    list.appendChild(hd);
+  }
+  user.forEach((u,ix)=>row(u.name,u.desc,true,()=>insertComposition(u),()=>{
+    const all=loadCompositions(); all.splice(ix,1); storeCompositions(all); renderComplib();
+  }));
+  if(!user.length&&!CP_BUILTINS.length) list.innerHTML='<div class="hint" style="padding:4px">no kits yet</div>';
+}
+document.getElementById('btn-savecomp').onclick=()=>saveCompositionFromSelection();
 
 /* (old help-export button removed from chrome) */
 
@@ -5260,6 +5932,7 @@ function dslApply(text, mode){
       updated++;
     } else {
       c={id, type:s.type, x:120, y:120, scale:TK_DSCALE[s.type]||1, rot:0, z:comps.length+10, opacity:1, props:s.props, draft:false};
+      const sc=targetSceneId(); if(sc) c.sceneId=sc;   // new work always joins a scene
       comps.push(c); newComps.push(c);
     }
     placeMap.set(s.name,c);
@@ -5292,6 +5965,7 @@ function dslApply(text, mode){
   } else if(newComps.length){
     dslPlaceNew(newComps, placeMap, P.rank, P.opts);
   }
+  if(newComps.length) normalizeScenes();
   render(); renderStrip(); autosave();
   P.result={nodes:P.specs.length, wires:P.links.length, created:newComps.length, updated, newEdges, kept:placeMap.size-newComps.length};
   return P;
@@ -5377,7 +6051,7 @@ function dslFromScene(){
 document.getElementById('btn-save').onclick=()=>{
   const data={ version:3, scene:{ w:parseInt(inW.value)||1920, h:parseInt(inH.value)||1080 },
                comps:comps.map(({draft,...rest})=>{ const o={...rest}; delete o.beat; o.draft=!!draft; return o; }),
-               edges, saved:loadSaved(), seqHoldDefault:SEQ.holdDefault,
+               edges, scenes:SCENES, saved:loadSaved(), seqHoldDefault:SEQ.holdDefault,
                script:dslScript||undefined,
                currentSceneName:currentSceneName||undefined };
   const a=document.createElement('a');
@@ -5407,9 +6081,12 @@ document.getElementById('file-open').onchange=e=>{
       const imp=importProject(d);
       comps=imp.comps; edges=imp.edges||[];
       if(d.saved){ storeSaved(d.saved); renderSaved(); }
+      if(Array.isArray(d.scenes)) SCENES=d.scenes.filter(s=>s&&s.id).map(s=>({id:String(s.id),name:String(s.name||'Scene')}));
+      else if(d.episode&&Array.isArray(d.episode.scenes)) SCENES=d.episode.scenes.filter(s=>s&&s.id).map(s=>({id:String(s.id),name:String(s.name||'Scene')}));
       if(d.seqHoldDefault!=null) SEQ.holdDefault=+d.seqHoldDefault||SEQ.holdDefault;
       currentSceneName=d.currentSceneName||null;
       dslScript=d.script||'';
+      ensureDefaultScene();
       selId=null; selEdge=null; draft=null; statePreview=null;
       SEQ.active=false; SEQ.shown=comps.length; curBeat=0;
       if(imp.note) toastMsg(imp.note);
@@ -5420,10 +6097,10 @@ document.getElementById('file-open').onchange=e=>{
 };
 
 /* 🧹 clear canvas: empty THIS scene only (components + wires) — saved components,
-   saved scenes and exports are untouched, and Ctrl+Z brings it all back */
+   saved compositions and exports are untouched, and Ctrl+Z brings it all back */
 document.getElementById('btn-clear-canvas').onclick=()=>{
   if(!comps.length && !edges.length){ toastMsg('canvas is already empty'); return; }
-  if(!confirm(`Clear the canvas?\nRemoves ${comps.length} component(s) and ${edges.length} wire(s) from this scene.\nSaved components and scenes are kept. Ctrl+Z undoes.`)) return;
+  if(!confirm(`Clear the canvas?\nRemoves ${comps.length} component(s) and ${edges.length} wire(s) from this scene.\nSaved components and compositions are kept. Ctrl+Z undoes.`)) return;
   snap();
   seqStopAutoTimer();
   if(SEQ.active) seqExit();
@@ -5434,9 +6111,10 @@ document.getElementById('btn-clear-canvas').onclick=()=>{
 };
 
 document.getElementById('btn-new-project').onclick=()=>{
-  if(!confirm('Start a new project?\nClears the canvas, saved components and saved scenes (autosave too). Exported .json files are NOT deleted.')) return;
+  if(!confirm('Start a new project?\nClears the canvas, saved components and compositions (autosave too). Exported .json files are NOT deleted.')) return;
   seqStopAutoTimer();
   comps=[]; edges=[]; selId=null; selEdge=null; draft=null; currentSceneName=null; statePreview=null; dslScript='';
+  SCENES=[]; activeScene=null; ensureDefaultScene();
   SEQ.active=false; SEQ.auto=false; SEQ.shown=0; curBeat=0; beatLabels.length=0;
   storeSaved([]);
   localStorage.removeItem(AKEY);
