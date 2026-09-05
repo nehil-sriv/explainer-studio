@@ -82,7 +82,7 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   Canvas themes (`css/phosphor.css` + presets) affect recorded output exclusively.
 - **Palette groups:** headers carry `pg-<gid>` classes with per-category `--gc` colors
   (see `css/chrome-precision.css`); open/closed share metrics, closed only dims.
-  Stencil buttons live in `.pal-set.pg-<gid>` wrappers (`display:contents`, inherits
+  Component buttons live in `.pal-set.pg-<gid>` wrappers (`display:contents`, inherits
   `--gc`) with initial-chips + truncated labels (no icon lib — offline rule).
 - **Workbench rails:** `aside#rail-left` (Components: Available/Saved tabs) · `.stage-wrap`
   canvas · `aside#rail-right` (Sequence/Edit tabs, Sequence first and default). Edit is opt-in:

@@ -295,7 +295,7 @@ body {
       <p class="hint">click one → preview & edit → add to recording scene</p>
       <div class="pal-search">
         <span class="pal-ico" aria-hidden="true">⌕</span>
-        <input type="text" id="pal-search" placeholder="grep stencils…" autocomplete="off" spellcheck="false">
+        <input type="text" id="pal-search" placeholder="grep components…" autocomplete="off" spellcheck="false">
         <button class="mini" id="pal-collapse" title="collapse all groups">⊟</button>
         <button class="mini" id="pal-expand" title="expand all groups">⊞</button>
         <button class="mini" id="pal-clear" title="clear search">✕</button>
@@ -811,7 +811,7 @@ function rich(t){
   return t;
 }
 
-/* ============ code stencil: Python highlighting + verbatim indentation (#114) ============
+/* ============ code component: Python highlighting + verbatim indentation (#114) ============
    The data was never lost — <textarea> preserves pasted whitespace natively.
    The old 2-row prose textarea (soft-wrap, spellcheck, Tab-to-leave) destroyed
    it on edit. Fix = the `code` fieldType below, not a storage change. */
@@ -1154,7 +1154,7 @@ const REGISTRY = {
   terminal: { name:'Terminal window',
     group:'basics',
     props:{title:'~/opinions — zsh', body:`$ rag --ask "does it scale?"\n✓ match found (score 0.02)`, w:900, stepped:false},
-    fields:['title','body','w','stepped'], fieldTypes:{body:'code', w:'number', stepped:'check'}, help:'enable stepped to reveal line-by-line (Space = next line) · source code? use the Code block stencil (keeps indentation + highlights Python)',
+    fields:['title','body','w','stepped'], fieldTypes:{body:'code', w:'number', stepped:'check'}, help:'enable stepped to reveal line-by-line (Space = next line) · source code? use the Code block component (keeps indentation + highlights Python)',
     markup:p=>`
       <div class="term glow" style="width:${p.w}px">
         <div class="term-bar"><span class="dot dot-r"></span><span class="dot dot-a"></span><span class="dot dot-g"></span><span class="term-title">${p.title}</span></div>
@@ -1392,7 +1392,7 @@ const REGISTRY = {
     help:'status dot: ok / warn / dead — place on top of a boundary (cluster/node)',
     props:{name:'web-7f9d', status:'ok', accent:'var(--phos-green)'},
     fields:['name','status','accent'], fieldTypes:{status:'select'}, options:{status:['ok','warn','dead']},
-    markup:p=>`<div class="tk-pod" style="--stroke:${p.accent}"><div class="pbox"><span class="hdot ${p.status}" style="position:absolute;top:-9px;right:-9px;width:18px;height:18px;"></span></div>${p.name?`<div class="pname">${rich(p.name)}</div>`:''}</div>` },
+    markup:p=>`<div class="tk-pod" style="--stroke:${p.accent}"><div class="pbox">`+`<svg width="58" height="56" viewBox="0 0 18.035334 17.500378" fill="none" stroke="var(--stroke)" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round"><g transform="translate(-0.99262638,-1.174181)"><g transform="matrix(1.0148887,0,0,1.0148887,16.902146,-2.698726)"><path d="m -6.8492015,4.2724668 a 1.1191255,1.1099671 0 0 0 -0.4288818,0.1085303 l -5.8524037,2.7963394 a 1.1191255,1.1099671 0 0 0 -0.605524,0.7529759 l -1.443828,6.2812846 a 1.1191255,1.1099671 0 0 0 0.151943,0.851028 1.1191255,1.1099671 0 0 0 0.06362,0.08832 l 4.0508,5.036555 a 1.1191255,1.1099671 0 0 0 0.874979,0.417654 l 6.4961011,-0.0015 a 1.1191255,1.1099671 0 0 0 0.8749788,-0.416906 L 1.3818872,15.149453 A 1.1191255,1.1099671 0 0 0 1.5981986,14.210104 L 0.15212657,7.9288154 A 1.1191255,1.1099671 0 0 0 -0.45339794,7.1758396 L -6.3065496,4.3809971 A 1.1191255,1.1099671 0 0 0 -6.8492015,4.2724668 Z"/></g><g transform="translate(0.12766661,0.35147801)"><path d="M 6.2617914,7.036086 9.8826317,5.986087 13.503462,7.036086 9.8826317,8.086087 Z" stroke-width="0.55"/><path d="m 6.2617914,7.43817 0,3.852778 3.3736103,1.868749 0.0167,-4.713193 z" stroke-width="0.55"/><path d="m 13.503462,7.43817 0,3.852778 -3.37361,1.868749 -0.0167,-4.713193 z" stroke-width="0.55"/></g></g></svg>`+`<span class="hdot ${p.status}" style="position:absolute;top:-9px;right:-9px;width:18px;height:18px;"></span></div>${p.name?`<div class="pname">${rich(p.name)}</div>`:''}</div>` },
 
   boundary: { name:'TK · boundary (cluster/node/AZ)',
     group:'groups',
@@ -1550,7 +1550,7 @@ const REGISTRY = {
     group:'nodes',
     props:{name:'checkout · v2', accent:'#57C7C0'},
     fields:['name','accent'],
-    markup:p=>`<div class="tk-cont" style="--stroke:${p.accent}"><div class="tk-name">${rich(p.name)}</div></div>` },
+    markup:p=>`<div class="tk-cont" style="--stroke:${p.accent}">`+`<svg width="64" height="64" viewBox="0 0 24 24" fill="var(--stroke)" style="position:relative;display:block;margin:0 auto 8px"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></svg>`+`<div class="tk-name">${rich(p.name)}</div></div>` },
 
   controlplane:{ name:'TK · control plane',
     group:'nodes',
@@ -2118,11 +2118,8 @@ const REGISTRY = {
     props:{label:'eks · prod', accent:'#57C7C0'},
     fields:['label','accent'],
     markup:p=>`<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}" class="tech">`
-      +`<svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="var(--stroke)" stroke-width="4">`
-      +`<circle cx="48" cy="48" r="34"/><circle cx="48" cy="48" r="10"/>`
-      +[0,60,120,180,240,300].map(a=>{ const r=a*Math.PI/180;
-        return `<line x1="${(48+10*Math.cos(r)).toFixed(1)}" y1="${(48+10*Math.sin(r)).toFixed(1)}" x2="${(48+34*Math.cos(r)).toFixed(1)}" y2="${(48+34*Math.sin(r)).toFixed(1)}"/>`; }).join('')
-      +`</svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+      // official Kubernetes wheel (CNCF), monochrome via --stroke
+      +`<svg width="96" height="96" viewBox="9.70 9.20 210.86 204.86" fill="var(--stroke)"><path d="M134.4 126.5a3.6 3.6 0.0 0.0 0.0-0.9-0.1 3.7 3.7 0.0 0.0 0.0-1.40.4 3.7 3.7 0.0 0.0 0.0-1.8 4.8l-0.00.0 8.5 20.6a43.5 43.5 0.0 0.0 0.0 17.6-22.1l-22.0-3.7zm-34.2 2.9a3.7 3.7 0.0 0.0 0.0-3.6-2.9 3.7 3.7 0.0 0.0 0.0-0.70.1l-0.0-0.0-21.8 3.7a43.7 43.7 0.0 0.0 0.0 17.5 21.9l8.4-20.4-0.1-0.1a3.7 3.7 0.0 0.0 0.0 0.2-2.3zm18.2 8.0a3.7 3.7 0.0 0.0 0.0-6.60.0h-0.0l-10.7 19.4a43.6 43.6 0.0 0.0 0.0 23.8 1.2q2.2-0.5 4.3-1.2l-10.7-19.4zm33.9-45.0l-16.5 14.80.00.0a3.7 3.7 0.0 0.0 0.0 1.5 6.4l0.00.1 21.4 6.2a44.3 44.3 0.0 0.0 0.0-6.4-27.4zM121.7 94.0a3.7 3.7 0.0 0.0 0.0 5.9 2.8l0.10.0 18.0-12.8a43.9 43.9 0.0 0.0 0.0-25.3-12.2l1.3 22.1zm-19.1 2.9a3.7 3.7 0.0 0.0 0.0 5.9-2.9l0.1-0.0 1.3-22.1a44.7 44.7 0.0 0.0 0.0-4.50.8 43.5 43.5 0.0 0.0 0.0-20.9 11.4l18.2 12.9zm-9.7 16.7a3.7 3.7 0.0 0.0 0.0 1.5-6.4l0.0-0.1-16.6-14.8a43.5 43.5 0.0 0.0 0.0-6.2 27.5l21.2-6.1zm16.1 6.5l6.1 2.9 6.1-2.9 1.5-6.6-4.2-5.3h-6.8l-4.2 5.3z"/><path d="M216.2 133.2l-17.4-75.7a13.6 13.6 0.0 0.0 0.0-7.3-9.1l-70.5-33.7a13.6 13.6 0.0 0.0 0.0-11.7 0.0l-70.5 33.7a13.6 13.6 0.0 0.0 0.0-7.3 9.1l-17.4 75.7a13.3 13.3 0.0 0.0 0.0-0.0 5.8 13.5 13.5 0.0 0.0 0.0 0.5 1.7 13.1 13.1 0.0 0.0 0.0 1.3 2.7c0.20.40.50.70.8 1.1l48.8 60.7c0.20.30.40.50.70.8a13.4 13.4 0.0 0.0 0.0 2.6 2.1 13.9 13.9 0.0 0.0 0.0 3.9 1.7 13.3 13.3 0.0 0.0 0.0 3.40.5h0.8l77.5-0.0a13.0 13.0 0.0 0.0 0.0 1.4-0.1 13.5 13.5 0.0 0.0 0.0 2.0-0.4 13.9 13.9 0.0 0.0 0.0 1.4-0.4c0.4-0.10.7-0.3 1.0-0.4a13.9 13.9 0.0 0.0 0.0 1.5-0.8 13.3 13.3 0.0 0.0 0.0 3.2-2.9l1.5-1.9 47.3-58.8a13.2 13.2 0.0 0.0 0.0 2.1-3.8 13.7 13.7 0.0 0.0 0.0 0.5-1.7 13.3 13.3 0.0 0.0 0.0-0.0-5.8zm-73.1 29.4a14.5 14.5 0.0 0.0 0.0 0.7 1.7 3.3 3.3 0.0 0.0 0.0-0.3 2.5 39.4 39.4 0.0 0.0 0.0 3.7 6.7 35.1 35.1 0.0 0.0 1.0 2.3 3.4c0.20.30.40.80.6 1.1a4.2 4.2 0.0 1.0 1.0-7.6 3.6c-0.2-0.3-0.4-0.8-0.5-1.1a35.3 35.3 0.0 0.0 1.0-1.2-3.9 39.3 39.3 0.0 0.0 0.0-2.9-7.1 3.3 3.3 0.0 0.0 0.0-2.2-1.3c-0.1-0.2-0.6-1.1-0.9-1.6a54.6 54.6 0.0 0.0 1.0-38.9-0.1l-1.0 1.7a3.4 3.4 0.0 0.0 0.0-1.80.9 29.5 29.5 0.0 0.0 0.0-3.3 7.6 34.9 34.9 0.0 0.0 1.0-1.2 3.9c-0.10.3-0.40.7-0.5 1.1v0.0l-0.00.0a4.2 4.2 0.0 1.0 1.0-7.6-3.6c0.2-0.30.4-0.80.5-1.1a35.2 35.2 0.0 0.0 1.0 2.3-3.4 41.2 41.2 0.0 0.0 0.0 3.8-6.9 4.2 4.2 0.0 0.0 0.0-0.4-2.4l0.8-1.8a54.9 54.9 0.0 0.0 1.0-24.3-30.4l-1.80.3a4.7 4.7 0.0 0.0 0.0-2.4-0.9 39.5 39.5 0.0 0.0 0.0-7.4 2.2 35.6 35.6 0.0 0.0 1.0-3.8 1.4c-0.30.1-0.70.2-1.10.2-0.00.0-0.10.0-0.10.0a0.60.6 0.0 0.0 1.0-0.10.0 4.2 4.2 0.0 1.0 1.0-1.9-8.2l0.1-0.00.0-0.0c0.4-0.10.8-0.2 1.1-0.3a35.3 35.3 0.0 0.0 1.0 4.0-0.3 39.4 39.4 0.0 0.0 0.0 7.6-1.2 5.8 5.8 0.0 0.0 0.0 1.8-1.8l1.8-0.5a54.6 54.6 0.0 0.0 1.0 8.6-38.1l-1.4-1.2a4.7 4.7 0.0 0.0 0.0-0.8-2.4 39.4 39.4 0.0 0.0 0.0-6.3-4.4 35.3 35.3 0.0 0.0 1.0-3.5-2.0c-0.3-0.2-0.6-0.5-0.9-0.7l-0.1-0.0a4.5 4.5 0.0 0.0 1.0-1.0-6.2 4.1 4.1 0.0 0.0 1.0 3.4-1.5 5.0 5.0 0.0 0.0 1.0 2.9 1.1c0.30.20.70.50.90.7a35.3 35.3 0.0 0.0 1.0 2.8 3.0 39.4 39.4 0.0 0.0 0.0 5.7 5.1 3.3 3.3 0.0 0.0 0.0 2.50.2q0.80.6 1.5 1.1a54.3 54.3 0.0 0.0 1.0 27.6-15.8 55.1 55.1 0.0 0.0 1.0 7.6-1.2l0.1-1.8a4.6 4.6 0.0 0.0 0.0 1.4-2.2 39.5 39.5 0.0 0.0 0.0-0.5-7.7 35.5 35.5 0.0 0.0 1.0-0.6-4.0c-0.0-0.30.0-0.70.0-1.1 0.0-0.0-0.0-0.1-0.0-0.1a4.2 4.2 0.0 1.0 1.0 8.4-0.0c0.0 0.40.00.90.0 1.2a35.1 35.1 0.0 0.0 1.0-0.6 4.0 39.5 39.5 0.0 0.0 0.0-0.5 7.7 3.3 3.3 0.0 0.0 0.0 1.4 2.1c0.00.30.1 1.30.1 1.9a55.3 55.3 0.0 0.0 1.0 35.0 16.9l1.6-1.1a4.7 4.7 0.0 0.0 0.0 2.6-0.3 39.5 39.5 0.0 0.0 0.0 5.7-5.1 35.0 35.0 0.0 0.0 1.0 2.8-3.0c0.3-0.20.7-0.50.9-0.7a4.2 4.2 0.0 1.0 1.0 5.3 6.6c-0.30.2-0.70.5-0.90.8a35.1 35.1 0.0 0.0 1.0-3.5 2.0 39.5 39.5 0.0 0.0 0.0-6.3 4.4 3.3 3.3 0.0 0.0 0.0-0.8 2.4c-0.20.2-1.10.9-1.5 1.3a54.8 54.8 0.0 0.0 1.0 8.8 38.0l1.70.5a4.7 4.7 0.0 0.0 0.0 1.8 1.8 39.5 39.5 0.0 0.0 0.0 7.6 1.2 35.6 35.6 0.0 0.0 1.0 4.00.3c0.40.10.90.2 1.20.3a4.2 4.2 0.0 1.0 1.0-1.9 8.2l-0.1-0.0c-0.0-0.0-0.1-0.0-0.1-0.0-0.3-0.1-0.8-0.2-1.1-0.2a35.1 35.1 0.0 0.0 1.0-3.8-1.5 39.5 39.5 0.0 0.0 0.0-7.4-2.2 3.3 3.3 0.0 0.0 0.0-2.40.9q-0.9-0.2-1.8-0.3a54.9 54.9 0.0 0.0 1.0-24.3 30.6z"/></svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
 
   alarm:    { name:'CL · alarm / alert',
     group:'cloud',
@@ -2303,7 +2300,7 @@ function renderPalette(q){
   });
   const foot=document.createElement('div');
   foot.className='pal-foot';
-  foot.innerHTML=`<span>${filtering?shown+' / ':''}${total} STENCILS LOADED</span>`;
+  foot.innerHTML=`<span>${filtering?shown+' / ':''}${total} COMPONENTS LOADED</span>`;
   palette.appendChild(foot);
   if(!order.length || (!filtering && !shown)){
     const d=document.createElement('div'); d.className='pal-none';

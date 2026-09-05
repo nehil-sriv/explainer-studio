@@ -207,7 +207,7 @@ body #comp-tabs { display: flex; gap: 4px; padding: 8px 12px 0; flex: none; }
 body #rail-right .tabpane { min-height: 0; display: flex; flex-direction: column; flex: 1; overflow-y: auto; }
 body #rail-right .tabpane > .hint { margin: 8px 14px 4px; }
 body #rail-right #complist { padding: 0 8px 12px; overflow-y: auto; }
-/* library search stays pinned while the stencil list scrolls */
+/* library search stays pinned while the component list scrolls */
 body #rail-left #sec-palette { padding-top: 0; }
 body #rail-left #sec-palette > .hint { padding-top: 12px; }
 body #rail-left .pal-search {
@@ -285,7 +285,7 @@ body #rail-right #complist .nexttag {
   color: var(--ch-amber-hi); background: none;
   padding: 1px 0 1px 5px; white-space: nowrap;
 }
-/* workbench rails: stencils left, canvas middle, inspector right */
+/* workbench rails: components left, canvas middle, inspector right */
 body main .stage-wrap { order: 1; }
 body aside#rail-left {
   order: 0; width: 300px; flex: none;
@@ -340,7 +340,7 @@ body aside .pal-ico {
   font-size: 12px; color: var(--ch-cyan); pointer-events: none;
 }
 body aside .pal-search input { padding-left: 28px !important; }
-/* stencil buttons: icon chip + truncated label, group-tinted */
+/* component buttons: icon chip + truncated label, group-tinted */
 body aside .palette .pal-set { display: contents; }
 body aside .palette button {
   display: flex; align-items: center; gap: 8px;
@@ -366,7 +366,7 @@ body aside .palette button:hover {
   border-color: var(--gc, var(--ch-focus)); color: var(--ch-text); background: #1a1f30;
   box-shadow: 0 0 12px color-mix(in srgb, var(--gc, var(--ch-focus)) 35%, transparent);
 }
-/* stencil footer count */
+/* component footer count */
 body aside .pal-foot {
   margin-top: 10px; padding: 8px 2px 2px;
   border-top: 1px solid var(--ch-line);
