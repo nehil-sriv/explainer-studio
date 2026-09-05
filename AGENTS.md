@@ -135,10 +135,11 @@ SHOW (video)
   One more Space past the last step (or auto-play reaching the end) ends the take itself.
 - **Toasts** (`#navtoast`) always dock under the header — the footer strip owns the bottom edge.
 - **Clear / retire:** `🧹` on a step clears the screen before it appears; `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. Edit mode always shows everything.
-- **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ new state from this` clones the
-  selected comp exactly in place and sets the clone to ⊘-hide the original on appear — a swap with
-  zero new data model (variants never carry 🧹). Jumping back before the variant restores the old
-  state. List rows show `⊘1` on variant steps.
+- **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ add state change`
+  adds a `state` patch-step at the end of the list — it draws nothing and patches the
+  target comp's props (or a wire's settings) from its position onward. Target keeps its
+  id, so wires/text/ports follow; later steps win; jumping back un-applies for free.
+  Edit mode shows the base; selecting a state row scrubs the canvas through it.
 - **Stepped terminals/checklists:** tick `stepped` → Space reveals one line at a time before the next component.
 - **Hold timing (auto mode):** footer `hold s` = global default; EDIT SELECTED `hold s` = per-component override.
 

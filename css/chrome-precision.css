@@ -220,6 +220,20 @@ body #rail-right #complist li[draggable="true"] { cursor: grab; }
 body #rail-right #complist li.dragging { opacity: .4; }
 body #rail-right #complist li.drop-before { box-shadow: 0 -2px 0 var(--ch-cyan); }
 body #rail-right #complist li.drop-after { box-shadow: 0 2px 0 var(--ch-cyan); }
+body #rail-right #complist li.strow {
+  margin-left: 14px;
+  border-left: 2px solid var(--ch-amber);
+  background: color-mix(in srgb, var(--ch-amber) 6%, transparent);
+}
+body #rail-right #complist li.strow .marks { color: var(--ch-amber); font-weight: 700; }
+body #rail-right #complist li.strow .pos { color: var(--ch-amber); }
+body #rail-right #complist li.strow.sel { border-color: var(--ch-amber-hi); }
+body #rail-right #complist li.strow.orphan { border-left-color: var(--ch-red); opacity: .6; }
+body #rail-right #complist .statec {
+  margin-left: 6px; padding: 0 5px; border-radius: 99px;
+  font-family: var(--ch-mono); font-size: 9px; font-weight: 700;
+  color: var(--ch-amber); border: 1px solid var(--ch-amber);
+}
 /* take-mode rows: text-only narration script (edit rows keep per-row buttons) */
 body #rail-right #complist li.seqrow {
   display: block; padding: 5px 10px; cursor: pointer;
