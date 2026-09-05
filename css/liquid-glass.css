@@ -513,7 +513,7 @@ body #rail-right #complist li.seqrow.parked:hover { opacity: .9; background: rgb
 body #rail-right #complist li.seqrow.done { opacity: .5; }
 body #rail-right #complist li.seqrow.next {
   background: rgba(255,159,10,.16); border-color: transparent;
-  box-shadow: inset 0 0 8px rgba(255,159,10,.55), 0 4px 18px -6px rgba(255,159,10,.5);
+  box-shadow: none;
 }
 body #rail-right #complist li.seqrow.next .l1 { color: var(--ch-amber-hi); }
 body #rail-right #complist li.seqrow.next .txt { color: var(--ch-amber-hi); opacity: .8; }
@@ -700,14 +700,16 @@ body header#transport .tp-menu,
 body #scene-menu {
   min-width: 240px; padding: 5px; display: flex; flex-direction: column; gap: 0;
   border-radius: 13px;
-  background: linear-gradient(rgba(46,46,53,.985), rgba(30,30,36,.985));
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  backdrop-filter: blur(30px) saturate(180%);
-  border: .5px solid rgba(255,255,255,.16);
+  /* transparent by design (reference: wallpaper reads straight through) —
+     blur + a breath of tint carry legibility, not opacity. Nested-in-glass
+     overhang still samples the header, so this stays readable. */
+  background: linear-gradient(rgba(44,46,56,.55), rgba(26,28,36,.62));
+  -webkit-backdrop-filter: blur(40px) saturate(180%) brightness(.92);
+  backdrop-filter: blur(40px) saturate(180%) brightness(.92);
+  border: .5px solid rgba(255,255,255,.10);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.14),
-    0 0 .5px rgba(0,0,0,.5),
-    0 20px 44px -12px rgba(0,0,0,.75);
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 20px 44px -12px rgba(0,0,0,.55);
   text-shadow: none; /* solid pane — the halo only muddies it */
   animation: ch-menu-in .16s var(--ch-spring) both; transform-origin: top left;
 }
@@ -980,11 +982,14 @@ html[data-chrome="light"] body aside,
 html[data-chrome="light"] body footer#beatbar,
 html[data-chrome="light"] body #sel-tools,
 html[data-chrome="light"] body #scene-menu { text-shadow: none; }
-/* menus go light but stay near-opaque (backdrop-root note still applies) */
+/* menus go light but stay translucent (backdrop-root note still applies) */
 html[data-chrome="light"] body header#transport .tp-menu,
 html[data-chrome="light"] body #scene-menu {
-  background: linear-gradient(rgba(255,255,255,.985), rgba(245,246,250,.985));
-  border-color: rgba(15,23,42,.12);
+  background: linear-gradient(rgba(255,255,255,.6), rgba(244,246,250,.65));
+  border-color: rgba(15,23,42,.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    0 20px 44px -12px rgba(15,23,42,.25);
 }
 /* white-fill hovers need dark ink on light */
 html[data-chrome="light"] body button.mini, html[data-chrome="light"] body ul.clean button {
@@ -1016,6 +1021,30 @@ html[data-chrome="light"] body #exp-pop::-webkit-scrollbar-thumb { background: r
 html[data-chrome="light"] body aside::-webkit-scrollbar-thumb:hover,
 html[data-chrome="light"] body footer#beatbar::-webkit-scrollbar-thumb:hover,
 html[data-chrome="light"] body .tabpane::-webkit-scrollbar-thumb:hover { background: rgba(15,23,42,.4); }
+
+/* ============================================================
+   TRANSPARENT chrome (reference: wallpaper reads straight through).
+   Dropdown menus keep a background; every other surface goes
+   transparent — backdrop blur + halo + hairlines carry legibility,
+   fills do not. Controls (buttons, inputs, pills, rows) keep their
+   fills so the tool stays usable.
+   ============================================================ */
+body header#transport,
+body aside#rail-left,
+body aside#rail-right,
+body footer#beatbar,
+body #sel-tools, body #scene-dlg-card,
+body #rec-pop, body #exp-pop, body #dsl-pop, body #beat-choose,
+body #tour-card, body #navtoast,
+body .llmao-theme-panel { background: transparent; }
+body #rec-pop, body #exp-pop, body #dsl-pop, body #beat-choose,
+body #tour-card, body #navtoast,
+body #scene-dlg-card, body .llmao-theme-panel { text-shadow: var(--ch-pop); }
+html[data-chrome="light"] body #rec-pop, html[data-chrome="light"] body #exp-pop,
+html[data-chrome="light"] body #dsl-pop, html[data-chrome="light"] body #beat-choose,
+html[data-chrome="light"] body #tour-card, html[data-chrome="light"] body #navtoast,
+html[data-chrome="light"] body #scene-dlg-card,
+html[data-chrome="light"] body .llmao-theme-panel { text-shadow: none; }
 
 /* ============================================================
    LIGHT liquid glass (tool chrome only) — same material language,
