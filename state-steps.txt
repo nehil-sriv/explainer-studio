@@ -1,0 +1,293 @@
+
+State steps - implementation record
+For the agent implementing or re-implementing this. Every change made to add state changes without cloning components. Written so it can be rebuilt from scratch against a clean index.html.
+Files touched: index.html (all logic), css/chrome-precision.css (row styles), AGENTS.md (workflow docs), examples/rag-explainer.json (converted to the new model).
+1. The problem this solves
+Before: new state from this (seqVariantSel) made a structured Clone of the component, gave the clone a new id, and set clone.hides=[original.id] so the clone retired the original when it appeared.
+That breaks in four ways, all caused by the new id:
+1. Wires don't follow. renderEdges only draws an edge when both endpoints are compVisible. The original is hidden by the clone, so every edge into it stops drawing. You must hand-author a duplicate edge per wire per state. A node with
+4 wires and 3 states = 12 hand-maintained edge copies. (examples/rag-explainer.json originally carried exactly this hack: two edges evdcx/evdc2 for one swap.)
+2. Props diverge. Fix a typo on the original and the clone keeps the old text.
+3. The sequence list fills with near-identical rows.
+4. hides is O(n) id bookkeeping that dangles when the original is deleted (there is a defensive filter at the #seq-hides render site that exists only for this).
+After: a state step is an ordinary entry in comps that draws nothing and instead patches another component's props-or an edge's settings from its position in the list onward. The target keeps its id, so wires, text and ports all follow.
+{"id":"s1", "type": state", "target":"apil", "label":"traffic spike"," "anim":"pa-zoom", "animDur":" ,"seqHold":
+"props":{},
+"patch":"sub":"p99 2.4s", "accent":"#FFB000"}}
+Why an entry in comps and not a states[] array on the component Because it inherits the entire existing sequence machinery for free: drag-reorder, Alt+1, Ctrl+D, seqJump, undo (snap () serialises comps), autosave, save/load, export, and the teleprompter. An at: <index> field on a states[] array would need re-indexing on every insert/reorder. Do not "improve" this into a nested array.
+Two deliberate details
+props: {} is required. The codebase probes c.props.stepped in -8 places that iterate comps (renderList, seqNext, seqPlay, mirrorCompToPopup, the REC reset loop...). An empty object makes every one of those safe with zero guards. Without it you get TypeError: Cannot read properties of undefined. __state is NOT in REGISTRY. PAL_ITEMS is built from Object.entries (REGISTRY), so staying out keeps it off the palette automatically. Every REGISTRY [c.type] lookup that could see one must therefore be guarded
+
+
+2. Core block-index.html
+Insert immediately after the const SEQ={...} line in the
+/*===== SEQUENCE (linear story order) =====*/ section (-line 506). It must be above first use only for the let; function declarations hoist.
+const STATE__________state';
+function isstate (c){ return llc && c.type===_____________;}
+Let statePreview=null;
+// edit mode only: show the canvas through this state step
+/* how far down the list patches apply right now */ function stateCuters Of
+if(.active) return.shown;
+if(statePreview) {
+take/export: everything revealed so far
+const =comps.in
+if(i>=) return i+;
+return
+function
+const
+(x=>x.id===statePreview);
+// previewing a state row through it
+// edit default: the base state you author
+Patches (targetId, cutoff){
+=[], Math. (cutoff, comps.length);
+for (let j=;j<n;j++){
+const =comps[j];
+if (state(s) && s. target ===targetId && s.patch) out. (s.patch);
+return out:
+function ______________ (c) {
+}
+const =_______ Patches (c.id,
+());
+return p.Length? Object.assic ((), c.props...p): c.props;
+function ___ (e){
+constatare (e.id, state ());
+return p.length? Object. ({}, e,
+/* list index of the newest applied state step for a target (-1 = none) - renderCanvas compares it against c._stateAt to flash on the change only */ function______________elo(id){
+const =Math._______(_________________(), comps.length);
+for (Let jen-;j>= ;j-~) if(_______________(comps[j]) && comps[j]. target=== id) return j; return -
+function Target (s) {
+return comps.
+(x=x.id===s.target) || edges.in (x=x.id===s.target) || null;
+function lettuce (s){
+const =s.patch||{};
+const
+-Object. (p);
+if(!keys.Length) return 'no changes yet';
+return keys. (k=> ${k}=$((p[k]). (/^var\(--1\)$/g, "").stice()();
+/* deleting a comp/edge takes its wires AND any state steps aimed at it */ functionpondu (id){
+}
+edges-edges. (x-xx.from!==id && x.to!==id);
+comps comps. (x-IC
+(x) && x.target===id));
+if(selEdge && !edges. (x=>x.id===selEdge)) selEdge=null;
+if(statePreview && comps.com (x=>x.id===statePreview)) statePreview=null; if(selId && comps. (x=>x.id===selId)) selId=null;
+Ordering rule: Object.assign({}, base,...patches) in list order - later steps
+win. Because the window is recomputed from stateCutoff() on every paint, jumping backwards in a take un-applies patches for free. Same rule as 10.
+Edit mode shows the BASE state (cutoff 0) so you always author against the
+original. Selecting a row scrubs the canvas through it via statePreview.
+
+
+
+3. Render paths
+render Canvas()
+comps.forEach(c=>{
+if(isState (c)) return;
+if(!compvisibl (c)) return; const reg=_______ [c.type]; if(!reg) return;
+const Peef (c);
+ADD: state steps draw nothing
+ADD: base applied patches
+Then swap c.props → P at these four sites inside the loop:
+was
+if(c.props&&c.props.color){ --ca/--cc/--ct. }
+if(c.props&&c.props.bg)
+el.innerHTML=reg.markup (c.props)
+if(c.props.stepped) {
+becomes
+if (P&&P.color) P.color}
+if (P&&P.bg)
+el.innerHTML=reg.markup (P)
+if (P.stepped) {
+Leave c.wpx/hpx/fscale/scale/rot/locked/revealed reading from those are transform/runtime state, not patchable props.
+Immediately after applyAnimation (el,c,isFirstRender); add the flash. It must come after, because applyAnimation writes el.style.animation='none' when c._played and we need to win that property:
+const
+LastStateIdx(c.id);
+if(c._stateAt!==_si){
+const =_si>= ?comps [si]:null;
+c._stateAt=_si;
+if(st && st.anim && _st.anim!=='none'){
+}
+el.classList. ('fresh");
+el.style.animation="${_st.anim) $((_st.animDur||. )}s cubic-bezier (.2, .7, .3,1) Os backwards":
+stateAt is a runtime marker; it re-flashes when a patch lands or lifts (rewind).
+renderEdges()
+eagebutto(eff (e), ov); // was edgeBuild(e,ov)
+Object.assign preserves id, so g.dataset.id, click-selection and the label post-pass keep working. Deliberately not patched: renderEdgeInspector and the click handler read the raw edges entry, which is correct - you edit the base.
+mirrorCompToPopup() required, or REC/popout won't see state changes
+const eff____ (c);
+if(&&.color){}/ if( && bg).
+const =
+el.innerHTML=reg.
+if (stepped)
+()+(c.wpx||')+(c.hpx11''); // was JSON.stringify(c.props)
+O;
+// was c.props.stepped
+The sig change is what makes the popout rebuild when a patch lands-that existing dirty-check is doing the work, no new push needed.
+Export needs nothing. exportvideo already sets SEQ.active=true and drives SEQ.shown=k, so stateCutoff() picks it up.
+
+
+
+
+4. Labels
+never leak state to the user
+compLabel(c) - add at the very top, before const p=c.props|10)
+if (isset(c)){
+const stateTarget (c);
+//never recurse through another state step - a hand-edited file could point at one const oelt? A missing target'
+: estate (t) ? 'state step'
+: t.type? t.type
+: 'wire';
+return ((c.label1').tri011 Sum (c))+' '+on;
+}
+The isState (t) arm is a real guard, not defensive noise: without it a hand-written JSON with a state step targeting a state step infinite-loops.
+renderStrip() the pill prints c.type; add const tn-isState(c)?' state':c.type; and use tn in both pill.title and nm.textContent.
+renderList() take-mode branch same: const tname=isState(c)?' state':c.type; used in li.title and the <span class="t">.
+5. Selection & interaction guards
+Site
+select(id)
+renderSelTools()
+keydown arrow nudge
+Change
+set statePreview = (c && isState(c))? c.id: null before render()
+add isState (c) to the early-return
+if (isState (c) && /^Arrow/.test(e.key)) return; before the arrow block
+Why
+clicking a row scrubs to it; clicking anything else returns to base
+state steps have no x/y/_rh; the floating toolbar would position at Na
+no position to nudge - but Delete and Ctrl+D must still work, so guard the arrows only, not the whole handle
+
+
+6. Deletion - five sites
+Anything that removes a comp or edge must take dependent state steps with it.
+Comps - replace the inline edges.filter(...) with dropDependents (c.id) in:
+1. renderList row
+button
+2. #sel-tools [data-t="del"] handler
+3. keydown Delete branch
+Edges add alongside the existing edge removal in:
+-
+4. #ee-del in renderEdge Inspector
+5. keydown Delete / Backspace when selEdge is set
+comps=comps. filter (x=>! (isState (x)&&x. target===<edgeId>));
+// its state steps go too
+An orphaned step (hand-edited file, or a legacy path that missed cleanup) must not crash: state Target returns null, compLabel prints A missing target, the row gets a red .orphan class, and the inspector renders with an empty CHANGES list.
+While here: the duplicate button in render List was missing snap () - add it so duplication is undoable like its neighbours.
+
+
+
+7. Creating a state step
+Replace the #seq-variant button's handler. Keep seqVariantSel() defined but unwired so legacy hides projects keep loading.
+function seqAddStateStep({
+}
+const c=comps.find(x=>x.id===selId);
+const =(!c && selEdge)? edges.find(x=>x.id===selEdge): null;
+const target=c||e;
+if(!target){ toastMsg('select a component or wire first then adds a state change
+if(isState (c)){ toastMsg('pick the component itself, not one of its state steps'); r snap();
+if (SEQ.active) seqExit();
+const s={id:uid(), type: STATE_TYPE, target: target.id, label: '', patch: {}, // keeps every c.props. * probe elsewhere safe
+props: {},
+anim: 'none', animDur:0.5 };
+// Land at the END of the sequence, not next to the target. A state change is a // later beat in the story ("...add traffic, more traffic, NOW the server dies"), // so firing the instant the component appears is almost never what you meant. comps.push(s);
+select(s.id); // also arms statePreview so the canvas scrubs to this state renderStrip();
+toastMsg state change added as step ${comps.length} (the end) - tick what changes, "when" to move it`);
+}
+return s;
+/* move a state step to a specific 0-based sequence position */
+function stateMoveTo(s, pos) {
+}
+const from=comps.indexOf(s);
+if (from 0) return;
+const to=Math.max(0, Math.min(comps.length-1, pos));
+if(to===from) return;
+snap();
+comps.splice (from, 1);
+comps.splice (to,0,s);
+render(); renderStrip();
+Placement history. The first implementation inserted at comps.indexOf(c) +1 (right after the target, past any state steps it already owned). That is wrong for real stories the change fires the instant the component appears. Appending to the end is the correct default; §9's WHEN control moves it.
+Button text/title changed from "new state from this" | "clone this comp exactly in place..." to " add state change" / "add a state change for this component -no clone, so its wires and text follow. Drag the new row to when the change should happen."
+
+
+
+8. Sequence list rows
+renderList() gains a third branch. Structure becomes:
+if(!playing && isState (c)){ state row... }
+else if(!playing) { ...existing edit row... }
+else {
+existing take row.... }
+State row: class strow (+ sel, + orphan when !stateTarget (c)), marks,
+label from compLabel (c), and only two buttons (are meaningless on a patch).
+component is untouched.
+The existing edit row gains:
+—
+remove
+duplicate and deletes only the state step; the target
+• a button: mk('', 'add a state change for this component...', ()=>{ select (c.id); seqAddStateStep(); }) aN badge when comps.filter(x=>isState (x)&&x.target===c.id).length is non-zero
+The drag-reorder block further down already runs for any !playing row, so state
+rows get drag-to-reorder and click-to-select with no extra work.
+css/chrome-precision.css
+Insert before body #rail-right #complist li.seqrow {:
+body #rail-right #complist li.strow {
+margin-left: 14px;
+border-left: 2px solid var(--ch-amber);
+background: color-mix(in srgb, var(--ch-amber) 6%, transparent);
+body #rail-right #complist li.strow .marks { color: var(--ch-amber); font-weight: 700; }
+body #rail-right #complist li.strow .pos { color: var(--ch-amber); }
+body #rail-right #complist li.strow.sel { border-color: var(--ch-amber-hi); }
+body #rail-right #complist li.strow.orphan { border-left-color: var (--ch-red); opacity: 6; } body #rail-right #complist .statec {
+}
+margin-left: 6px; padding: 0 5px; border-radius: 99px;
+font-family: var (--ch-mono); font-size: 9px; font-weight: 700;
+color: var(--ch-amber); border: 1px solid var (--ch-amber);
+
+
+
+9. The state inspector
+renderInspector() - add as the first line after the wrap.style.display='block' pair, before const reg=REGISTRY [c.type] (which would otherwise fall into the "unknown type" error path):
+if(isState (c)){ renderState Inspector (wrap, c); return; }
+New renderState Inspector (wrap, s) sits just above renderEdge Inspector, with a module-level EDGE_PATCH_FIELDS const (safe there - EDGE_PRESETS is defined earlier in the file):
+const EDGE_PATCH_FIELDS=[
+];
+['preset', 'select', Object.keys (EDGE_PRESETS)],
+['branch', 'select', ['none', 'success', 'error']],
+['style'; 'select', ['dots', 'dash', 'pulse']],
+['routing', 'select', ['smooth', 'step', 'straight', 'curved']], ['dir', 'select', ['fwd', 'both', 'bwd']],
+['label', 'text',null], ['caption', 'text',null],
+['weight', 'number',null], ['speed', 'number',null], ['animate', 'check',null], ['accent', 'accent',null],
+Panel sections:
+I
+TARGET - a <select> of every non-state comp plus every edge ( #st-target; changing it resets s.patch={} since keys are target-specific), and a free-text name (#st-label) used by the teleprompter.
+WHEN -/step-number input // end, all routed through stateMoveTo. Below it, a live status line:
+⚫ target missing → "target missing- this step does nothing"
+⚫ fires at or before the target's own step → red "A fires at step N, but <type> only appears at step M-move it later or nothing will change"
+• otherwise → " <type> appears at step M. this fires N-M step(s) later"
+That warning matters: a state step earlier than its target is silently inert, because compVisible hides the target anyway.
+CHANGES - one row per patchable field, each with an include checkbox (data-son="<field>") and an editor (data-sv="<field>", plus data-sv2 for the hex twin on accent fields).
+• comp target → reg.fields (accent-named fields render as colour+hex pairs), plus synthetic color and bg rows when not already declared
+O
+edge target→ EDGE_PATCH_FIELDS
+• Unticked rows render at opacity:.45 and are absent from patch
+the field
+then inherits whatever the component had coming in. Ticking seeds the value from before (= base + all earlier patches, i.e. what arrives at this step), so stacking states is predictable.
+Cursor Tab
+Tab Stats: 0/0 (0%)
+
+
+
+
+
+
+only appears at step M-move it later or nothing will change" at step N, but <type>
+• otherwise → "<type> appears at step M. this fires N-M step(s) later"
+That warning matters: a state step earlier than its target is silently inert, because compVisible hides the target anyway.
+CHANGES - one row per patchable field, each with an include checkbox (data-son="<field>") and an editor (data-sv="<field>", plus data-sv2 for the hex twin on accent fields).
+•
+comp target reg.fields (accent-named fields render as colour+hex pairs), plus synthetic color and bg rows when not already declared
+edge target → EDGE_PATCH_FIELDS
+—
+• Unticked rows render at opacity: .45 and are absent from patch the field then inherits whatever the component had coming in. Ticking seeds the value from before (= base + all earlier patches, i.e. what arrives at this step), so stacking states is predictable.
+•
+.
+Editing a value auto-ticks its checkbox.
+Toggle/edit handlers call renderCanvas(); renderList(); renderStrip(); autosave(); never full render(), which would rebuild the panel and steal focus mid-type. (Same reason the main inspector uses render Canvas on oninput.)
+FLASH + TIMING-anim (none + the eight pa- keyframes), animDur, remove this state change. seqHold (blank= the global default), and
+Changing anim clears _stateAt on every comp so the flash previews immediately.
