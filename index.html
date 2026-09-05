@@ -688,6 +688,85 @@ function rich(t){
   return t;
 }
 
+/* ============ code stencil: Python highlighting + verbatim indentation (#114) ============
+   The data was never lost — <textarea> preserves pasted whitespace natively.
+   The old 2-row prose textarea (soft-wrap, spellcheck, Tab-to-leave) destroyed
+   it on edit. Fix = the `code` fieldType below, not a storage change. */
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Only &<> — this is element text, not an attribute: escaping " would render &quot; literally.
+const PY_KW='False|None|True|and|as|assert|async|await|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield|match|case';
+const PY_BI='abs|all|any|bool|bytes|dict|dir|enumerate|filter|float|format|getattr|hasattr|input|int|isinstance|issubclass|iter|len|list|map|max|min|next|object|open|ord|print|range|repr|reversed|round|set|setattr|sorted|str|sum|super|tuple|type|vars|zip|self|cls';
+const PY_RE=new RegExp([
+  '(?<cmt>#[^\\n]*)',
+  '(?<str>"""[\\s\\S]*?"""|\'\'\'[\\s\\S]*?\'\'\'|[rbfuRBFU]{0,2}"(?:[^"\\\\\\n]|\\\\.)*"|[rbfuRBFU]{0,2}\'(?:[^\'\\\\\\n]|\\\\.)*\')',
+  '(?<dec>@[A-Za-z_][\\w.]*)',
+  '(?<cls>(?<=\\bclass\\s)[A-Za-z_]\\w*)',
+  '(?<kw>\\b(?:'+PY_KW+')\\b)',
+  '(?<bi>\\b(?:'+PY_BI+')\\b)',
+  '(?<num>\\b\\d[\\w.]*\\b)',
+  '(?<fn>\\b[A-Za-z_]\\w*(?=\\s*\\())',
+].join('|'),'g');
+// ONE alternation, order-critical. cmt/str first is what stops keywords inside
+// comments and docstrings being coloured — a multi-pass highlighter cannot do this.
+// No CDN: keeps file:// + offline working.
+function pyTokens(src){
+  const out=[]; let last=0, m;
+  PY_RE.lastIndex=0;
+  while((m=PY_RE.exec(src))){
+    if(m[0]===''){ PY_RE.lastIndex++; continue; }
+    if(m.index>last) out.push({t:'', v:src.slice(last,m.index)});
+    const g=m.groups||{};
+    out.push({t:Object.keys(g).find(k=>g[k]!==undefined)||'', v:m[0]});
+    last=m.index+m[0].length;
+  }
+  if(last<src.length) out.push({t:'', v:src.slice(last)});
+  return out;   // flat list covering every char — untagged gaps included, round-trip is exact
+}
+function pyHi(src){
+  const lines=[[]];
+  pyTokens(src).forEach(tk=>{
+    tk.v.split('\n').forEach((p,i)=>{
+      if(i) lines.push([]);
+      if(p) lines[lines.length-1].push({t:tk.t, v:p});
+    });
+  });
+  // splits tokens at newlines and re-opens the span per line — a triple-quoted
+  // string would otherwise straddle the line <div>s → invalid nesting → stepped reveal breaks
+  return lines.map(ln=>ln.map(k=>k.t?`<span class="py-${k.t}">${escHtml(k.v)}</span>`:escHtml(k.v)).join(''));
+}
+function parseFocus(spec){
+  const s=String(spec==null?'':spec).trim(); if(!s) return null;
+  const set=new Set();
+  s.split(/[\s,]+/).filter(Boolean).forEach(part=>{
+    const m=part.match(/^(\d+)\s*-\s*(\d+)$/);
+    if(m){ const a=+m[1], b=+m[2]; for(let i=Math.min(a,b);i<=Math.max(a,b);i++) set.add(i); }
+    else if(/^\d+$/.test(part)) set.add(+part);
+  });
+  return set.size?set:null;
+}
+function codeMarkup(p){
+  const src=String(p.body==null?'':p.body).replace(/\r\n?/g,'\n').replace(/\t/g,'    ');
+  const lines=(p.lang==='python')?pyHi(src):src.split('\n').map(escHtml);
+  const focus=parseFocus(p.focus);
+  const gut=String(lines.length).length;
+  const body=lines.map((h,i)=>{
+    const n=i+1;
+    const off=(focus&&!focus.has(n))?' cl-off':'';
+    return `<div class="tline cl${off}">`
+      +(p.nums?`<span class="cl-num" style="min-width:${gut}ch">${n}</span>`:'')
+      +`<span class="cl-src">${h===''?'&#8203;':h}</span></div>`;
+  }).join('');
+  const bar=p.title
+    ?`<div class="term-bar"><span class="dot dot-r"></span><span class="dot dot-a"></span><span class="dot dot-g"></span><span class="term-title">${escHtml(p.title)}</span></div>`
+    :'';
+  return `<div class="codeblock glow" style="width:${+p.w||900}px;--stroke:${p.accent||'var(--phos-green)'}">${bar}<div class="code-body">${body}</div></div>`;
+}
+// Four things that are load-bearing:
+// · \t → 4 spaces at render (tab-size resolves differently in builder/popup/html-to-image)
+// · class="tline" is mandatory — stepTotal and the stepped-reveal loop query .tline,.cline
+// · &#8203; keeps a blank line's height without inserting a real character
+// · empty title → no term-bar, a bare code panel
+
 /* tech-kit shared bits (strategy/TECH-ELEMENTS.md) */
 const TK_BOLT='<svg width="24" height="36" viewBox="0 0 24 36" style="display:block"><path d="M14 2 L4 20 h6 l-3 14 L21 14 h-7 z" fill="var(--amber)"/></svg>';
 const TK_CLOCK='<svg width="15" height="15" viewBox="0 0 16 16" style="vertical-align:-2px;margin-right:5px"><circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--amber)" stroke-width="2"/><path d="M8 4.5 V8 L10.5 10" stroke="var(--amber)" stroke-width="2" fill="none"/></svg>';
@@ -952,12 +1031,23 @@ const REGISTRY = {
   terminal: { name:'Terminal window',
     group:'basics',
     props:{title:'~/opinions — zsh', body:`$ rag --ask "does it scale?"\n✓ match found (score 0.02)`, w:900, stepped:false},
-    fields:['title','body','w','stepped'], fieldTypes:{body:'textarea', w:'number', stepped:'check'}, help:'enable stepped to reveal line-by-line (Space = next line)',
+    fields:['title','body','w','stepped'], fieldTypes:{body:'code', w:'number', stepped:'check'}, help:'enable stepped to reveal line-by-line (Space = next line) · source code? use the Code block stencil (keeps indentation + highlights Python)',
     markup:p=>`
       <div class="term glow" style="width:${p.w}px">
         <div class="term-bar"><span class="dot dot-r"></span><span class="dot dot-a"></span><span class="dot dot-g"></span><span class="term-title">${p.title}</span></div>
         <div class="term-body">${rich(p.body).split("\n").map(l=>`<div class="tline">${l||"&nbsp;"}</div>`).join("")}</div>
       </div>` },
+
+  code:     { name:'Code block (Python)',
+    group:'basics',
+    help:'paste Python — indentation is kept exactly. focus "4-6" (or "4-6,9") dims every other line. stepped reveals one line at a time. clear the title to drop the window chrome',
+    props:{title:'retrieve.py', lang:'python',
+      body:`def retrieve(question, k=4):\n    """Top-k chunks for a question."""\n    vec = embed(question)  # 1536-dim\n    hits = index.search(vec, k=k)\n    return [h["text"] for h in hits]`,
+      w:900, nums:true, focus:'', stepped:false, accent:'var(--phos-green)'},
+    fields:['title','lang','body','w','nums','focus','stepped','accent'],
+    fieldTypes:{lang:'select', body:'code', w:'number', nums:'check', stepped:'check'},
+    options:{lang:['python','text']},
+    markup:p=>codeMarkup(p) },   // deliberately NOT rich() — its escaping + [b]-tags fight the tokenizer
 
   hottake:  { name:'Lower third · HOT TAKE',
     group:'meta',
@@ -2822,6 +2912,8 @@ function renderInspector(){
       html+=`<div class="row"><label>${fl}</label><select data-prop="${f}">${opts}</select></div>`;
     } else if(t==='image'){
       html+=`<div class="row"><label>${fl}</label><input type="file" accept="image/*" data-img="${f}" style="flex:1;font-size:11px;color:var(--ch-dim)"></div>`;
+    } else if(t==='code'){
+      html+=`<div class="row cd-row" style="align-items:flex-start"><label style="padding-top:5px">${fl}</label><textarea data-prop="${f}" data-code="1" rows="14" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" class="cd-edit" style="width:100%;font-family:var(--ch-mono);font-size:12px;white-space:pre;overflow-x:auto;tab-size:4;min-height:240px;resize:vertical;padding:6px 8px;">${String(c.props[f]==null?'':c.props[f]).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></div>`;
     } else {
       const isNum=t==='number';
       if(isNum){
@@ -2972,6 +3064,26 @@ function renderInspector(){
   const delR=wrap.querySelector('#anim-delay'), delN=wrap.querySelector('#anim-delay-n');
   if(durR){ durR.oninput=()=>{ c.animDur=parseFloat(durR.value)||0.6; durN.value=c.animDur; }; durN.onchange=()=>{ c.animDur=parseFloat(durN.value)||0.6; durR.value=c.animDur; }; }
   if(delR){ delR.oninput=()=>{ c.animDelay=parseFloat(delR.value)||0; delN.value=c.animDelay; }; delN.onchange=()=>{ c.animDelay=parseFloat(delN.value)||0; delR.value=c.animDelay; }; }
+  // code editors: Tab indents (Shift+Tab outdents), selection indents every touched line
+  wrap.querySelectorAll('[data-code]').forEach(ta=>{
+    ta.addEventListener('keydown', ev=>{
+      if(ev.key!=='Tab') return;
+      ev.preventDefault(); ev.stopPropagation();
+      const v=ta.value, s=ta.selectionStart, e=ta.selectionEnd;
+      const ls=v.lastIndexOf('\n',s-1)+1;
+      if(s!==e||ev.shiftKey){
+        const le=v.indexOf('\n',e)<0?v.length:v.indexOf('\n',e);
+        const block=v.slice(ls,le);
+        const out=block.split('\n').map(l=>ev.shiftKey?l.replace(/^ {1,4}/,''):'    '+l).join('\n');
+        ta.value=v.slice(0,ls)+out+v.slice(le);
+        ta.selectionStart=ls; ta.selectionEnd=ls+out.length;
+      } else {
+        ta.value=v.slice(0,s)+'    '+v.slice(e);
+        ta.selectionStart=ta.selectionEnd=s+4;
+      }
+      ta.dispatchEvent(new Event('input',{bubbles:true}));   // drives the [data-prop] handler → c.props
+    });
+  });
   wrap.querySelectorAll('[data-prop]').forEach(inp=>{
     inp.oninput=()=>{
       const f=inp.dataset.prop;
@@ -3267,7 +3379,7 @@ const TK_DSCALE={
   k8s:1, alarm:1, cron:1, globe:1, secret:1, policy:1, repo:1, cirunner:1,
   fproc:1, fdec:1, fterm:1, fio:1, lifeline:1, activation:1, selfcall:1,
   dtitle:1, legend:.9, footnote:.9, chartline:1, chartbars:1, chartdonut:1, timeline:1,
-  terminal:1, hottake:1, toast:1, blame:1, comment:1, stamp:1, sticky:1, loopbox:1, bullets:1,
+  terminal:1, hottake:1, toast:1, blame:1, comment:1, stamp:1, sticky:1, loopbox:1, bullets:1, code:.85,
   box:1, caption:1, progress:1, rec:1, diff:1, checklist:1, arrow:1, circle:1,
   verdict:1, image:1, callout:1, kicker:1
 };
@@ -3276,7 +3388,7 @@ const TK_DEFAULT_ANIM={
   kicker:'pa-fade', title:'pa-glitchin', terminal:'pa-up', hottake:'pa-up', toast:'pa-down', bullets:'pa-left',
   blame:'pa-left', comment:'pa-left', stamp:'pa-zoom', sticky:'pa-zoomout', loopbox:'pa-fade',
   box:'pa-fade', caption:'pa-up', progress:'pa-fade', rec:'pa-zoom', diff:'pa-fade',
-  checklist:'pa-up', arrow:'pa-fade', circle:'pa-fade', verdict:'pa-zoom', image:'pa-fade', callout:'pa-fade',
+  checklist:'pa-up', arrow:'pa-fade', circle:'pa-fade', verdict:'pa-zoom', image:'pa-fade', callout:'pa-fade', code:'pa-up',
   user:'pa-right',
   svc:'pa-left', gnode:'pa-up', server:'pa-up', vm:'pa-up', container:'pa-zoom', pod:'pa-up', bootnode:'pa-up',
   controlplane:'pa-glitchin', boundary:'pa-zoom', lb:'pa-fade', gateway:'pa-left', cdn:'pa-zoom',

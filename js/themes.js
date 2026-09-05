@@ -171,6 +171,21 @@
   /* ---- panel UI ------------------------------------------------------- */
   let panelEl = null, inputs = {};
 
+  /* The floating button's CSS must exist from mount — it used to live inside
+     the lazily-built panel <style>, so on load the unstyled button stretched
+     into a full-width strip (body is flex-column). Inject it up front. */
+  const BTN_CSS = `#llmao-theme-btn{position:fixed;right:14px;bottom:14px;z-index:99999;width:38px;height:38px;
+    border-radius:50%;border:1px solid #31503A;background:#0B0F0B;color:#39FF7A;font-size:17px;
+    cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.5);flex:none}
+    #llmao-theme-btn:hover{border-color:#39FF7A}`;
+  function ensureBtnCss() {
+    if (document.getElementById('llmao-theme-btn-css')) return;
+    const st = document.createElement('style');
+    st.id = 'llmao-theme-btn-css';
+    st.textContent = BTN_CSS;
+    document.head.appendChild(st);
+  }
+
   function syncInputs(vars) {
     Object.entries(inputs).forEach(([role, { color, hex }]) => {
       const v = vars[role] || '';
@@ -207,10 +222,6 @@
           border:1px solid #31503A;padding:6px 4px;border-radius:4px;cursor:pointer}
         .ltp-foot button:hover{border-color:#39FF7A;color:#39FF7A}
         .ltp-note{padding:0 12px 10px;color:#5C8A66;font-size:10px;line-height:1.5}
-        #llmao-theme-btn{position:fixed;right:14px;bottom:14px;z-index:99999;width:38px;height:38px;
-          border-radius:50%;border:1px solid #31503A;background:#0B0F0B;color:#39FF7A;font-size:17px;
-          cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.5)}
-        #llmao-theme-btn:hover{border-color:#39FF7A}
       </style>
       <div class="ltp-h"><span>🎨 THEME</span><button class="ltp-x" title="close">✕</button></div>
       <div class="ltp-presets"></div>
@@ -284,6 +295,7 @@
     }
     syncInputs(currentComputed());
 
+    ensureBtnCss();
     const btn = document.createElement('button');
     btn.id = 'llmao-theme-btn';
     btn.textContent = '🎨';

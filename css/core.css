@@ -2227,3 +2227,11 @@
 .tk-bullets .cline::marker {
   font-size: 1.1em;
 }
+
+/* ===== Code block (structure: layout + whitespace, colours only as var(--*)) ===== */
+.codeblock { background: var(--cbg, var(--panel)); border: 1px solid var(--line-dim); border-radius: 10px; overflow: hidden; box-shadow: 0 30px 80px var(--shadow); }
+.code-body { padding: 24px 28px; font-size: calc(23px * var(--fscale, 1)); line-height: 1.62; color: var(--ct, var(--text-primary)); tab-size: 4; }
+.code-body .cl { display: flex; gap: 18px; min-height: 1.62em; }
+.code-body .cl-num { flex: none; text-align: right; user-select: none; color: var(--text-dim); opacity: .5; }
+.code-body .cl-src { flex: 1; min-width: 0; white-space: pre-wrap; }
+.code-body .cl.cl-off { opacity: .26; }

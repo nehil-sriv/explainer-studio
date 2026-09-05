@@ -446,3 +446,15 @@
 /* ===== TK · bullet points (skin) ===== */
 .tk-bullets { font-family: var(--font-body); color: var(--text-primary); }
 .tk-bullets .cline::marker { color: var(--stroke,var(--phos-green)); content: '▪ '; }
+
+/* ===== Code block (skin: colours/fonts only — the 6 canvas themes retint it) ===== */
+.code-body { font-family: var(--font-body); }
+.code-body .cl-num { font-family: var(--font-body); }
+.code-body .py-kw { color: var(--amber); font-weight: 700; }
+.code-body .py-str { color: var(--phos-green); }
+.code-body .py-cmt { color: var(--text-dim); font-style: italic; }
+.code-body .py-num { color: var(--cyan-dim); }
+.code-body .py-bi { color: var(--cyan-dim); }
+.code-body .py-fn { color: #D3FFDE; }
+.code-body .py-cls { color: #D3FFDE; font-weight: 700; }
+.code-body .py-dec { color: var(--alert-red); }

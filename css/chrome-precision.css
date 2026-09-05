@@ -556,3 +556,8 @@ body aside input[type=range]::-moz-range-thumb {
   background: var(--ch-cyan-hi); cursor: pointer;
 }
 body .rsz:hover { background: rgba(99,102,241,.18); }
+/* ---------- code editor (paste-safe: pre, no wrap, mono, Tab-friendly) ---------- */
+body aside #inspector .cd-row textarea.cd-edit {
+  white-space: pre; overflow-x: auto; overflow-y: auto; tab-size: 4;
+  font-family: var(--ch-mono); font-size: 12px; min-height: 240px;
+}
