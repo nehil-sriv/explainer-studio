@@ -237,9 +237,8 @@ header#transport #btn-record.rec-live {
   color: #fff; background: var(--ch-red); border-color: transparent;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.28);
 }
-/* #btn-new-project now carries .danger and is styled with the menu rows below —
-   an #id rule here would out-specify that and leave red text on the red
-   highlight fill. Don't reintroduce one. */
+/* destructive menu rows (e.g. delete scene) get red text via .danger —
+   keep this class-based so no #id rule can out-specify it. */
 /* floating selection toolbar (outside #scene: un-recordable) */
 body #sel-tools {
   position: absolute; z-index: 9999; display: none; gap: 3px; align-items: center;
@@ -770,6 +769,13 @@ body #scene-menu button.mini.danger:hover .mi { opacity: 1; }
 body header#transport .tp-menu .tp-mdiv,
 body #scene-menu .tp-mdiv {
   height: 0; margin: 5px 5px; border: 0; border-top: .5px solid rgba(255,255,255,.12);
+}
+/* file dropdown keeps a solid fill — it hangs over busy canvas text */
+body header#transport .tp-menu {
+  background: linear-gradient(rgba(46,46,53,.97), rgba(30,30,36,.97));
+}
+html[data-chrome="light"] body header#transport .tp-menu {
+  background: linear-gradient(rgba(255,255,255,.97), rgba(245,246,250,.97));
 }
 
 /* ---------- scene dialog ---------- */

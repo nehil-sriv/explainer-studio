@@ -183,7 +183,6 @@ header#transport #btn-record.rec-live {
   border-color: var(--ch-red); color: #fff; background: var(--ch-red);
   box-shadow: 0 0 12px rgba(239,68,68,0.4);
 }
-header#transport #btn-new-project { color: var(--ch-red); }
 
 /* ---------- sidebar ---------- */
 body aside { width: 360px; background: var(--ch-bg2); border-left: 1px solid var(--ch-line); }
