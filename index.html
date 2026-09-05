@@ -4511,7 +4511,8 @@ function dslSlug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'_').r
    Bare > and < are shorthands for -> and <- (arrows never match inside "quotes",
    so labels like "a > b" are safe — but an unquoted > or < always splits). */
 const DSL_ARROW_RE=/<-\[[^\]]*\]-|-\[[^\]]*\]->|<->|->|<-|>|</g;
-const DSL_EDGE_KEYS=['preset','label','caption','routing','branch','weight','style','speed','animate','accent'];
+/* INVARIANT: nothing here may be the name of a component prop, or `a -> db label=x` would silently style the WIRE instead of the node. 'label' (55 components) and 'accent' (81) were removed for exactly that reason — wires take their label from the -[text]-> bracket and their colour from preset/branch. Re-verify after adding components. */
+const DSL_EDGE_KEYS=['preset','caption','routing','branch','weight','style','speed','animate'];
 const DSL_EDGE_STYLE=['dots','dash','pulse'];
 const DSL_EDGE_ROUTING=['smooth','step','straight','curved'];
 const DSL_EDGE_BRANCH=['none','success','error'];
@@ -4610,7 +4611,11 @@ function dslParse(text){
       if(segs.length>1&&!segs[segs.length-1].trim()){ warns.push({ln, msg:'line ends with an arrow — dangling wire skipped'}); segs.pop(); arrows.pop(); }
     }
     const lineMods={};
-    const specs=segs.map((s,k)=>seg(s,ln,segs.length>1&&k===segs.length-1,lineMods));
+    // wire modifiers are accepted on ANY segment of a wired line (they apply to the
+    // whole line either way). Restricting them to the last segment made the same
+    // tokens mean different things by position: `a -> b weight=3` set the wire while
+    // `a -> b weight=3 -> c` warned "no prop weight".
+    const specs=segs.map((s)=>seg(s,ln,segs.length>1,lineMods));
     if(specs.some(s=>!s)) return;
     arrows.forEach((a,k)=>{
       const A=specs[k], B=specs[k+1];
