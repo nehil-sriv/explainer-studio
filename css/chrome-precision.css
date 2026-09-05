@@ -377,7 +377,7 @@ body aside .hint, body aside .pal-none, body #empty-msg {
   font-family: var(--ch-font); color: var(--ch-mut) !important;
 }
 body aside .pal-search input {
-  background: #090b10; border: 1px solid var(--ch-line);
+  background: var(--ch-bg1); border: 1px solid var(--ch-line);
   color: var(--ch-text); font-family: var(--ch-mono); border-radius: 4px;
 }
 body aside .pal-search input:focus { outline: none; border-color: var(--ch-focus); }
@@ -594,6 +594,73 @@ body aside #inspector .cd-row textarea.cd-edit {
   white-space: pre; overflow-x: auto; overflow-y: auto; tab-size: 4;
   font-family: var(--ch-mono); font-size: 12px; min-height: 240px;
 }
+
+/* ============================================================
+   LIGHT tool theme (tool chrome only — nothing under #scene here,
+   so canvas output is untouched). Tokens flip via html[data-chrome],
+   plus overrides for the handful of hardcoded dark colors/shadows.
+   Toggle: #btn-chrome in the transport bar (persisted).
+   ============================================================ */
+html { color-scheme: dark; }
+html[data-chrome="light"] {
+  color-scheme: light;
+  --ch-bg0: #e3e6ee;
+  --ch-bg1: #eceff6;
+  --ch-bg2: #f4f6fb;
+  --ch-bg3: #ffffff;
+  --ch-bg4: #ffffff;
+  --ch-line: #d3d9e4;
+  --ch-line2: #e2e6ef;
+  --ch-focus: #0891b2;
+  --ch-text: #111827;
+  --ch-dim: #4b5563;
+  --ch-mut: #6b7280;
+  --ch-accent: #0891b2;
+  --ch-accent-hi: #0e7490;
+  --ch-cyan: #0891b2;
+  --ch-cyan-hi: #06b6d4;
+  --ch-cyan-soft: #0e7490;
+  --ch-green-hi: #047857;
+  --ch-amber-hi: #b45309;
+  --ch-purple-hi: #7e22ce;
+  --ch-gray: #374151;
+  --ch-red: #dc2626;
+  --ch-amber: #d97706;
+  --ch-green: #059669;
+  --ch-blue: #2563eb;
+  --ch-purple: #7c3aed;
+}
+/* filled primary buttons keep white text on the darkened cyan */
+html[data-chrome="light"] body button.mini.primary { color: #fff; }
+html[data-chrome="light"] body button.mini.primary:hover { color: #fff; }
+html[data-chrome="light"] body button.mini.primary kbd { color: rgba(255,255,255,.9); border-color: rgba(255,255,255,.5); }
+/* heavy dark shadows go soft */
+html[data-chrome="light"] body #rec-pop, html[data-chrome="light"] body #exp-pop,
+html[data-chrome="light"] body #dsl-pop, html[data-chrome="light"] body #beat-choose,
+html[data-chrome="light"] body #tour-card,
+html[data-chrome="light"] body #scene-menu, html[data-chrome="light"] body #scene-dlg-card,
+html[data-chrome="light"] body #sel-tools, html[data-chrome="light"] body #navtoast {
+  box-shadow: 0 24px 64px rgba(15,23,42,.18);
+}
+html[data-chrome="light"] body #sel-tools { box-shadow: 0 8px 28px rgba(15,23,42,.18); }
+/* alignment grid lines go dark-on-light (they sit on the stage, outside #scene) */
+html[data-chrome="light"] body #canvas-grid {
+  background-image:
+    repeating-linear-gradient(to right, rgba(15,23,42,.10) 0 1px, transparent 1px 200px),
+    repeating-linear-gradient(to bottom, rgba(15,23,42,.10) 0 1px, transparent 1px 200px),
+    repeating-linear-gradient(to right, rgba(15,23,42,.06) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(to bottom, rgba(15,23,42,.06) 0 1px, transparent 1px 40px);
+}
+/* legacy hardcoded dim greens predate the chrome tokens */
+html[data-chrome="light"] .hint,
+html[data-chrome="light"] #empty-msg,
+html[data-chrome="light"] footer { color: var(--ch-dim); }
+/* library stencil buttons + selected rows stay clean on white */
+html[data-chrome="light"] body aside .palette button { background: #fff; }
+html[data-chrome="light"] body aside .palette button:hover { background: #f4f8fb; }
+html[data-chrome="light"] body #btn-chrome.on { color: var(--ch-cyan); border-color: var(--ch-cyan); }
+/* big theme-mode toggle at the far right of the transport bar */
+body #btn-chrome { font-size: 16px; line-height: 1; padding: 4px 10px; }
 /* ---------- scenes: Sequence → Scene → Components tree ---------- */
 body #rail-right .scenerow { display: flex; gap: 6px; padding: 8px 8px 4px; flex: none; }
 body #rail-right .scenerow select {

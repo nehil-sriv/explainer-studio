@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/theme-glass.css">
 <link rel="stylesheet" href="css/theme-brutal.css">
 <link rel="stylesheet" href="css/chrome-precision.css">
+<script>try{document.documentElement.dataset.chrome=localStorage.getItem('phosphor-chrome')||'dark';}catch(e){}</script>
 <style id="tokens-inline">
 /* PHOSPHOR design tokens — single source of truth. Import this everywhere. */
 :root {
@@ -266,6 +267,7 @@ body {
     <button class="mini primary" id="btn-record" title="record the canvas to a video clip · Space walks your sequence">⏺ REC</button>
     <button class="mini primary" id="btn-shot">📸 PNG</button>
     <button class="mini primary" id="btn-export-media" title="one-click export: SVG still · GIF · WebM video — renders each sequence step full-res, no screen capture">🎞 export</button>
+    <button class="mini" id="btn-chrome" title="toggle light / dark tool theme (canvas untouched)">☾</button>
   </div>
 </header>
 
@@ -5460,6 +5462,16 @@ function setSafe(on){
 }
 document.getElementById('btn-safe').onclick=()=>setSafe(document.getElementById('safe-area').style.display==='none');
 try{ setSafe(localStorage.getItem('phosphor-safe')==='1'); }catch(_){}
+/* light / dark tool theme — chrome only (html[data-chrome], canvas untouched) */
+function setChrome(mode){
+  const light=mode!=='dark';
+  document.documentElement.dataset.chrome=light?'light':'dark';
+  const b=document.getElementById('btn-chrome');
+  if(b){ b.textContent=light?'☀':'☾'; b.classList.toggle('on',light); }
+  try{ localStorage.setItem('phosphor-chrome',light?'light':'dark'); }catch(_){}
+}
+document.getElementById('btn-chrome').onclick=()=>setChrome(document.documentElement.dataset.chrome==='light'?'dark':'light');
+try{ setChrome(localStorage.getItem('phosphor-chrome')||'dark'); }catch(_){ setChrome('dark'); }
 addEventListener('resize',fit); fit();
 renderSaved(); renderComplib();
 
