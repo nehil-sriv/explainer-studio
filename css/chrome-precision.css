@@ -556,6 +556,35 @@ body aside input[type=range]::-moz-range-thumb {
   background: var(--ch-cyan-hi); cursor: pointer;
 }
 body .rsz:hover { background: rgba(99,102,241,.18); }
+/* ---------- safe areas (editing aid — outside #scene, never recorded) ---------- */
+body #safe-area {
+  position: absolute; left: 0; top: 0; z-index: 5200; pointer-events: none;
+  font-family: var(--ch-mono); font-size: 13px; letter-spacing: 1px;
+}
+body #safe-area .sz { position: absolute; }
+body #safe-area .sz > span {
+  position: absolute; top: 4px; left: 8px; white-space: nowrap;
+  font-size: 13px; padding: 1px 6px; border-radius: 3px;
+}
+body #safe-area .sz-cover {
+  background: none;
+  border: 2px solid rgba(239,68,68,.7);
+}
+body #safe-area .sz-cover > span { color: #fff; background: rgba(239,68,68,.75); }
+/* borders only — no zone fills, so canvas components show through untouched */
+body #safe-area .sz-safe { border: 2px dashed rgba(6,182,212,.9); background: none; }
+body #safe-area .sz-safe > span { color: #06b6d4; background: rgba(0,0,0,.6); font-size: 20px; }
+body #safe-area .sz-title { border-style: solid; border-color: rgba(6,182,212,.85); background: none; }
+body #safe-area .sz-title > span { top: auto; bottom: 4px; }
+body #btn-safe.on { color: var(--ch-cyan); border-color: var(--ch-cyan); }
+body.recording #safe-area, body.rec-crop #safe-area { display: none !important; }
+/* ---------- align + distribute buttons (multi-select bar only) ---------- */
+body #sel-tools .al-sep {
+  width: 1px; align-self: stretch; margin: 2px 4px;
+  background: var(--ch-line); flex: none;
+}
+body #sel-tools button.al { font-size: 15px; padding: 6px 7px; }
+body #sel-tools button.al:hover { color: var(--ch-cyan); border-color: var(--ch-cyan); }
 /* ---------- code editor (paste-safe: pre, no wrap, mono, Tab-friendly) ---------- */
 body aside #inspector .cd-row textarea.cd-edit {
   white-space: pre; overflow-x: auto; overflow-y: auto; tab-size: 4;

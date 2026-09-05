@@ -251,6 +251,7 @@ body {
     <button class="palette" id="preset-shorts" title="Portrait 1080×1920"><span class="ori-icon portrait"></span></button>
     <button class="mini" id="btn-clear-canvas" title="empty this scene (components + wires) — saved items kept, Ctrl+Z undoes">🧹 clear</button>
     <button class="mini" id="btn-grid" title="alignment gridlines (40/200px) — editing aid, never recorded">▦ grid</button>
+    <button class="mini" id="btn-safe" title="safe areas — title/action safe on 16:9, YouTube Shorts UI cover on 9:16 — never recorded">@ safe</button>
   </div>
   <div class="tp-group tp-transport">
     <button class="palette" id="btn-popout">⧉ popout</button>
@@ -277,10 +278,11 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
     <div id="marquee" style="display:none"></div>
     <div id="multi-box" style="display:none"><div id="multi-size" title="drag to scale the set"></div></div>
+    <div id="safe-area" style="display:none" title="safe areas — editing aid, never recorded"></div>
     <div id="canvas-grid" style="display:none" title="alignment grid — never recorded"></div>
   </div></div>
 
@@ -2302,6 +2304,47 @@ function duplicateSelection(){
   render(); renderStrip();
   return copies;
 }
+/* ============ align + distribute (multi-select set ops) ============
+   how: left | right | cx | top | bottom | cy | dh | dv. */
+function alignSel(how){
+  const team=selMovable();
+  const need=(how==='dh'||how==='dv')?3:2;
+  if(team.length<need){ toastMsg(`pick ${need}+ components first — drag a box, or Shift+click`); return; }
+  const W=c=>(c._rw||c.wpx||220)*(c.scale||1), H=c=>(c._rh||c.hpx||120)*(c.scale||1);
+  const b=selBox(); if(!b) return;
+  const inTeam=new Set(team.map(o=>o.id));
+  const put=(c,nx,ny)=>{
+    if(c.parentId && inTeam.has(c.parentId)) return;   // parent's moveGroup already moved it
+    const dx=(nx==null)?0:nx-c.x, dy=(ny==null)?0:ny-c.y;
+    if(!dx && !dy) return;
+    if(childrenOf(c.id).length) moveGroup(c,dx,dy); else { c.x+=dx; c.y+=dy; }
+  };
+  if(how==='dh'||how==='dv'){
+    // distribute equalises GAPS, not centres — outermost two stay pinned
+    const horiz=(how==='dh');
+    const sz=c=>horiz?W(c):H(c);
+    const sorted=[...team].sort((p,q)=>(horiz?p.x-q.x:p.y-q.y));
+    const first=sorted[0], last=sorted[sorted.length-1];
+    const span=(horiz?(last.x+W(last))-first.x:(last.y+H(last))-first.y);
+    const used=sorted.reduce((a,c)=>a+sz(c),0);
+    const gap=(span-used)/(sorted.length-1);
+    if(gap<0){ toastMsg('not enough room to distribute — spread them out first'); return; }
+    snap();   // one undo step per call, and only when something will actually move
+    let run=horiz?first.x:first.y;
+    sorted.forEach(c=>{ if(horiz) put(c,run,null); else put(c,null,run); run+=sz(c)+gap; });
+    render(); renderStrip();
+    return;
+  }
+  if(['left','right','cx','top','bottom','cy'].indexOf(how)<0) return;
+  snap();   // one undo step per call
+  if(how==='left') team.forEach(c=>put(c,b.x,null));
+  else if(how==='right') team.forEach(c=>put(c,b.x+b.w-W(c),null));
+  else if(how==='cx') team.forEach(c=>put(c,b.cx-W(c)/2,null));
+  else if(how==='top') team.forEach(c=>put(c,null,b.y));
+  else if(how==='bottom') team.forEach(c=>put(c,null,b.y+b.h-H(c)));
+  else if(how==='cy') team.forEach(c=>put(c,null,b.cy-H(c)/2));
+  render(); renderStrip();
+}
 function groupSelection(){
   const team=selMovable();
   if(team.length<2){ toastMsg('select 2+ components to group (Shift+click or box-select)'); return; }
@@ -2609,6 +2652,7 @@ function renderSelTools(){
     const gb=bar.querySelector('[data-t="group"]'); if(gb) gb.style.display='';
     const ub=bar.querySelector('[data-t="ungroup"]');
     if(ub) ub.style.display=selList().some(m=>m.groupId)?'':'none';
+    bar.querySelectorAll('.al,.al-sep').forEach(x=>x.style.display='');
     return;
   }
   if(boxEl) boxEl.style.display='none';
@@ -2616,6 +2660,7 @@ function renderSelTools(){
   // (s already declared above) single-comp bar hangs off the anchor comp
   const ub1=bar.querySelector('[data-t="ungroup"]');
   if(ub1) ub1.style.display=c.groupId?'':'none';
+  bar.querySelectorAll('.al,.al-sep').forEach(x=>x.style.display='none');
   const h=(c._rh||c.hpx||120);
   bar.style.display='flex';
   bar.style.transform=`scale(${1/s})`;
@@ -2630,6 +2675,7 @@ function renderSelTools(){
 document.querySelectorAll('#sel-tools button').forEach(b=>{
   b.onclick=e=>{ e.stopPropagation();
     const k=b.dataset.t;
+    if(k.startsWith('al-')){ alignSel(k.slice(3)); return; }
     if(k==='edit'){ const c=comps.find(x=>x.id===selId); if(!c) return; showRailTab('edit');
       const f=document.querySelector('#fields textarea,#fields input,#fields select'); if(f) f.focus(); }
     else if(k==='dup'){ duplicateSelection(); }
@@ -4714,6 +4760,7 @@ function setSceneSize(w,h){
   scene.style.setProperty('--scene-w', w+'px');
   scene.style.setProperty('--scene-h', h+'px');
   fit();
+  try{ if(document.getElementById('safe-area').style.display!=='none') renderSafeArea(); }catch(_){}
 }
 const inW=document.getElementById('scene-w'), inH=document.getElementById('scene-h');
 inW.oninput=()=>setSceneSize(parseInt(inW.value)||1920, parseInt(inH.value)||1080);
@@ -4762,6 +4809,40 @@ function setGrid(on){
 }
 document.getElementById('btn-grid').onclick=()=>setGrid(document.getElementById('canvas-grid').style.display==='none');
 try{ setGrid(localStorage.getItem('phosphor-grid')==='1'); }catch(_){}
+/* safe areas — title/action safe on 16:9, Shorts UI cover on 9:16.
+   Sibling of #canvas-grid/#marquee (outside #scene), so cropped REC, popout
+   clones and html-to-image exports structurally cannot see it. Sized in canvas
+   px, so it scales with #stage-scale automatically — no counter-scaling. */
+const SHORTS_UI={ bottom:0.155, right:0.135, top:0.055 };
+function renderSafeArea(){
+  const el=document.getElementById('safe-area'); if(!el) return;
+  const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
+  el.style.width=W+'px'; el.style.height=H+'px';
+  const portrait=H>W;
+  const zone=(cls,style,label)=>`<div class="sz ${cls}" style="${style}"><span>${label}</span></div>`;
+  if(portrait){
+    const b=Math.round(H*SHORTS_UI.bottom), r=Math.round(W*SHORTS_UI.right),
+      t=Math.round(H*SHORTS_UI.top);
+    el.innerHTML=
+      zone('sz-cover',`left:0;right:0;bottom:0;height:${b}px`,'Shorts title + description')
+      +zone('sz-cover',`right:0;bottom:${b}px;width:${r}px;top:${t}px`,'actions')
+      +zone('sz-cover',`left:0;right:0;top:0;height:${t}px`,'top bar')
+      +zone('sz-safe',`left:${Math.round(W*0.05)}px;right:${r+Math.round(W*0.02)}px;top:${t+Math.round(H*0.03)}px;bottom:${b+Math.round(H*0.03)}px`,'keep titles inside');
+  }else{
+    const a=(1-0.93)/2, ti=(1-0.90)/2;
+    el.innerHTML=
+      zone('sz-safe',`left:${Math.round(W*a)}px;right:${Math.round(W*a)}px;top:${Math.round(H*a)}px;bottom:${Math.round(H*a)}px`,'action safe 93%')
+      +zone('sz-safe sz-title',`left:${Math.round(W*ti)}px;right:${Math.round(W*ti)}px;top:${Math.round(H*ti)}px;bottom:${Math.round(H*ti)}px`,'title safe 90%');
+  }
+}
+function setSafe(on){
+  const el=document.getElementById('safe-area'), b=document.getElementById('btn-safe');
+  if(el){ el.style.display=on?'':'none'; if(on) renderSafeArea(); }
+  if(b) b.classList.toggle('on',!!on);
+  try{ localStorage.setItem('phosphor-safe',on?'1':''); }catch(_){}
+}
+document.getElementById('btn-safe').onclick=()=>setSafe(document.getElementById('safe-area').style.display==='none');
+try{ setSafe(localStorage.getItem('phosphor-safe')==='1'); }catch(_){}
 addEventListener('resize',fit); fit();
 renderSaved();
 
