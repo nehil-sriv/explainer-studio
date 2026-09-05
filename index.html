@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/theme-glass.css">
 <link rel="stylesheet" href="css/theme-brutal.css">
 <link rel="stylesheet" href="css/chrome-precision.css">
+<link rel="stylesheet" href="css/liquid-glass.css">
 <script>try{document.documentElement.dataset.chrome=localStorage.getItem('phosphor-chrome')||'dark';}catch(e){}</script>
 <style id="tokens-inline">
 /* PHOSPHOR design tokens — single source of truth. Import this everywhere. */
@@ -236,10 +237,10 @@ body {
     <div class="tp-filemenu">
       <button class="palette" id="btn-filemenu" title="project file operations">File ▾</button>
       <div class="tp-menu" id="file-menu" hidden>
-        <button class="palette" id="btn-new-project">🆕 new project</button>
-        <button class="palette" id="btn-open">📂 open project</button>
-        <button class="palette" id="btn-save">💾 save project</button>
-        <button class="palette" id="btn-dsl" title="scene script — type an architecture, get a wired scene (Ctrl+/)">⌨ scene script</button>
+        <button class="palette danger" id="btn-new-project"><span class="mi">🆕</span><span class="ml">new project</span></button>
+        <button class="palette" id="btn-open"><span class="mi">📂</span><span class="ml">open project</span></button>
+        <button class="palette" id="btn-save"><span class="mi">💾</span><span class="ml">save project</span></button>
+        <button class="palette" id="btn-dsl" title="scene script — type an architecture, get a wired scene (Ctrl+/)"><span class="mi">⌨</span><span class="ml">scene script</span></button>
       </div>
     </div>
     <input type="file" id="file-open" accept=".json" style="display:none">
@@ -2623,11 +2624,13 @@ function renderList(){
       li.innerHTML=`<span class="name"><span class="marks">⇄ </span>${rn}. state <span class="pos">${compLabel(c).slice(0,28).replace(/</g,'&lt;')}</span></span>`;
       li.title=!t?`${rn}. state — target missing, this step does nothing`
         :`${rn}. state → ${t.type} — ${stateSummary(c)}`;
-      li.append(
+      const raS=document.createElement('span'); raS.className='rowacts';
+      raS.append(
         mk('⧉','duplicate this state step',()=>{ snap(); const d=structuredClone(c); delete d._played; delete d._stateAt; d.id=uid(); comps.splice(i+1,0,d); render(); renderStrip(); }),
         mk('🗑','remove this state change (the target component is untouched)',()=>{ snap(); const dead=c.id; comps=comps.filter(x=>x.id!==dead); if(selId===dead)selId=null; if(statePreview===dead)statePreview=null; render(); renderStrip(); },'danger')
       );
-      if(c.stepId) li.append(mk('u','split this merged step back into single steps',()=>splitStepsAt(i)));
+      if(c.stepId) raS.append(mk('u','split this merged step back into single steps',()=>splitStepsAt(i)));
+      li.append(raS);
     } else if(!playing){
       // === edit mode: full step controls per row ===
       const rn=runIndexOf(i)+1;
@@ -2635,7 +2638,8 @@ function renderList(){
       const nStates=comps.filter(x=>isState(x)&&x.target===c.id).length;
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+((c.clearBefore||c.pin)?' ':'')+(hideN?`⊘${hideN} `:'');
       li.innerHTML=`<span class="name"><span class="marks">${marks}</span>${rn}. ${c.type} <span class="pos">${compLabel(c).slice(0,24)}</span>${nStates?`<span class="statec" title="${nStates} state change(s) target this">⇄${nStates}</span>`:''}</span>`;
-      li.append(
+      const ra=document.createElement('span'); ra.className='rowacts';
+      ra.append(
         mk('🧹','clear screen before this step (earlier comps hide — 📌 pinned survive)',()=>{ snap(); c.clearBefore=!c.clearBefore; render(); renderStrip(); },'',!!c.clearBefore),
         mk('📌','pin: stays on screen through clears',()=>{ snap(); c.pin=!c.pin; render(); renderStrip(); },'',!!c.pin),
         mk('⇄','add a state change for this component — no clone, so its wires and text follow',()=>{ select(c.id); seqAddStateStep(); }),
@@ -2643,7 +2647,8 @@ function renderList(){
                                  comps.splice(i+1,0,d); render(); renderStrip(); }),
         mk('🗑','remove from recording scene (attached edges go too)',()=>{ snap(); const dead=c.id; comps=comps.filter(x=>x.id!==dead); if(selId===dead)selId=null; dropDependents(dead); render(); },'danger')
       );   // end step-control buttons
-      if(c.stepId) li.append(mk('u','split this merged step back into single steps',()=>splitStepsAt(i)));
+      if(c.stepId) ra.append(mk('u','split this merged step back into single steps',()=>splitStepsAt(i)));
+      li.append(ra);
     } else {
       // === take mode (play/record): text-only narration script ===
       // visited steps are clickable (jump back and return); past-the-head is locked;
@@ -4484,7 +4489,12 @@ function openSceneMenu(btn,sid){
   const clearOn=mine.length&&mine[0].clearBefore;
   const item=(label,fn,opts={})=>{
     const b=document.createElement('button');
-    b.className='mini'; b.textContent=label; b.title=opts.title||label;
+    b.className='mini'; b.title=opts.title||label;
+    const sp=String(label).indexOf(' ');
+    const mi=document.createElement('span'); mi.className='mi'; mi.textContent=sp>0?String(label).slice(0,sp):String(label);
+    const ml=document.createElement('span'); ml.className='ml'; ml.textContent=sp>0?String(label).slice(sp+1):'';
+    b.append(mi,ml);
+    if(/^🗑/.test(String(label))) b.classList.add('danger');
     if(opts.disabled){ b.disabled=true; b.style.opacity='.4'; }
     b.onclick=e=>{ e.stopPropagation(); closeSceneMenu(); fn(); };
     m.appendChild(b); return b;

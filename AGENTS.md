@@ -25,6 +25,9 @@ explainer-studio/
 │   selectors, zero logic changes. Canvas untouched (themes own it).
 ├── css/theme-glass.css ← override skin, active only on #scene[data-theme="glass"]
 ├── css/theme-brutal.css ← override skin, active only on #scene[data-theme="brutal"]
+├── css/liquid-glass.css ← TOOL chrome skin (Apple liquid-glass workbench).
+│   Override layer over chrome-precision.css — load AFTER it. Tool chrome
+│   only; canvas untouched (no #scene rules). See liquid-cc.txt (plan).
 ├── js/phosphor.js      ← animation engine (typewriter, etc.)
 ├── js/themes.js        ← manifest-driven theme engine (activation by data-theme)
 ├── themes/             ← one CSS file per canvas theme + manifest.js (edit that to add/hide)
