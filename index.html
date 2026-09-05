@@ -2059,6 +2059,88 @@ const REGISTRY = {
         <span style="color:var(--text-dim);font-size:26px">⟶</span>
         <div class="chunks" style="--stroke:${p.accent}">${ch.map((c,i)=>`<span class="chk" style="animation-delay:${(i*0.18).toFixed(2)}s">${rich(c)}</span>`).join('')}</div></div>`; } },
 
+  agentloop:{ name:'AI · agent loop',
+    group:'ai',
+    help:'reason → act → observe cycle — the planner that calls tools',
+    props:{label:'planner', accent:'var(--phos-green)'},
+    fields:['label','accent'],
+    markup:p=>{
+      const pts=[0,120,240].map(a=>{ const r=(a-90)*Math.PI/180; return [48+34*Math.cos(r),48+34*Math.sin(r)]; });
+      return `<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}">`
+      +`<svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="var(--stroke)" stroke-width="3">`
+      +`<circle cx="48" cy="48" r="34" stroke-dasharray="7 6" opacity=".75"/>`
+      +pts.map(([x,y])=>`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="var(--ghost-fill)"/>`).join('')
+      +`<circle cx="48" cy="48" r="4" fill="var(--stroke)" stroke="none"/>`
+      +`</svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  mcp:      { name:'AI · MCP endpoint',
+    group:'ai',
+    help:'Model Context Protocol — server exposes tools, client consumes them',
+    props:{label:'fs-server', role:'server', accent:'#57C7C0'},
+    fields:['label','role','accent'], fieldTypes:{role:'select'}, options:{role:['server','client']},
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}">`
+      +`<svg width="96" height="88" viewBox="0 0 96 88" fill="none" stroke="var(--stroke)" stroke-width="3">`
+      +`<rect x="20" y="14" width="56" height="48" rx="10"/>`
+      +(p.role==='client'
+        ? `<path d="M40 32 L30 38 L40 44 M56 32 L66 38 L56 44"/>`
+        : `<line x1="32" y1="30" x2="64" y2="30"/><line x1="32" y1="38" x2="64" y2="38"/><line x1="32" y1="46" x2="52" y2="46"/><circle cx="59" cy="46" r="2.5" fill="var(--stroke)" stroke="none"/>`)
+      +`</svg><span class="tk-caption">${rich(p.label)}</span><span class="tk-sub">${p.role}</span></div>` },
+
+  tool:     { name:'AI · tool call',
+    group:'ai',
+    help:'one function the agent can call — name is the function signature',
+    props:{name:'get_weather', accent:'var(--phos-green)'},
+    fields:['name','accent'],
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}">`
+      +`<svg width="84" height="72" viewBox="0 0 84 72" fill="none" stroke="var(--stroke)" stroke-width="3">`
+      +`<rect x="8" y="8" width="68" height="56" rx="10"/>`
+      +`<text x="42" y="46" text-anchor="middle" font-size="24" fill="var(--stroke)" stroke="none">ƒ()</text>`
+      +`</svg>${p.name?`<span class="tk-caption">${rich(p.name)}</span>`:''}</div>` },
+
+  memory:   { name:'AI · conversation memory',
+    group:'ai',
+    help:'turns = stacked dialogue lines, older ones fade',
+    props:{label:'chat history', turns:6, accent:'#57C7C0'},
+    fields:['label','turns','accent'], fieldTypes:{turns:'number'},
+    markup:p=>{ const t=Math.max(1,Math.min(8,Math.round(+p.turns||6)));
+      return `<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}">`
+      +`<svg width="96" height="84" viewBox="0 0 96 84" fill="none" stroke="var(--stroke)" stroke-width="3" stroke-linecap="round">`
+      +Array.from({length:t},(_,i)=>{ const y=10+i*(60/Math.max(1,t-1));
+        return `<line x1="10" y1="${y.toFixed(1)}" x2="86" y2="${y.toFixed(1)}" opacity="${(0.3+0.7*(i+1)/t).toFixed(2)}"/>`; }).join('')
+      +`</svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>`; } },
+
+  reranker: { name:'AI · reranker',
+    group:'ai',
+    help:'scores top-k down to the few worth reading',
+    props:{label:'rerank top-20', accent:'var(--phos-green)'},
+    fields:['label','accent'],
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}">`
+      +`<svg width="84" height="84" viewBox="0 0 84 84" fill="none" stroke="var(--stroke)" stroke-width="3" stroke-linejoin="round">`
+      +`<path d="M12 10 H72 L52 42 V68 L32 74 V42 Z"/>`
+      +`<line x1="34" y1="22" x2="62" y2="22" opacity=".45"/><line x1="40" y1="30" x2="56" y2="30" opacity=".7"/>`
+      +`</svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
+  judge:    { name:'AI · LLM judge',
+    group:'ai',
+    help:'scores output — label what it grades, score the verdict',
+    props:{label:'faithfulness', score:8.5, accent:'var(--phos-green)'},
+    fields:['label','score','accent'], fieldTypes:{score:'number'},
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}">`
+      +`<svg width="84" height="84" viewBox="0 0 84 84" fill="none" stroke="var(--stroke)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">`
+      +`<circle cx="42" cy="42" r="30"/><path d="M32 43 L40 51 L55 33"/>`
+      +`</svg><span class="tk-caption">${rich(p.label)} · ${p.score}</span></div>` },
+
+  guardrail:{ name:'AI · guardrail',
+    group:'ai',
+    help:'policy gate — PII, toxicity and secrets stay in or out',
+    props:{label:'pii filter', accent:'var(--phos-green)'},
+    fields:['label','accent'],
+    markup:p=>`<div style="display:flex;flex-direction:column;align-items:center;--stroke:${p.accent}">`
+      +`<svg width="84" height="88" viewBox="0 0 84 88" fill="none" stroke="var(--stroke)" stroke-width="3" stroke-linejoin="round">`
+      +`<path d="M42 6 L74 18 V44 C74 64 60 76 42 82 C24 76 10 64 10 44 V18 Z"/>`
+      +`<path d="M34 45 L41 52 L53 37" stroke-linecap="round"/>`
+      +`</svg>${p.label?`<span class="tk-caption">${rich(p.label)}</span>`:''}</div>` },
+
   bootnode: { name:'KK · node bootstrap',
     group:'nodes',
     help:'outline draws itself in, status lights up — "worker nodes coming up". replays every time it is pulled.',
@@ -5646,6 +5728,8 @@ const DSL_ALIAS={
   pinecone:'vdb', weaviate:'vdb', qdrant:'vdb', chroma:'vdb', faiss:'vdb', milvus:'vdb',
   chunk:'splitter', chunks:'splitter', chunker:'splitter', chunking:'splitter', split:'splitter',
   llm:'model', gpt:'model', claude:'model', llama:'model', gemini:'model', mistral:'model', ai:'model',
+  agent:'agentloop', loop:'agentloop', mcp:'mcp', tool:'tool', toolcall:'tool', memory:'memory',
+  rerank:'reranker', reranker:'reranker', judge:'judge', guardrail:'guardrail',
   query:'prompt', question:'prompt', ask:'prompt',
   context:'ctxwin', ctx:'ctxwin', contextwindow:'ctxwin', window:'ctxwin',
   output:'tokens', answer:'tokens', completion:'tokens', response:'tokens', generation:'tokens',
