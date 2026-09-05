@@ -227,6 +227,7 @@ body {
         <button class="palette" id="btn-new-project">🆕 new project</button>
         <button class="palette" id="btn-open">📂 open project</button>
         <button class="palette" id="btn-save">💾 save project</button>
+        <button class="palette" id="btn-dsl" title="scene script — type an architecture, get a wired scene (Ctrl+/)">⌨ scene script</button>
       </div>
     </div>
     <input type="file" id="file-open" accept=".json" style="display:none">
@@ -405,6 +406,46 @@ body {
     body.recording.live aside { pointer-events:auto; }   /* live take: scene/queue panels stay usable */
     body.recording aside { pointer-events:none; }
   </style>
+  <div id="dsl-pop">
+    <div id="dsl-pop-title">⌨ scene script</div>
+    <p class="hint">type an architecture → wired scene. <b>apply</b> merges (your layout kept) · <b>insert as new</b> stamps a fresh copy · <b>re-layout</b> re-runs placement. <b>from scene</b> bootstraps the text. <kbd>Ctrl+Enter</kbd> applies.</p>
+    <div class="dsl-cols">
+      <textarea id="dsl-text" spellcheck="false" placeholder="browser -> lb -> api -> db&#10;api -[sql]-> cache&#10;api:gnode &quot;Orders API&quot; &quot;REST v2&quot;&#10;# lines: a -> b -> c · a &lt;- b · a &lt;-&gt; b (or a > b, a &lt; b) · name:type &quot;label&quot; key=val · @layout lr|tb · @gap 150 70"></textarea>
+      <div id="dsl-report"></div>
+    </div>
+    <div class="rec-btns" style="flex-wrap:wrap">
+      <button class="mini primary" id="dsl-apply">↓ apply</button>
+      <button class="mini" id="dsl-insert">+ insert as new</button>
+      <button class="mini" id="dsl-relayout">⤢ re-layout</button>
+      <button class="mini" id="dsl-from">⬆ from scene</button>
+      <span style="flex:1"></span>
+      <button class="mini" id="dsl-close">close</button>
+    </div>
+  </div>
+  <style>
+    #dsl-pop { position:fixed; top:54px; left:50%; transform:translateX(-50%); z-index:900; width:min(920px,94vw);
+               background:#0F1710; border:1px solid var(--phos-green); border-radius:8px; padding:14px 16px; display:none;
+               font-family:'JetBrains Mono',monospace; flex-direction:column; gap:10px; }
+    #dsl-pop-title { font-family:'VT323'; font-size:24px; color:var(--phos-green); }
+    #dsl-pop .hint { margin:0; font-size:11px; color:var(--text-dim); line-height:1.6; }
+    #dsl-pop .hint b { color:var(--text-primary); }
+    #dsl-pop .hint kbd { font-family:inherit; font-size:10px; border:1px solid var(--line-dim); border-bottom-width:2px; border-radius:3px; padding:0 4px; }
+    .dsl-cols { display:flex; gap:10px; min-height:280px; }
+    #dsl-text { flex:1.2; min-width:0; min-height:280px; resize:vertical; background:var(--bg-deep); color:var(--text-primary);
+                border:1px solid var(--line-dim); border-radius:6px; padding:10px 12px;
+                font-family:'JetBrains Mono',monospace; font-size:13px; line-height:1.7; }
+    #dsl-text:focus { outline:none; border-color:var(--phos-green); }
+    #dsl-report { flex:1; min-width:0; max-height:320px; overflow-y:auto; font-size:12px; line-height:1.6; }
+    .dsl-ok { color:var(--phos-green); font-weight:700; margin-bottom:6px; }
+    .dsl-bad { color:var(--alert-red); font-weight:700; margin-bottom:6px; }
+    .dsl-row { display:flex; align-items:center; gap:8px; padding:2px 0; color:var(--text-primary); }
+    .dsl-row b { font-weight:700; }
+    .dsl-row i { color:var(--text-dim); font-style:normal; }
+    .dsl-tag { font-size:10px; letter-spacing:1px; color:var(--cyan-dim); border:1px solid var(--line-dim); border-radius:99px; padding:0 8px; }
+    .dsl-tag.warn { color:var(--amber); border-color:var(--amber); }
+    .dsl-warn { color:var(--amber); font-size:11px; }
+    .dsl-err { color:var(--alert-red); font-size:11px; }
+  </style>
   <footer id="beatbar"><div id="strip" style="display:flex;align-items:center;gap:8px;width:100%"></div></footer>
 
 <script src="js/phosphor.js"></script>
@@ -575,6 +616,8 @@ function stateMoveTo(s, pos){
   comps.splice(to,0,s);
   render(); renderStrip();
 }
+/* script text for the scene-script DSL dialog — persisted in save/autosave */
+let dslScript='';
 /* universal parenting: ANY component can attach to / hold any other */
 function childrenOf(id){ return comps.filter(c=>c.parentId===id); }
 function revealComp(c){
@@ -3315,6 +3358,8 @@ addEventListener('keydown',e=>{
   if(e.key==='Escape' && !typing){
     const fm=document.getElementById('file-menu');
     if(fm && !fm.hidden){ fm.hidden=true; e.preventDefault(); return; }
+    const dp=document.getElementById('dsl-pop');
+    if(dp && dp.style.display==='flex'){ dp.style.display='none'; e.preventDefault(); return; }
     if(connectPending){ cancelConnect(); e.preventDefault(); return; }
     if(nodeDrag){ cancelNodeDrag(); e.preventDefault(); return; }
     if(sizeDrag){ cancelSizeDrag(); e.preventDefault(); return; }
@@ -3323,6 +3368,10 @@ addEventListener('keydown',e=>{
     if(SEQ.active){ seqExit(); e.preventDefault(); return; }
   }
   if((e.ctrlKey||e.metaKey) && e.key==='z' && !typing){ undo(); e.preventDefault(); return; }
+  if((e.ctrlKey||e.metaKey) && (e.key==='/'||e.key==='?') && !typing){
+    const db=document.getElementById('btn-dsl');
+    if(db){ db.click(); e.preventDefault(); return; }
+  }
 
   // ---- selection keys ----
   if(selEdge && !typing && (e.key==='Delete'||e.key==='Backspace')){
@@ -4333,7 +4382,7 @@ function autosave(){
   try{ // canvas state only — never overwrite saved scenes from here
     localStorage.setItem(AKEY, JSON.stringify({ scene:{w:parseInt(inW.value),h:parseInt(inH.value)},
        comps:comps.map(c=>({...c, draft:!!c.draft})), edges, saved:loadSaved(), currentSceneName,
-       seqHoldDefault:SEQ.holdDefault })); }catch{}
+       script:dslScript, seqHoldDefault:SEQ.holdDefault })); }catch{}
 }
 (function restore(){
   try{
@@ -4352,6 +4401,7 @@ function autosave(){
            pruneEdges();
            if(d.saved) { storeSaved(d.saved); renderSaved(); }
            currentSceneName=d.currentSceneName||null;
+           dslScript=d.script||'';
            if(d.seqHoldDefault!=null) SEQ.holdDefault=+d.seqHoldDefault||1.6;
            else if(d.holdDefault!=null) SEQ.holdDefault=+d.holdDefault||1.6;
            SEQ.active=false; SEQ.shown=comps.length; curBeat=0;
@@ -4380,11 +4430,457 @@ try{ showCompTab(localStorage.getItem('phosphor-comptab')==='saved'?'saved':'ava
 
 /* (old help-export button removed from chrome) */
 
+/* ============ scene script (DSL): type an architecture, get a wired scene ============
+   Line-oriented generator for structure (nodes, wires, reveal order). It is NOT
+   the source of truth — the scene is. Re-applying merges (keyed on script name
+   → stable d_<slug> ids): positions and hand edits survive, script owns type +
+   props. Everything else (holds, clears, pins, entrances, colours) stays in the UI.
+   Syntax: `browser -> lb -> api -> db`, `api -[sql]-> cache`, `name:type "Label"
+   "sub" key=val, @layout lr|tb, @gap X Y. `#` comments (outside quotes). */
+const DSL_ALIAS={
+  users:'user', person:'user', human:'user', customer:'user', you:'user', me:'user',
+  browser:'clientdev', client:'clientdev', phone:'clientdev', mobile:'clientdev', device:'clientdev', ui:'clientdev',
+  api:'gnode', service:'gnode', app:'gnode', backend:'gnode', frontend:'gnode', microservice:'gnode',
+  proxy:'gateway', ingress:'gateway',
+  loadbalancer:'lb', balancer:'lb', nginx:'lb', envoy:'lb', haproxy:'lb',
+  waf:'firewall',
+  serverless:'lambda', fn:'lambda', func:'lambda', function:'lambda',
+  consumer:'worker', job:'worker', jobs:'worker', scheduler:'cron',
+  docker:'container', kubernetes:'k8s', eks:'k8s', gke:'k8s', cluster:'boundary',
+  database:'db', postgres:'db', postgresql:'db', mysql:'db', sql:'db', rds:'db', sqlite:'db',
+  mongo:'nosql', mongodb:'nosql', dynamo:'nosql', dynamodb:'nosql', cassandra:'nosql',
+  redis:'cache', memcached:'cache', memcache:'cache',
+  kafka:'queue', sqs:'queue', rabbitmq:'queue', topic:'queue', broker:'queue', pubsub:'queue',
+  s3:'bucket', blob:'bucket', storage:'bucket', objectstore:'bucket', minio:'bucket',
+  snowflake:'warehouse', bigquery:'warehouse', redshift:'warehouse', lake:'warehouse',
+  log:'logs', events:'stream', kinesis:'stream',
+  document:'doc', documents:'doc', docs:'doc', file:'doc', files:'doc', pdf:'doc', pdfs:'doc',
+  corpus:'doc', knowledge:'doc', wiki:'doc', source:'doc', sources:'doc',
+  embedding:'embed', embeddings:'embed', encoder:'embed', vectorize:'embed',
+  vectordb:'vdb', vectorstore:'vdb', vectorindex:'vdb', vectors:'vdb', pgvector:'vdb',
+  pinecone:'vdb', weaviate:'vdb', qdrant:'vdb', chroma:'vdb', faiss:'vdb', milvus:'vdb',
+  chunk:'splitter', chunks:'splitter', chunker:'splitter', chunking:'splitter', split:'splitter',
+  llm:'model', gpt:'model', claude:'model', llama:'model', gemini:'model', mistral:'model', ai:'model',
+  query:'prompt', question:'prompt', ask:'prompt',
+  context:'ctxwin', ctx:'ctxwin', contextwindow:'ctxwin', window:'ctxwin',
+  output:'tokens', answer:'tokens', completion:'tokens', response:'tokens', generation:'tokens',
+  search:'index', retriever:'index', retrieval:'index', bm25:'index', lexical:'index',
+  git:'repo', github:'repo', gitlab:'repo', ci:'cirunner', build:'cirunner',
+  internet:'cloud', www:'cloud',
+  alert:'alarm', monitor:'gauge', metrics:'gauge',
+  kms:'secret', vault:'secret', secrets:'secret',
+};
+let _dslVocab=null;
+function dslVocab(){ return _dslVocab || (_dslVocab=Object.keys(REGISTRY).concat(Object.keys(DSL_ALIAS))); }
+function dslLev(a,b){
+  const m=a.length, n=b.length;
+  if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,i)=>i), cur=new Array(n+1);
+  for(let i=1;i<=m;i++){
+    cur[0]=i;
+    for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    [prev,cur]=[cur,prev];
+  }
+  return prev[n];
+}
+/* bare-name → component: registry exact, alias, singular, conservative fuzzy, gnode */
+function dslType(word){
+  const w=String(word).toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(!w) return {type:'gnode', how:'fallback'};
+  if(REGISTRY[w]) return {type:w, how:'exact'};
+  if(DSL_ALIAS[w]) return {type:DSL_ALIAS[w], how:'alias'};
+  if(w.endsWith('s')){
+    const sg=w.slice(0,-1);
+    if(REGISTRY[sg]) return {type:sg, how:'alias'};
+    if(DSL_ALIAS[sg]) return {type:DSL_ALIAS[sg], how:'alias'};
+  }
+  let best=null, bd=99;
+  for(const c of dslVocab()){ const d=dslLev(w,c); if(d<bd){ bd=d; best=c; } }
+  if(w.length>=4&&best&&bd<=2) return {type:REGISTRY[best]?best:DSL_ALIAS[best], how:'fuzzy', guess:best, dist:bd};
+  if(best&&bd<=3) return {type:'gnode', how:'fallback', guess:best, dist:bd};
+  return {type:'gnode', how:'fallback'};
+}
+/* label prop: first of title/label/name/text present in the type's defaults */
+function dslLabelKey(type){
+  const p=(REGISTRY[type]||{}).props||{};
+  for(const k of ['title','label','name','text']) if(k in p) return k;
+  return null;
+}
+function dslSlug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+/* -> forward, <- backward, <-> both; -[text]-> carries a wire label/preset.
+   Bare > and < are shorthands for -> and <- (arrows never match inside "quotes",
+   so labels like "a > b" are safe — but an unquoted > or < always splits). */
+const DSL_ARROW_RE=/<-\[[^\]]*\]-|-\[[^\]]*\]->|<->|->|<-|>|</g;
+const DSL_EDGE_KEYS=['preset','label','caption','routing','branch','weight','style','speed','animate','accent'];
+const DSL_EDGE_STYLE=['dots','dash','pulse'];
+const DSL_EDGE_ROUTING=['smooth','step','straight','curved'];
+const DSL_EDGE_BRANCH=['none','success','error'];
+const DSL_EDGE_SHORTHAND={dashed:'dash', dotted:'dots', pulse:'pulse'};
+/* quote-aware: # starts a comment only outside quotes and after whitespace/start
+   (so accent=#FF8000 and "a#b" survive) */
+function dslStripComment(raw){
+  let inQ=false, out='';
+  for(let i=0;i<raw.length;i++){
+    const ch=raw[i];
+    if(ch==='"'){ inQ=!inQ; out+=ch; continue; }
+    if(ch==='#'&&!inQ&&(i===0||/\s/.test(raw[i-1]))) break;
+    out+=ch;
+  }
+  return out;
+}
+function dslParse(text){
+  const nodes=new Map(), links=[], errors=[], warns=[], order=[];
+  const opts={dir:'lr', gapX:150, gapY:70};
+  const seg=(s, ln, wantMods, lineMods)=>{
+    const toks=[]; const re=/"([^"]*)"|(\S+)/g; let t;
+    while((t=re.exec(s))) toks.push(t[1]!==undefined?{q:1, v:t[1]}:{q:0, v:t[2]});
+    if(!toks.length){ errors.push({ln, msg:'empty node — two arrows in a row?'}); return null; }
+    if(toks[0].q){ errors.push({ln, msg:'a node needs a name before its "label"'}); return null; }
+    const head=toks[0].v;
+    const ci=head.indexOf(':');
+    const name=ci>=0?head.slice(0,ci):head;
+    const forced=ci>=0?head.slice(ci+1):'';
+    if(!name){ errors.push({ln, msg:'missing node name before ":"'}); return null; }
+    let res;
+    if(forced){
+      const fw=String(forced).toLowerCase().replace(/[^a-z0-9]/g,'');
+      if(!REGISTRY[fw]){
+        const g=dslType(forced);
+        const hint=g.guess?(g.dist<=2?` — did you mean "${g.guess}"?`:` — closest match is "${g.guess}"`):'';
+        errors.push({ln, msg:`unknown type "${forced}"${hint}`});
+        return null;
+      }
+      res={type:fw, how:'forced'};
+    } else res=dslType(name);
+    const labels=toks.filter(t=>t.q).map(t=>t.v);
+    const props={};
+    toks.slice(1).filter(t=>!t.q).forEach(t=>{
+      const eq=t.v.indexOf('=');
+      if(eq<0){
+        const low=t.v.toLowerCase();
+        if(wantMods&&DSL_EDGE_SHORTHAND[low]){ lineMods.style=DSL_EDGE_SHORTHAND[low]; return; }
+        warns.push({ln, msg:`ignored stray token "${t.v}"`}); return;
+      }
+      const k=t.v.slice(0,eq), v=t.v.slice(eq+1);
+      if(wantMods&&DSL_EDGE_KEYS.includes(k)){
+        if(k==='style'&&!DSL_EDGE_STYLE.includes(v)){ warns.push({ln, msg:`unknown wire style "${v}" — want dots/dash/pulse`}); return; }
+        if(k==='routing'&&!DSL_EDGE_ROUTING.includes(v)){ warns.push({ln, msg:`unknown routing "${v}"`}); return; }
+        if(k==='branch'&&!DSL_EDGE_BRANCH.includes(v)){ warns.push({ln, msg:`unknown branch "${v}"`}); return; }
+        lineMods[k]=v; return;
+      }
+      props[k]=v;
+    });
+    const spec=nodes.get(name)||{name, type:res.type, how:res.how, guess:res.guess, dist:res.dist, labels:[], props:{}, ln};
+    if(forced||!nodes.has(name)){ spec.type=res.type; spec.how=res.how; spec.guess=res.guess; spec.dist=res.dist; }
+    if(labels.length) spec.labels=labels;
+    Object.assign(spec.props, props);
+    if(!nodes.has(name)){ nodes.set(name, spec); order.push(name); }
+    return spec;
+  };
+  String(text).split('\n').forEach((raw,i)=>{
+    const ln=i+1;
+    const line=dslStripComment(raw).trim();
+    if(!line) return;
+    if(line[0]==='@'){
+      const [d,...rest]=line.slice(1).split(/\s+/);
+      if(d==='layout'){ const v=(rest[0]||'lr').toLowerCase();
+        if(v!=='lr'&&v!=='tb') warns.push({ln, msg:`@layout expects lr or tb, got "${rest[0]}"`}); else opts.dir=v;
+      } else if(d==='gap'){ const a=parseInt(rest[0],10), b=parseInt(rest[1],10);
+        if(isFinite(a)) opts.gapX=Math.max(20,a); if(isFinite(b)) opts.gapY=Math.max(20,b);
+      }
+      else warns.push({ln, msg:`unknown directive "@${d}"`});
+      return;
+    }
+    const segs=[], arrows=[];
+    let last=0, m; DSL_ARROW_RE.lastIndex=0;
+    // quoted ranges: arrows inside "labels" are literal text, not structure
+    const qRanges=[]; { const qr=/"[^"]*"/g; let qm; while((qm=qr.exec(line))) qRanges.push([qm.index, qm.index+qm[0].length]); }
+    const inQuotes=pos=>qRanges.some(([a,b])=>pos>=a&&pos<b);
+    while((m=DSL_ARROW_RE.exec(line))){
+      if(inQuotes(m.index)) continue;   // skip: don't advance `last`
+      segs.push(line.slice(last,m.index)); arrows.push(m[0]); last=m.index+m[0].length;
+    }
+    segs.push(line.slice(last));
+    if(segs.length>1){
+      // a line that is only arrows (still typing) is ignored silently;
+      // content with a dangling end arrow applies its nodes and skips just
+      // that wire (warning) — only a hole in the MIDDLE is ambiguous (error)
+      if(segs.every(s=>!s.trim())) return;
+      if(!segs[0].trim()){ warns.push({ln, msg:'line starts with an arrow — dangling wire skipped'}); segs.shift(); arrows.shift(); }
+      if(segs.length>1&&!segs[segs.length-1].trim()){ warns.push({ln, msg:'line ends with an arrow — dangling wire skipped'}); segs.pop(); arrows.pop(); }
+    }
+    const lineMods={};
+    const specs=segs.map((s,k)=>seg(s,ln,segs.length>1&&k===segs.length-1,lineMods));
+    if(specs.some(s=>!s)) return;
+    arrows.forEach((a,k)=>{
+      const A=specs[k], B=specs[k+1];
+      const bm=a.match(/\[([^\]]*)\]/);
+      const bracket=bm?bm[1]:'';
+      const back=(a==='<-')||(a==='<')||a.indexOf('<-[')===0;
+      const link={from:(back?B:A).name, to:(back?A:B).name, dir:(a==='<->'?'both':'fwd'), preset:'none', label:'', mods:{}, ln};
+      Object.assign(link.mods, lineMods);
+      if(link.mods.preset){ link.preset=link.mods.preset; delete link.mods.preset; }
+      if(link.mods.label){ link.label=link.mods.label; delete link.mods.label; }
+      if(bracket){
+        const p=bracket.trim().toLowerCase();
+        if(EDGE_PRESETS[p]) link.preset=p; else link.label=bracket.trim();
+      }
+      if(link.from===link.to){ warns.push({ln, msg:`"${link.from}" links to itself — skipped`}); return; }
+      const dup=links.find(x=>x.from===link.from&&x.to===link.to);
+      if(dup){ warns.push({ln, msg:`duplicate wire ${link.from} → ${link.to} — skipped`}); return; }
+      links.push(link);
+    });
+  });
+  return {nodes, order, links, errors, warns, opts};
+}
+/* parse + resolve real props + rank (longest path from any source) */
+function dslBuild(text){
+  const P=dslParse(text);
+  P.specs=P.order.map(n=>{
+    const s=P.nodes.get(n);
+    const reg=REGISTRY[s.type]||{};
+    const props=structuredClone(reg.props||{});
+    const lk=dslLabelKey(s.type);
+    if(s.labels[0]&&lk) props[lk]=s.labels[0];
+    else if(s.how!=='exact'&&lk) props[lk]=s.name;
+    if(s.labels[1]&&('sub' in props)) props.sub=s.labels[1];
+    Object.entries(s.props).forEach(([k,v])=>{
+      if(!(k in props)){ P.warns.push({ln:s.ln, msg:`"${s.type}" has no prop "${k}" — ignored`}); return; }
+      props[k]=(typeof props[k]==='number')?(parseFloat(v)||0)
+        :(typeof props[k]==='boolean')?(v!=='false'&&v!=='0'):v;
+    });
+    return {...s, props};
+  });
+  const rank=new Map(); P.order.forEach(n=>rank.set(n,0));
+  for(let it=0;it<P.order.length+2;it++){
+    let ch=false;
+    for(const l of P.links){
+      if(!rank.has(l.from)||!rank.has(l.to)) continue;
+      const r=rank.get(l.from)+1;
+      if(r>rank.get(l.to)){ rank.set(l.to,r); ch=true; }
+    }
+    if(!ch) break;
+  }
+  P.rank=rank;
+  return P;
+}
+/* rank grid from live-measured boxes (caller renders before/after: two-pass sizing) */
+function dslLayout(placeMap, rank, opts){
+  const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
+  const vert=opts.dir==='tb';
+  const wOf=c=>(c._rw||c.wpx||220)*(c.scale||1);
+  const hOf=c=>(c._rh||c.hpx||120)*(c.scale||1);
+  const cols=new Map();
+  placeMap.forEach((c,name)=>{ const r=rank.get(name)||0; if(!cols.has(r)) cols.set(r,[]); cols.get(r).push(c); });
+  const rks=[...cols.keys()].sort((a,b)=>a-b);
+  const mainOf=c=>vert?hOf(c):wOf(c), crossOf=c=>vert?wOf(c):hOf(c);
+  const colMain=rks.map(r=>Math.max(...cols.get(r).map(mainOf)));
+  const totalMain=colMain.reduce((a,b)=>a+b,0)+opts.gapX*Math.max(0,rks.length-1);
+  let cur=Math.max(40,Math.round(((vert?H:W)-totalMain)/2));
+  rks.forEach((r,i)=>{
+    const items=cols.get(r);
+    const cs=items.map(crossOf);
+    const totalCross=cs.reduce((a,b)=>a+b,0)+opts.gapY*Math.max(0,items.length-1);
+    let cc=Math.max(40,Math.round(((vert?W:H)-totalCross)/2));
+    items.forEach((c,k)=>{
+      const mid=cur+Math.round((colMain[i]-mainOf(c))/2);
+      if(vert){ c.y=mid; c.x=cc; } else { c.x=mid; c.y=cc; }
+      c.x=Math.max(10,Math.min(W-40,c.x));
+      c.y=Math.max(10,Math.min(H-40,c.y));
+      cc+=cs[k]+opts.gapY;
+    });
+    cur+=colMain[i]+opts.gapX;
+  });
+}
+/* new nodes joining an arranged scene: stack under their rank cohort, or step
+   right of the previous rank — existing positions never move */
+function dslPlaceNew(newComps, placeMap, rank, opts){
+  const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
+  const wOf=c=>(c._rw||c.wpx||220)*(c.scale||1);
+  const hOf=c=>(c._rh||c.hpx||120)*(c.scale||1);
+  const byRank=new Map();
+  placeMap.forEach((c,name)=>{
+    if(newComps.includes(c)) return;
+    const r=rank.get(name)||0;
+    let a=byRank.get(r); if(!a){ a={xs:[],bottom:-1e9,right:-1e9}; byRank.set(r,a); }
+    a.xs.push(c.x); a.bottom=Math.max(a.bottom,c.y+hOf(c)); a.right=Math.max(a.right,c.x+wOf(c));
+  });
+  newComps.forEach(c=>{
+    let nm=null; placeMap.forEach((v,k)=>{ if(v===c) nm=k; });
+    const r=rank.get(nm)||0;
+    const here=byRank.get(r);
+    if(here){
+      c.x=Math.round(here.xs.reduce((a,b)=>a+b,0)/here.xs.length);
+      c.y=here.bottom+opts.gapY;
+    } else {
+      const prev=byRank.get(r-1);
+      c.x=prev?prev.right+opts.gapX:Math.round(W*0.15);
+      c.y=Math.round(H*0.4);
+    }
+    c.x=Math.max(10,Math.min(W-40,c.x)); c.y=Math.max(10,Math.min(H-40,c.y));
+    let a=byRank.get(r); if(!a){ a={xs:[],bottom:-1e9,right:-1e9}; byRank.set(r,a); }
+    a.bottom=Math.max(a.bottom,c.y+hOf(c)); a.right=Math.max(a.right,c.x+wOf(c)); a.xs.push(c.x);
+  });
+}
+/* stamped group (insert-as-new) lands below existing content, not on top of it */
+function dslShiftStamp(newComps, opts){
+  const H=parseInt(inH.value)||1080;
+  let exB=-1e9;
+  comps.forEach(c=>{
+    if(newComps.includes(c)||c.parked||isState(c)) return;
+    exB=Math.max(exB,c.y+((c._rh||c.hpx||120)*(c.scale||1)));
+  });
+  if(exB===-1e9) return; // empty scene — centered layout stands
+  let gT=1e9;
+  newComps.forEach(c=>{ gT=Math.min(gT,c.y); });
+  const dy=(exB+opts.gapY)-gT;
+  if(dy>0) newComps.forEach(c=>{ c.y=Math.max(10,c.y+dy); });
+}
+/* merge, never rebuild: existing d_<slug> comps keep x/y/scale/rot/z/anim/holds —
+   script owns type + props. All-or-nothing: errors apply nothing. */
+function dslApply(text, mode){
+  const P=dslBuild(text);
+  if(P.errors.length||!P.specs.length) return P;
+  snap();
+  if(SEQ.active) seqExit();
+  const fresh=(mode==='new');
+  const stamp=fresh?uid()+'_':'';
+  const placeMap=new Map(), newComps=[];
+  const slugOwner=new Map();
+  let updated=0;
+  P.specs.forEach(s=>{
+    let slug=dslSlug(s.name)||'node';
+    if(slugOwner.has(slug)&&slugOwner.get(slug)!==s.name){
+      let i=2; while(slugOwner.has(slug+'_'+i)&&slugOwner.get(slug+'_'+i)!==s.name) i++;
+      slug=slug+'_'+i;
+    }
+    slugOwner.set(slug,s.name);
+    const id='d_'+stamp+slug;
+    let c=fresh?null:comps.find(x=>x.id===id);
+    if(c&&!isState(c)){
+      c.type=s.type; c.props=s.props; // the script owns type + props
+      updated++;
+    } else {
+      c={id, type:s.type, x:120, y:120, scale:TK_DSCALE[s.type]||1, rot:0, z:comps.length+10, opacity:1, props:s.props, draft:false};
+      comps.push(c); newComps.push(c);
+    }
+    placeMap.set(s.name,c);
+  });
+  let newEdges=0;
+  P.links.forEach(l=>{
+    const A=placeMap.get(l.from), B=placeMap.get(l.to);
+    if(!A||!B) return;
+    const eid='de_'+stamp+dslSlug(l.from)+'__'+dslSlug(l.to);
+    let e=edges.find(x=>x.id===eid);
+    if(!e){
+      e={id:eid, from:A.id, fromPort:'auto', to:B.id, toPort:'auto', preset:'none', label:'', caption:'', routing:'smooth', branch:'none', weight:2, dir:'fwd', style:'dots', speed:1, animate:true};
+      edges.push(e); newEdges++;
+    }
+    e.from=A.id; e.to=B.id; e.preset=l.preset; e.label=l.label; e.dir=l.dir;
+    const md=l.mods||{};
+    if(md.style) e.style=md.style;
+    if(md.routing) e.routing=md.routing;
+    if(md.branch) e.branch=md.branch;
+    if(md.accent) e.accent=md.accent;
+    if(md.caption!==undefined) e.caption=md.caption;
+    if(md.weight!==undefined){ const w=parseFloat(md.weight); if(isFinite(w)) e.weight=Math.max(1,Math.min(5,w)); }
+    if(md.speed!==undefined){ const sp=parseFloat(md.speed); if(isFinite(sp)) e.speed=Math.max(0.25,Math.min(4,sp)); }
+    if(md.animate!==undefined) e.animate=!(md.animate==='false'||md.animate==='0');
+  });
+  render(); // pass 1 paints so _rw/_rh are real; pass 2 places against measured boxes
+  if(mode==='relayout'||newComps.length===placeMap.size){
+    dslLayout(placeMap, P.rank, P.opts);
+    if(fresh&&comps.length!==newComps.length) dslShiftStamp(newComps, P.opts);
+  } else if(newComps.length){
+    dslPlaceNew(newComps, placeMap, P.rank, P.opts);
+  }
+  render(); renderStrip(); autosave();
+  P.result={nodes:P.specs.length, wires:P.links.length, created:newComps.length, updated, newEdges, kept:placeMap.size-newComps.length};
+  return P;
+}
+/* bootstrap / learn by example: regenerate a script from the current scene.
+   Layout isn't captured — ids preserve it on re-apply. */
+function dslFromScene(){
+  const out=[], seen=new Map();
+  const nameFor=c=>{
+    if(seen.has(c.id)) return seen.get(c.id);
+    let base=(dslSlug(compLabel(c)||c.type)||c.type).slice(0,20)||c.type;
+    let n=base, i=2;
+    while([...seen.values()].includes(n)) n=base+'_'+(i++);
+    seen.set(c.id,n); return n;
+  };
+  const real=comps.filter(c=>!isState(c)&&!c.parked);
+  real.forEach(c=>{
+    const n=nameFor(c), lk=dslLabelKey(c.type), lab=lk?String(c.props[lk]||''):'';
+    const typed=(n===c.type);
+    out.push(typed&&!lab?n:`${n}:${c.type}${lab?` "${lab.replace(/"/g,'')}"`:''}`);
+  });
+  edges.forEach(e=>{
+    const A=real.find(c=>c.id===e.from), B=real.find(c=>c.id===e.to);
+    if(!A||!B) return;
+    const lb=(e.preset&&e.preset!=='none')?e.preset:(e.label||'');
+    out.push(`${nameFor(A)} ${lb?`-[${lb}]->`:'->'} ${nameFor(B)}`);
+  });
+  const dropped=comps.length-real.length;
+  return out.join('\n')+(dropped?`\n\n# ${dropped} item(s) not represented (state steps / parked)`:'');
+}
+/* ---- scene-script dialog (modal, exp-pop/rec-pop pattern, larger) ---- */
+(function(){
+  const pop=document.getElementById('dsl-pop'), ta=document.getElementById('dsl-text'), rep=document.getElementById('dsl-report');
+  if(!pop) return;
+  const open=v=>{ pop.style.display=v?'flex':'none'; if(v){ ta.value=dslScript; ta.focus(); review(); } };
+  function review(){
+    const P=dslBuild(ta.value);
+    const L=[];
+    if(P.errors.length){
+      L.push(`<div class="dsl-bad">✕ ${P.errors.length} error${P.errors.length>1?'s':''} — nothing will be applied</div>`);
+      P.errors.forEach(e=>L.push(`<div class="dsl-err">line ${e.ln}: ${e.msg.replace(/</g,'&lt;')}</div>`));
+    } else {
+      L.push(`<div class="dsl-ok">✓ ${P.order.length} node${P.order.length===1?'':'s'} · ${P.links.length} wire${P.links.length===1?'':'s'}</div>`);
+    }
+    P.specs.forEach(s=>{
+      const near=(s.how==='fallback'&&s.guess&&s.dist<=3);
+      const tag=s.how==='exact'?'':s.how==='forced'?'forced':s.how==='alias'?'alias':s.how==='fuzzy'?`~ ${s.guess}`:(near?`generic card — meant "${s.guess}"?`:'generic card');
+      L.push(`<div class="dsl-row"><b>${s.name.replace(/</g,'&lt;')}</b><i>${s.type}</i>${tag?`<span class="dsl-tag${s.how==='fallback'?' warn':''}">${tag}</span>`:''}</div>`);
+    });
+    P.warns.forEach(w=>L.push(`<div class="dsl-warn">line ${w.ln}: ${w.msg.replace(/</g,'&lt;')}</div>`));
+    rep.innerHTML=L.join('');
+    return P;
+  }
+  ta.addEventListener('input',()=>{ dslScript=ta.value; review(); });
+  ta.addEventListener('keydown',e=>{
+    e.stopPropagation(); // canvas shortcuts must not fire while typing
+    if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); run('merge'); }
+    if((e.key==='/'||e.key==='?')&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); open(false); }
+    if(e.key==='Escape'){ e.preventDefault(); open(false); }
+  });
+  function run(mode){
+    if(REC.active){ toastMsg('stop recording first — then apply the script'); return; }
+    const P=dslApply(ta.value, mode);
+    dslScript=ta.value;
+    if(P.errors.length){ review(); toastMsg('✕ fix the script errors first'); return; }
+    if(!P.specs.length){ toastMsg('nothing to apply — type a flow line first'); return; }
+    const r=P.result;
+    toastMsg(`${r.nodes} node${r.nodes===1?'':'s'}, ${r.wires} wire${r.wires===1?'':'s'} — ${r.created} new, ${r.updated} updated${r.kept?`, ${r.kept} position${r.kept===1?'':'s'} kept`:''}${P.warns.length?` · ${P.warns.length} warning${P.warns.length===1?'':'s'}`:''}`);
+    open(false);
+  }
+  document.getElementById('btn-dsl').onclick=()=>open(pop.style.display!=='flex');
+  document.getElementById('dsl-close').onclick=()=>open(false);
+  document.getElementById('dsl-apply').onclick=()=>run('merge');
+  document.getElementById('dsl-insert').onclick=()=>run('new');
+  document.getElementById('dsl-relayout').onclick=()=>run('relayout');
+  document.getElementById('dsl-from').onclick=()=>{ ta.value=dslFromScene(); dslScript=ta.value; review(); };
+  addEventListener('keydown',e=>{
+    if((e.key==='/'||e.key==='?')&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); open(pop.style.display!=='flex'); }
+  });
+})();
+
 /* ============ project save / load (file) ============ */
 document.getElementById('btn-save').onclick=()=>{
   const data={ version:3, scene:{ w:parseInt(inW.value)||1920, h:parseInt(inH.value)||1080 },
                comps:comps.map(({draft,...rest})=>{ const o={...rest}; delete o.beat; o.draft=!!draft; return o; }),
                edges, saved:loadSaved(), seqHoldDefault:SEQ.holdDefault,
+               script:dslScript||undefined,
                currentSceneName:currentSceneName||undefined };
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
@@ -4415,6 +4911,7 @@ document.getElementById('file-open').onchange=e=>{
       if(d.saved){ storeSaved(d.saved); renderSaved(); }
       if(d.seqHoldDefault!=null) SEQ.holdDefault=+d.seqHoldDefault||SEQ.holdDefault;
       currentSceneName=d.currentSceneName||null;
+      dslScript=d.script||'';
       selId=null; selEdge=null; draft=null; statePreview=null;
       SEQ.active=false; SEQ.shown=comps.length; curBeat=0;
       if(imp.note) toastMsg(imp.note);
@@ -4441,7 +4938,7 @@ document.getElementById('btn-clear-canvas').onclick=()=>{
 document.getElementById('btn-new-project').onclick=()=>{
   if(!confirm('Start a new project?\nClears the canvas, saved components and saved scenes (autosave too). Exported .json files are NOT deleted.')) return;
   seqStopAutoTimer();
-  comps=[]; edges=[]; selId=null; selEdge=null; draft=null; currentSceneName=null; statePreview=null;
+  comps=[]; edges=[]; selId=null; selEdge=null; draft=null; currentSceneName=null; statePreview=null; dslScript='';
   SEQ.active=false; SEQ.auto=false; SEQ.shown=0; curBeat=0; beatLabels.length=0;
   storeSaved([]);
   localStorage.removeItem(AKEY);
