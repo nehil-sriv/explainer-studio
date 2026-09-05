@@ -2292,14 +2292,6 @@ function renderLive(){
   renderCanvas();
   // keep inspector transform inputs in sync (only if not focused)
   const wrap=document.getElementById('fields');
-  wrap.querySelectorAll('[data-img]').forEach(inp=>{
-    inp.onchange=()=>{
-      const f=inp.files[0]; if(!f) return;
-      const r=new FileReader();
-      r.onload=()=>{ c.props[inp.dataset.img]=r.result; renderCanvas(); autosave(); };
-      r.readAsDataURL(f);
-    };
-  });
   wrap.querySelectorAll('[data-p]').forEach(inp=>{
     const c=comps.find(x=>x.id===selId); if(!c) return;
     if(document.activeElement!==inp) inp.value=c[inp.dataset.p];
@@ -2311,7 +2303,8 @@ function renderLive(){
     if(document.activeElement!==inp && inp.type==='number') inp.value=c2[inp.dataset.p];
   });
   renderSelTools();   // follow the comp while it drags
-  autosave();
+  // NOTE: no autosave() here — renderLive is the drag/resize hot path and
+  // setInterval(autosave, 2000) already covers persistence (1.4)
 }
 
 function render(){
@@ -3227,6 +3220,7 @@ function makeDraggable(el,c){
     const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
     const sx=e.clientX-c.x*(currentScale()), sy=e.clientY-c.y*currentScale();
     const startx=c.x, starty=c.y;
+    let dragSnapped=false;   // snap lazily before the first actual move (not on click)
     const gv=document.getElementById('gv'), gh=document.getElementById('gh');
     const xs=[0,64,W/2,W-64], ys=[0,H*0.33,H/2,H*0.67,H-64];
     const mv=ev=>{
@@ -3247,6 +3241,7 @@ function makeDraggable(el,c){
       if(px&&!ev.altKey){ nx=Math.round(px[0]); gv.style.display='block'; gv.style.left=px[1]+'px'; } else gv.style.display='none';
       if(py&&!ev.altKey){ ny=Math.round(py[0]); gh.style.display='block'; gh.style.top=py[1]+'px'; } else gh.style.display='none';
       const dx=nx-c.x, dy=ny-c.y;
+      if(dx||dy){ if(!dragSnapped){ snap(); dragSnapped=true; } }
       if(childrenOf(c.id).length) moveGroup(c,dx,dy); else { c.x=nx; c.y=ny; }
       renderLive();
     };
@@ -3258,7 +3253,7 @@ function makeDraggable(el,c){
       if(ctr){ c.parentId=ctr.id; }
       else { delete c.parentId; }
       }
-      snap(); lastUsed.x=c.x; lastUsed.y=c.y; render(); };
+      lastUsed.x=c.x; lastUsed.y=c.y; render(); };
     addEventListener('mousemove',mv); addEventListener('mouseup',up);
     nodeDrag={mv,up};
   });
@@ -3281,6 +3276,7 @@ document.getElementById('scene').addEventListener('dblclick',e=>{
   if(inp){ inp.focus(); inp.select(); }
 });
 
+let nudgeSnapAt=0;   // arrow-key bursts share one undo slot (1.2)
 addEventListener('keydown',e=>{
   if(REC.active){
     // during a take: Esc stops; everything else falls through so Space keeps driving the session
@@ -3342,6 +3338,9 @@ addEventListener('keydown',e=>{
   }
   if(isState(c) && /^Arrow/.test(e.key)) return;   // no position to nudge — Delete/Ctrl+D still work
   const step=e.shiftKey?20:2;
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown'){
+    if(Date.now()-nudgeSnapAt>800){ snap(); nudgeSnapAt=Date.now(); }   // one slot per burst
+  }
   if(e.key==='ArrowLeft'){c.x-=step;} else if(e.key==='ArrowRight'){c.x+=step;}
   else if(e.key==='ArrowUp'){c.y-=step;} else if(e.key==='ArrowDown'){c.y+=step;}
   else if(e.key==='Delete'){ snap(); const dead=c.id; comps=comps.filter(x=>x.id!==dead); selId=null;
@@ -3724,8 +3723,8 @@ document.getElementById('btn-shot').onclick=async ()=>{
   }catch(err){ hideChrome(false); alert('snapshot failed: '+err.message+'\nUse DevTools node screenshot instead.'); }
 };
 function hideChrome(on){
-  document.getElementById('gv').style.display='none';
-  document.getElementById('gh').style.display='none';
+  document.getElementById('gv').style.display=on?'none':'';
+  document.getElementById('gh').style.display=on?'none':'';
 }
 
 /* ============ 🎞 one-click export: SVG still · GIF · WebM (no screen capture) ============
