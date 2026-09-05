@@ -212,9 +212,12 @@ body button.mini:hover, body ul.clean button:hover {
 body button.mini:active, body ul.clean button:active { transform: scale(.96); }
 body button.mini.primary {
   color: #fff; font-weight: 598; background: var(--ch-accent); border-color: transparent;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 4px 14px 4px rgba(10,132,255,.6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28);
 }
-body button.mini.primary:hover { background: var(--ch-accent); filter: brightness(1.1); border-color: transparent; }
+body button.mini.primary:hover {
+  background: var(--ch-accent); filter: brightness(1.1); border-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28);
+}
 body button.mini.danger, body ul.clean button.danger { color: var(--ch-red); }
 body button.mini.danger:hover, body ul.clean button.danger:hover {
   color: var(--ch-red); background: rgba(255,69,58,.18); border-color: rgba(255,69,58,.35);
@@ -232,7 +235,7 @@ header#transport #btn-record {
 }
 header#transport #btn-record.rec-live {
   color: #fff; background: var(--ch-red); border-color: transparent;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 4px 16px -3px rgba(255,69,58,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28);
 }
 /* #btn-new-project now carries .danger and is styled with the menu rows below —
    an #id rule here would out-specify that and leave red text on the red
@@ -551,6 +554,41 @@ body aside #inspector .cd-row textarea.cd-edit {
   white-space: pre; overflow-x: auto; overflow-y: auto; tab-size: 4;
   font-size: 12px; min-height: 240px;
 }
+/* section titles → quiet liquid headers (rendered without classes, so match
+   bare section divs; rows/controls all carry classes or ids) */
+body aside #inspector #fields > div:not([class]) {
+  font-family: var(--ch-font) !important; font-size: 11px !important;
+  font-weight: 600 !important; letter-spacing: .06em !important;
+  color: var(--ch-mut) !important; text-transform: uppercase;
+}
+/* tint/background/accent swatches → glass orbs (inline size/border stay) */
+body aside #inspector #swatches button,
+body aside #inspector #bg-swatches button,
+body aside #inspector .acc-swatches button {
+  border-radius: 50% !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.4) !important;
+  transition: transform .18s var(--ch-spring) !important;
+}
+body aside #inspector #swatches button:hover,
+body aside #inspector #bg-swatches button:hover,
+body aside #inspector .acc-swatches button:hover { transform: scale(1.15); }
+/* panel action buttons → liquid capsules (keep their accent/amber identity) */
+body aside #inspector #anim-replay,
+body aside #inspector #seq-variant {
+  border-radius: var(--ch-r-chip) !important;
+  border-width: .5px !important;
+  background: var(--ch-fill) !important;
+  padding: 7px !important;
+  transition: background .2s var(--ch-spring), transform .2s var(--ch-spring) !important;
+}
+body aside #inspector #anim-replay:hover,
+body aside #inspector #seq-variant:hover { background: var(--ch-fill-hi) !important; }
+body aside #inspector #anim-replay:active,
+body aside #inspector #seq-variant:active { transform: scale(.97); }
+/* ⊘ hide picker → chips */
+body aside #inspector #seq-hides label { border-radius: 99px !important; }
+/* native color wells */
+body aside #inspector input[type=color] { border-radius: 6px; padding: 0; overflow: hidden; }
 
 /* ---------- timeline footer ---------- */
 footer#beatbar {
@@ -789,11 +827,11 @@ body select option { background: #262628; color: #fff; }
 body #rail-right .scenerow { display: flex; gap: 7px; padding: 8px 11px 6px; flex: none; }
 body #rail-right .scenerow select { flex: 1; min-width: 0; padding: 6px 10px; }
 body #rail-right #complist li.scenehead {
-  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
   background: var(--ch-fill); border: .5px solid rgba(255,255,255,.06);
-  border-radius: var(--ch-r-ctl); padding: 9px 10px;
-  font-family: var(--ch-font); font-size: 12px; font-weight: 590; letter-spacing: .005em;
-  margin-top: 10px;
+  border-radius: var(--ch-r-ctl); padding: 5px 10px;
+  font-family: var(--ch-font); font-size: 11.5px; font-weight: 590; letter-spacing: .005em;
+  margin-top: 8px;
 }
 body #rail-right #complist li.scenehead:first-child { margin-top: 0; }
 body #rail-right #complist li.scenehead .fold { color: var(--ch-mut); font-size: 9px; flex: none; }
@@ -809,7 +847,7 @@ body #rail-right #complist li.scenehead.active {
   border-color: rgba(10,132,255,.5); background: rgba(10,132,255,.14);
 }
 body #rail-right #complist li.scenehead.active .sname { color: var(--ch-accent-hi); }
-body #rail-right #complist li.scenehead button { flex: none; }
+body #rail-right #complist li.scenehead button { flex: none; padding: 3px 8px; font-size: 11px; }
 body #rail-right #complist li.scenehead.dragging { opacity: .4; }
 body #rail-right #complist li.scenehead.drop-before { box-shadow: 0 -2px 0 var(--ch-accent); }
 body #rail-right #complist li.scenehead.drop-after { box-shadow: 0 2px 0 var(--ch-accent); }
@@ -978,3 +1016,76 @@ html[data-chrome="light"] body #exp-pop::-webkit-scrollbar-thumb { background: r
 html[data-chrome="light"] body aside::-webkit-scrollbar-thumb:hover,
 html[data-chrome="light"] body footer#beatbar::-webkit-scrollbar-thumb:hover,
 html[data-chrome="light"] body .tabpane::-webkit-scrollbar-thumb:hover { background: rgba(15,23,42,.4); }
+
+/* ---------- theme picker (injected by js/themes.js) ----------
+   That file writes its own <style> into <head> AFTER this sheet loads, so
+   every selector here needs body in front of it to out-specify the injection.
+   Geometry (position/size) is left alone — surface, type and controls only. */
+body .llmao-theme-panel {
+  background: var(--ch-tint-up);
+  -webkit-backdrop-filter: var(--ch-blur-up);
+  backdrop-filter: var(--ch-blur-up);
+  border: .5px solid var(--ch-stroke);
+  border-radius: var(--ch-r-panel);
+  box-shadow:
+    inset 0 1px 0 var(--ch-spec),
+    inset 0 -1px 0 var(--ch-shade),
+    0 24px 60px -18px rgba(0,0,0,.6);
+  font-family: var(--ch-font);
+  color: var(--ch-text);
+}
+body .llmao-theme-panel .ltp-h {
+  border-bottom: .5px solid var(--ch-stroke-soft);
+  color: var(--ch-text); letter-spacing: -.01em;
+  font-family: var(--ch-font); font-size: 13px; font-weight: 600;
+}
+body .llmao-theme-panel .ltp-h span { letter-spacing: -.01em; }
+body .llmao-theme-panel .ltp-x { color: var(--ch-mut); font-size: 13px; }
+body .llmao-theme-panel .ltp-x:hover { color: var(--ch-text); }
+body .llmao-theme-panel .ltp-presets { border-bottom: .5px solid var(--ch-stroke-soft); }
+body .llmao-theme-panel .ltp-presets button {
+  font-family: var(--ch-font); font-size: 12px; font-weight: 500;
+  background: var(--ch-fill); color: var(--ch-text);
+  border: .5px solid rgba(255,255,255,.06); border-radius: var(--ch-r-chip);
+  padding: 7px 12px;
+  transition: background .2s var(--ch-spring), transform .2s var(--ch-spring);
+}
+body .llmao-theme-panel .ltp-presets button:hover {
+  background: var(--ch-fill-hi); color: var(--ch-text); border-color: rgba(255,255,255,.12);
+}
+body .llmao-theme-panel .ltp-presets button:active { transform: scale(.96); }
+body .llmao-theme-panel .ltp-presets button.on {
+  background: var(--ch-accent); border-color: transparent; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+}
+body .llmao-theme-panel .ltp-presets button.on:hover { background: var(--ch-accent); filter: brightness(1.1); }
+body .llmao-theme-panel .ltp-role label {
+  font-family: var(--ch-font); font-size: 11px; color: var(--ch-dim); line-height: 1.4;
+}
+body .llmao-theme-panel .ltp-role label code { font-family: var(--ch-mono); }
+body .llmao-theme-panel .ltp-role input[type=color] {
+  border: .5px solid var(--ch-stroke); border-radius: 6px; background: none;
+}
+body .llmao-theme-panel .ltp-role input[type=text] {
+  background: var(--ch-well); border: .5px solid var(--ch-stroke-soft);
+  color: var(--ch-text); font-family: var(--ch-mono); font-size: 11px;
+  border-radius: var(--ch-r-ctl);
+}
+body .llmao-theme-panel .ltp-role input[type=text]:focus {
+  outline: none; border-color: var(--ch-accent);
+  box-shadow: 0 0 0 3.5px rgba(10,132,255,.25);
+}
+body .llmao-theme-panel .ltp-foot { border-top: .5px solid var(--ch-stroke-soft); }
+body .llmao-theme-panel .ltp-foot button {
+  font-family: var(--ch-font); font-size: 12px; font-weight: 500;
+  background: var(--ch-fill); color: var(--ch-text);
+  border: .5px solid rgba(255,255,255,.06); border-radius: var(--ch-r-chip);
+  transition: background .2s var(--ch-spring), transform .2s var(--ch-spring);
+}
+body .llmao-theme-panel .ltp-foot button:hover { background: var(--ch-fill-hi); }
+body .llmao-theme-panel .ltp-foot button:active { transform: scale(.96); }
+body .llmao-theme-panel .ltp-note {
+  font-family: var(--ch-font); color: var(--ch-mut); font-size: 10.5px;
+}
+html[data-chrome="light"] body .llmao-theme-panel .ltp-presets button,
+html[data-chrome="light"] body .llmao-theme-panel .ltp-foot button { border-color: var(--ch-line); }

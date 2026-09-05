@@ -94,6 +94,8 @@
     loadThemeCss(key);
     scope.dataset.theme = key;
     save({ preset: key });
+    currentPreset = key;
+    syncPresetButtons();
     setTimeout(() => syncInputs(currentComputed()), 60);   // sheets land async — read after
     return true;
   }
@@ -115,6 +117,8 @@
         if (k && v) vars[k.trim()] = v.trim();
       });
       applyVars(vars);
+      currentPreset = 'custom';
+      syncPresetButtons();
       syncInputs(currentComputed());
     }
   }
@@ -127,7 +131,13 @@
   }
 
   /* ---- panel UI ------------------------------------------------------- */
-  let panelEl = null, inputs = {};
+  let panelEl = null, inputs = {}, currentPreset = null;
+  function syncPresetButtons() {
+    if (!panelEl) return;
+    panelEl.querySelectorAll('.ltp-presets button').forEach(b => {
+      b.classList.toggle('on', b.dataset.key === currentPreset);
+    });
+  }
 
   /* The floating button's CSS must exist from mount — it used to live inside
      the lazily-built panel <style>, so on load the unstyled button stretched
@@ -169,6 +179,7 @@
         .ltp-presets button{font-family:inherit;font-size:11px;background:#101710;color:#D3FFDE;
           border:1px solid #1E2A1E;padding:5px 8px;border-radius:4px;cursor:pointer}
         .ltp-presets button:hover{border-color:#39FF7A;color:#39FF7A}
+        .ltp-presets button.on{border-color:#0A84FF;color:#fff;background:rgba(10,132,255,.25)}
         .ltp-roles{padding:8px 12px}
         .ltp-role{display:flex;align-items:center;gap:8px;margin-bottom:6px}
         .ltp-role label{flex:1;color:#5C8A66;font-size:11px;line-height:1.25}
@@ -197,9 +208,11 @@
       const b = document.createElement('button');
       b.textContent = t.key;
       b.title = t.label;
+      b.dataset.key = t.key;
       b.onclick = () => applyPreset(t.key);
       pres.appendChild(b);
     });
+    syncPresetButtons();
 
     // role rows
     const wrap = panelEl.querySelector('.ltp-roles');
@@ -216,6 +229,8 @@
         if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
         scopeEl().style.setProperty(role, v);
         save({ preset: 'custom' });
+        currentPreset = 'custom';
+        syncPresetButtons();
         const other = v === color.value ? hex : color;
         if (other === hex) hex.value = v; else color.value = v;
       };
@@ -264,6 +279,7 @@
     btn.onclick = () => {
       if (!panelEl) document.body.appendChild(buildPanel());
       panelEl.classList.toggle('open');
+      syncPresetButtons();
       syncInputs(currentComputed());
     };
     document.body.appendChild(btn);
