@@ -634,7 +634,8 @@ body #scene-menu .sm-cap {
   font-family: var(--ch-mono); font-size: 11px; font-weight: 700; letter-spacing: 1px;
   color: var(--ch-text); padding: 4px 8px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-body #scene-menu button.mini { display: block; width: 100%; text-align: left; margin-bottom: 2px; }
+body #scene-menu button.mini { display: block; width: 100%; text-align: left; margin-bottom: 2px; border: none; background: none; }
+body #scene-menu button.mini:hover { background: var(--ch-bg1); }
 /* ---------- scene dialog (rename / delete / move / template params) ---------- */
 body #scene-dlg {
   position: fixed; inset: 0; z-index: 10000; display: none;
