@@ -1,0 +1,21 @@
+/* Neon · magenta/cyan — canvas theme (picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="neon"] {
+  --bg-deep: #000000;
+  --panel: #0B0B0F;
+  --line-dim: #2A2A35;
+  --text-primary: #F5F3FF;
+  --text-dim: #8B8B9E;
+  --phos-green: #FF2FB3;
+  --amber: #FFB300;
+  --alert-red: #FF3860;
+  --cyan-dim: #00E5FF;
+  --fill-green: #1C0A16;
+  --fill-amber: #1C1405;
+  --fill-red: #1C0A10;
+  --ghost-fill: #060606;
+  --ghost-stroke: #101014;
+  --shadow: rgba(0,0,0,0.8);
+  --glow: rgba(255,47,179,0.4);
+  --crash-ink: #FF8FAB;
+}

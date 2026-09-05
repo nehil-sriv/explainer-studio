@@ -18,7 +18,10 @@
   position: relative;
   width: var(--scene-w, 1920px);
   height: var(--scene-h, 1080px);
-  background: var(--bg-deep);
+  background-color: var(--bg-deep);
+  background-image: var(--canvas-texture, none);
+  background-size: var(--canvas-texture-size, auto);
+  background-position: var(--canvas-texture-pos, 0 0);
   overflow: hidden;
 }
 .crt {
@@ -447,6 +450,13 @@
   opacity: 0.55;
   letter-spacing: 2px;
 }
+/* canvas decoration: opt-OUT per theme. The giant ghost marks, the corner
+   viewfinder brackets and the watermark are PHOSPHOR house furniture, not
+   structure. They default to on so existing projects are untouched; a theme
+   drops them with one line each (--decor-*: none). */
+.ghosts { display: var(--decor-ghosts, block); }
+.corners { display: var(--decor-corners, block); }
+.bg-logo { display: var(--decor-logo, block); }
 
 /* ---------- 20 · Pipeline diagram (D6) ---------- */
 .pipeline {

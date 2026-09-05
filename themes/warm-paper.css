@@ -1,0 +1,28 @@
+/* Warm Paper · paper grain — canvas theme (picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="warm-paper"] {
+  --bg-deep: #F3EEE3;
+  --panel: #FBF7EF;
+  --line-dim: #D6CEC0;
+  --text-primary: #24211D;
+  --text-dim: #716A61;
+  --phos-green: #BB4F36;
+  --amber: #A87434;
+  --alert-red: #A63F32;
+  --cyan-dim: #4F7474;
+  --fill-green: #F3E4D8;
+  --fill-amber: #F1E7C8;
+  --fill-red: #F0DCD6;
+  --ghost-fill: #ECE4D3;
+  --ghost-stroke: #E2D5BE;
+  --shadow: rgba(60,50,35,0.25);
+  --glow: rgba(187,79,54,0.15);
+  --crash-ink: #7A2E28;
+  --font-display: 'Iowan Old Style', Georgia, serif;
+  --font-body: 'SF Pro Text', system-ui, sans-serif;
+  --canvas-texture: linear-gradient(rgba(60,50,35,0.06) 1px, transparent 1px);
+  --canvas-texture-size: 100% 90px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

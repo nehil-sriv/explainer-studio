@@ -1,0 +1,28 @@
+/* Paper · ink on warm white (light) — canvas theme (hidden from picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="paper"] {
+  --bg-deep: #F2EFE8;
+  --panel: #FFFFFF;
+  --line-dim: #D9D3C6;
+  --text-primary: #1A1815;
+  --text-dim: #5D5952;
+  --phos-green: #2E6E63;
+  --amber: #A87434;
+  --alert-red: #A63F32;
+  --cyan-dim: #4F7474;
+  --fill-green: #E7F0EC;
+  --fill-amber: #F7ECD4;
+  --fill-red: #F6E2DE;
+  --ghost-fill: #ECE7DB;
+  --ghost-stroke: #E0D9CB;
+  --shadow: rgba(26,24,21,0.25);
+  --glow: rgba(46,110,99,0.18);
+  --crash-ink: #7A2E2E;
+  --font-display: 'Iowan Old Style', Georgia, serif;
+  --font-body: 'SF Pro Text', system-ui, sans-serif;
+  --canvas-texture: linear-gradient(rgba(26,24,21,0.055) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(26,24,21,0.055) 1.5px, transparent 1.5px);
+  --canvas-texture-size: 80px 80px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

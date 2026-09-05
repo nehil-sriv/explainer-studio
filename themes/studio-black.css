@@ -1,0 +1,26 @@
+/* Studio Black · cinematic black, quiet blue — canvas theme (hidden from picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="studio-black"] {
+  --bg-deep: #0C0D0F;
+  --panel: #17191D;
+  --line-dim: #2A2D32;
+  --text-primary: #F4F4F2;
+  --text-dim: #898D94;
+  --phos-green: #7397FF;
+  --amber: #E4B967;
+  --alert-red: #E17C70;
+  --cyan-dim: #7DD3FC;
+  --fill-green: #12141A;
+  --fill-amber: #181510;
+  --fill-red: #1A1214;
+  --ghost-fill: #090A0C;
+  --ghost-stroke: #101216;
+  --shadow: rgba(0,0,0,0.7);
+  --glow: rgba(115,151,255,0.3);
+  --crash-ink: #F0A0A0;
+  --font-display: Inter, system-ui, sans-serif;
+  --font-body: 'SF Pro Text', system-ui, sans-serif;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

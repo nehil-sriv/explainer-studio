@@ -26,7 +26,8 @@ explainer-studio/
 ├── css/theme-glass.css ← override skin, active only on #scene[data-theme="glass"]
 ├── css/theme-brutal.css ← override skin, active only on #scene[data-theme="brutal"]
 ├── js/phosphor.js      ← animation engine (typewriter, etc.)
-├── js/themes.js        ← runtime theme switcher
+├── js/themes.js        ← manifest-driven theme engine (activation by data-theme)
+├── themes/             ← one CSS file per canvas theme + manifest.js (edit that to add/hide)
 ├── examples/           ← sample project JSONs (load via 📂 Open)
 ├── AGENTS.md           ← this file
 ├── BACKLOG.md          ← roadmap — check before adding features
@@ -49,16 +50,19 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   canvas type online or file:// (CDN fetch + raster timing made exports fall back to system
   fonts). The Google Fonts `<link>` stays for other weights.
   - Core roles: `--bg-deep`, `--panel`, `--phos-green`, `--amber`, `--alert-red`, etc.
-  - Effect roles (also in `js/themes.js` presets): `--shadow`, `--glow`, `--crash-ink`.
-- **Theme scope = canvas only.** `js/themes.js` writes preset vars onto `#scene`, never `:root`.
+  - Effect roles: `--shadow`, `--glow`, `--crash-ink` (token reference: see plan.txt §4).
+- **Theme scope = canvas only.** `js/themes.js` sets `data-theme` on `#scene`, never `:root`.
   Builder chrome keeps the `:root` defaults (its own fixed phosphor-dark design language);
   themes change video output styles only. Same mechanism covers popout/present/REC
   (its own document, own `#scene`). `?theme=` / `?set=` / 🎨 panel all target the scene.
-- **Available themes** (`js/themes.js`): `phosphor` (house) · `minimal` · `blueprint` ·
-  `glass` · `brutal` · `neon`. Token-only except `glass`/`brutal`, which also flip
-  `#scene[data-theme]` for extra skin in `css/theme-glass.css` / `css/theme-brutal.css`
-  (frosted blur / hard shadows — dormant otherwise). New design-method themes follow
-  the same pattern: token preset + optional data-theme override sheet.
+- **Available themes** (`themes/manifest.js` — the ONLY file you edit to add/hide one;
+  `js/themes.js` never needs touching): picker shows `minimal` · `warm-paper` ·
+  `quiet-terminal` · `technical-blue` · `ink-grid` · `editorial` · `neon`, plus 9 hidden
+  (`phosphor` house · `phosphor2` · `studio-black` · `blueprint` · `blueprint-classic` ·
+  `contrast` · `paper` · `glass` · `brutal`) that still resolve for old projects/recordings.
+  Each theme is one CSS file scoped to `#scene[data-theme="<key>"]` (see `themes/README.md`).
+  `glass`/`brutal` pair with extra skin in `css/theme-glass.css` / `css/theme-brutal.css`
+  (frosted blur / hard shadows — dormant otherwise).
 - **Structure vs skin (hard rule):**
   - `css/core.css` = layout, box model, typography metrics, motion. Colors ONLY as
     `var(--*)`, fonts ONLY as `var(--font-*)`. Never `#hex`/`rgb()`/`hsl()`, never

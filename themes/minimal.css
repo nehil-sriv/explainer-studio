@@ -1,0 +1,24 @@
+/* Minimal · neutral black/white — canvas theme (picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="minimal"] {
+  --bg-deep: #050505;
+  --panel: #0B0B0B;
+  --line-dim: #262626;
+  --text-primary: #FAFAFA;
+  --text-dim: #8A8A8A;
+  --phos-green: #EDEDED;
+  --amber: #D6D6D6;
+  --alert-red: #F87171;
+  --cyan-dim: #93A1B5;
+  --fill-green: #101010;
+  --fill-amber: #131313;
+  --fill-red: #170D0D;
+  --ghost-fill: #070707;
+  --ghost-stroke: #0E0E0E;
+  --shadow: rgba(0,0,0,0.7);
+  --glow: rgba(255,255,255,0.10);
+  --crash-ink: #FCA5A5;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

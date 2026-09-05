@@ -1,0 +1,28 @@
+/* Phosphor II · sage, disciplined — canvas theme (hidden from picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="phosphor2"] {
+  --bg-deep: #0C100D;
+  --panel: #131813;
+  --line-dim: #26332A;
+  --text-primary: #E4E8E0;
+  --text-dim: #93A08F;
+  --phos-green: #A6C08A;
+  --amber: #C2A768;
+  --alert-red: #C66F66;
+  --cyan-dim: #7FB6AB;
+  --fill-green: #121A14;
+  --fill-amber: #1A1710;
+  --fill-red: #1A1212;
+  --ghost-fill: #0A0E0B;
+  --ghost-stroke: #0F150F;
+  --shadow: rgba(0,0,0,0.6);
+  --glow: rgba(166,192,138,0.25);
+  --crash-ink: #E8A0A0;
+  --font-display: 'SF Pro Display', system-ui, sans-serif;
+  --font-body: 'SF Mono', ui-monospace, monospace;
+  --canvas-texture: linear-gradient(rgba(228,232,224,0.04) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(228,232,224,0.04) 1.5px, transparent 1.5px);
+  --canvas-texture-size: 64px 64px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

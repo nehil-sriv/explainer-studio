@@ -1,0 +1,28 @@
+/* Quiet Terminal · soft green — canvas theme (picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="quiet-terminal"] {
+  --bg-deep: #09100B;
+  --panel: #101913;
+  --line-dim: #263229;
+  --text-primary: #DCE8DF;
+  --text-dim: #728278;
+  --phos-green: #83C996;
+  --amber: #C2A768;
+  --alert-red: #C66F66;
+  --cyan-dim: #7FB6AB;
+  --fill-green: #0E1F13;
+  --fill-amber: #1D1810;
+  --fill-red: #1E1212;
+  --ghost-fill: #070C08;
+  --ghost-stroke: #0C130E;
+  --shadow: rgba(0,0,0,0.6);
+  --glow: rgba(131,201,150,0.25);
+  --crash-ink: #D99898;
+  --font-display: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'JetBrains Mono', ui-monospace, monospace;
+  --canvas-texture: linear-gradient(rgba(220,232,223,0.04) 1px, transparent 1px);
+  --canvas-texture-size: 100% 64px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

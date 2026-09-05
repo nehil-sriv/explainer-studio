@@ -1,0 +1,28 @@
+/* Contrast · black/white, one red — canvas theme (hidden from picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="contrast"] {
+  --bg-deep: #000000;
+  --panel: #0B0B0B;
+  --line-dim: #2C2C2C;
+  --text-primary: #FFFFFF;
+  --text-dim: #B0B0B0;
+  --phos-green: #FFFFFF;
+  --amber: #FFFFFF;
+  --alert-red: #FF453A;
+  --cyan-dim: #B0B0B0;
+  --fill-green: #141414;
+  --fill-amber: #1A1A1A;
+  --fill-red: #1C0A0A;
+  --ghost-fill: #050505;
+  --ghost-stroke: #0D0D0D;
+  --shadow: rgba(0,0,0,0.8);
+  --glow: rgba(255,255,255,0.14);
+  --crash-ink: #FF8F8F;
+  --font-display: 'SF Pro Display', system-ui, sans-serif;
+  --font-body: 'SF Pro Text', system-ui, sans-serif;
+  --canvas-texture: linear-gradient(rgba(255,255,255,0.05) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(255,255,255,0.05) 1.5px, transparent 1.5px);
+  --canvas-texture-size: 80px 80px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

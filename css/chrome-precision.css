@@ -347,7 +347,7 @@ body aside .palette button {
   font-family: var(--ch-mono); font-size: 11px;
   color: var(--ch-text);
   background: #131622;
-  border: 1px solid color-mix(in srgb, var(--gc, var(--ch-line)) 38%, transparent);
+  border: 1px solid transparent;
   border-radius: 4px; padding: 6px 8px;
   min-width: 0; overflow: hidden;
 }

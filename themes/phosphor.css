@@ -1,0 +1,21 @@
+/* Phosphor · green CRT (house theme) — canvas theme (hidden from picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="phosphor"] {
+  --bg-deep: #0A0F0A;
+  --panel: #101710;
+  --line-dim: #1E2A1E;
+  --text-primary: #D3FFDE;
+  --text-dim: #5C8A66;
+  --phos-green: #39FF7A;
+  --amber: #FFB000;
+  --alert-red: #FF5555;
+  --cyan-dim: #57C7C0;
+  --fill-green: #102E19;
+  --fill-amber: #2A2409;
+  --fill-red: #221616;
+  --ghost-fill: #0B170E;
+  --ghost-stroke: #0D1D11;
+  --shadow: rgba(0,0,0,0.6);
+  --glow: rgba(57,255,122,0.3);
+  --crash-ink: #FFC9C9;
+}

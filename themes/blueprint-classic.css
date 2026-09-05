@@ -1,0 +1,21 @@
+/* Blueprint Classic · original preset — canvas theme (hidden from picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="blueprint-classic"] {
+  --bg-deep: #082A63;
+  --panel: #0D3585;
+  --line-dim: #2E5CB8;
+  --text-primary: #FFFFFF;
+  --text-dim: #9DB9E8;
+  --phos-green: #FFFFFF;
+  --amber: #FFD166;
+  --alert-red: #FF6B6B;
+  --cyan-dim: #7DD3FC;
+  --fill-green: #0E3280;
+  --fill-amber: #123A86;
+  --fill-red: #471D28;
+  --ghost-fill: #072554;
+  --ghost-stroke: #0C3286;
+  --shadow: rgba(0,0,0,0.5);
+  --glow: rgba(255,255,255,0.22);
+  --crash-ink: #FECACA;
+}

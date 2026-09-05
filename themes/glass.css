@@ -1,0 +1,22 @@
+/* Glass · frosted panels — canvas theme (hidden from picker).
+   Tokens only; the frosted blur/aurora skin lives in css/theme-glass.css,
+   which matches #scene[data-theme="glass"] and stays linked statically. */
+#scene[data-theme="glass"] {
+  --bg-deep: #060A14;
+  --panel: #0E1626;
+  --line-dim: #2A3A55;
+  --text-primary: #EAF2FF;
+  --text-dim: #8CA3C7;
+  --phos-green: #22D3EE;
+  --amber: #FBBF24;
+  --alert-red: #FB7185;
+  --cyan-dim: #67E8F9;
+  --fill-green: #0C1830;
+  --fill-amber: #141207;
+  --fill-red: #1C0F1A;
+  --ghost-fill: #081020;
+  --ghost-stroke: #0E1A30;
+  --shadow: rgba(0,0,0,0.5);
+  --glow: rgba(34,211,238,0.35);
+  --crash-ink: #FECDD3;
+}

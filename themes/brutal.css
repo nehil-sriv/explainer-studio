@@ -1,0 +1,22 @@
+/* Brutal · hard shadows — canvas theme (hidden from picker).
+   Tokens only; the hard-shadow skin lives in css/theme-brutal.css,
+   which matches #scene[data-theme="brutal"] and stays linked statically. */
+#scene[data-theme="brutal"] {
+  --bg-deep: #FFF6E9;
+  --panel: #FFFFFF;
+  --line-dim: #1A1A1A;
+  --text-primary: #141414;
+  --text-dim: #6B6257;
+  --phos-green: #16A34A;
+  --amber: #F59E0B;
+  --alert-red: #DC2626;
+  --cyan-dim: #2563EB;
+  --fill-green: #E7F6EA;
+  --fill-amber: #FEF3C7;
+  --fill-red: #FDE2E2;
+  --ghost-fill: #F1E7D2;
+  --ghost-stroke: #E3D3B8;
+  --shadow: rgba(26,26,26,0.35);
+  --glow: rgba(22,163,74,0.18);
+  --crash-ink: #991B1B;
+}

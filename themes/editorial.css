@@ -1,0 +1,28 @@
+/* Editorial · cream on near-black, one ochre — canvas theme (picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="editorial"] {
+  --bg-deep: #0B0B0C;
+  --panel: #131315;
+  --line-dim: #26262A;
+  --text-primary: #F2EFE9;
+  --text-dim: #A5A29B;
+  --phos-green: #C99A4E;
+  --amber: #C99A4E;
+  --alert-red: #B4584C;
+  --cyan-dim: #8A9E76;
+  --fill-green: #171310;
+  --fill-amber: #14120E;
+  --fill-red: #181110;
+  --ghost-fill: #08080A;
+  --ghost-stroke: #0E0E11;
+  --shadow: rgba(0,0,0,0.65);
+  --glow: rgba(201,154,78,0.25);
+  --crash-ink: #D08A80;
+  --font-display: 'Iowan Old Style', Georgia, serif;
+  --font-body: 'SF Pro Text', system-ui, sans-serif;
+  --canvas-texture: linear-gradient(rgba(242,239,233,0.045) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(242,239,233,0.045) 1.5px, transparent 1.5px);
+  --canvas-texture-size: 80px 80px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

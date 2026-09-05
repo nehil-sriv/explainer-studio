@@ -1,0 +1,28 @@
+/* Technical Blue · engineering — canvas theme (picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="technical-blue"] {
+  --bg-deep: #0E3154;
+  --panel: #173F64;
+  --line-dim: #456887;
+  --text-primary: #F0F6FB;
+  --text-dim: #A6BFD5;
+  --phos-green: #B7DDF5;
+  --amber: #E4B967;
+  --alert-red: #E17C70;
+  --cyan-dim: #B7DDF5;
+  --fill-green: #10304F;
+  --fill-amber: #1C1810;
+  --fill-red: #1E1416;
+  --ghost-fill: #0A2540;
+  --ghost-stroke: #10385E;
+  --shadow: rgba(0,0,0,0.5);
+  --glow: rgba(183,221,245,0.3);
+  --crash-ink: #F2B0A8;
+  --font-display: Inter, system-ui, sans-serif;
+  --font-body: 'JetBrains Mono', ui-monospace, monospace;
+  --canvas-texture: linear-gradient(rgba(127,178,224,0.055) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(127,178,224,0.055) 1.5px, transparent 1.5px);
+  --canvas-texture-size: 60px 60px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

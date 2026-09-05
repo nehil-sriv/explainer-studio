@@ -1,0 +1,28 @@
+/* Ink Grid · signal red on warm white — canvas theme (picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="ink-grid"] {
+  --bg-deep: #F0EFE9;
+  --panel: #F8F6F0;
+  --line-dim: #C8C5BD;
+  --text-primary: #181817;
+  --text-dim: #66645F;
+  --phos-green: #D44A32;
+  --amber: #A76E2A;
+  --alert-red: #B93628;
+  --cyan-dim: #426076;
+  --fill-green: #F2DDD6;
+  --fill-amber: #EFE3C8;
+  --fill-red: #F0D8D2;
+  --ghost-fill: #E7E3D8;
+  --ghost-stroke: #D8D3C6;
+  --shadow: rgba(30,28,25,0.25);
+  --glow: rgba(212,74,50,0.15);
+  --crash-ink: #7A2320;
+  --font-display: Inter, system-ui, sans-serif;
+  --font-body: 'SF Pro Text', system-ui, sans-serif;
+  --canvas-texture: linear-gradient(rgba(24,24,23,0.055) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(24,24,23,0.055) 1.5px, transparent 1.5px);
+  --canvas-texture-size: 80px 80px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

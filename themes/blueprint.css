@@ -1,0 +1,28 @@
+/* Blueprint · drafting navy, thin strokes — canvas theme (hidden from picker).
+   Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="blueprint"] {
+  --bg-deep: #0C1622;
+  --panel: #101E2E;
+  --line-dim: #27435F;
+  --text-primary: #E8F0F8;
+  --text-dim: #9DB6CD;
+  --phos-green: #7FB2E0;
+  --amber: #E4B967;
+  --alert-red: #E17C70;
+  --cyan-dim: #B7DDF5;
+  --fill-green: #0D1A2A;
+  --fill-amber: #171408;
+  --fill-red: #1C1214;
+  --ghost-fill: #080F1A;
+  --ghost-stroke: #0C1626;
+  --shadow: rgba(0,0,0,0.55);
+  --glow: rgba(127,178,224,0.25);
+  --crash-ink: #F0A8A0;
+  --font-display: 'SF Pro Display', system-ui, sans-serif;
+  --font-body: 'SF Mono', ui-monospace, monospace;
+  --canvas-texture: linear-gradient(rgba(127,178,224,0.055) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(127,178,224,0.055) 1.5px, transparent 1.5px);
+  --canvas-texture-size: 60px 60px;
+  --decor-ghosts: none;
+  --decor-corners: none;
+  --decor-logo: none;
+}

@@ -480,6 +480,7 @@ body {
   <footer id="beatbar"><div id="strip" style="display:flex;align-items:center;gap:8px;width:100%"></div></footer>
 
 <script src="js/phosphor.js"></script>
+<script src="themes/manifest.js"></script>
 <script src="js/themes.js"></script>
 <script src="https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
@@ -6162,12 +6163,13 @@ function openPopout(){
 <link rel="stylesheet" href="css/core.css">
 <link rel="stylesheet" href="css/theme-glass.css">
 <link rel="stylesheet" href="css/theme-brutal.css">
+${(window.PHOSPHOR_THEMES?window.PHOSPHOR_THEMES.themeLinksForPopup():'')}
 <link rel="stylesheet" href="css/chrome-precision.css">
     <link rel="stylesheet" href="css/phosphor.css">
     <style>${motionCSSForPopup()}</style>
     <style>html,body{margin:0;overflow:hidden;background:var(--bg-deep)}</style></head>
     <body><div id="stage-scale"><div class="scene" id="scene" style="--scene-w:${W}px;--scene-h:${H}px">${sceneInner()}</div></div>
-    <script src="js/phosphor.js"><\/script><script src="js/themes.js"><\/script>
+    <script src="js/phosphor.js"><\/script><script src="themes/manifest.js"><\/script><script src="js/themes.js"><\/script>
     <script>
       /* safety net: if the OS clamps the window smaller than the canvas
          (screen too small), scale content to fit instead of cropping */

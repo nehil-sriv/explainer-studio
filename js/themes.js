@@ -1,6 +1,6 @@
 /* ============================================================
-   llmao.md · PHOSPHOR theme engine
-   Swap the entire palette at runtime. Works on ANY page that
+   llmao.md · PHOSPHOR theme engine (manifest-driven)
+   Swap the entire canvas palette at runtime. Works on ANY page that
    links assets/tokens.css — components pick up new colors live.
 
    Usage A (UI):     include this file → floating 🎨 button appears
@@ -8,9 +8,11 @@
                      page.html?set=--phos-green=#FF0000,--panel=#111111
    Usage C (bake):   panel → "COPY :root CSS" → paste over tokens.css
 
-    Presets: phosphor (house) · minimal · blueprint · glass · brutal · neon
-    Presets with `attr` also flip #scene[data-theme] for extra skin
-    (css/theme-glass.css, css/theme-brutal.css — dormant otherwise).
+   Themes are CSS files (themes/<key>.css), one per theme, scoped to
+   #scene[data-theme="<key>"]. themes/manifest.js is the ONLY file you
+   edit to add/hide one — this file never needs touching.
+   (css/theme-glass.css, css/theme-brutal.css hold extra skin for the
+   glass/brutal themes — dormant otherwise.)
    ============================================================ */
 
 (function () {
@@ -34,84 +36,19 @@
     ['--crash-ink',    'Crash-loop text'],
   ];
 
-  const THEMES = {
-    phosphor: {
-      label: 'PHOSPHOR · green CRT (house theme)',
-      vars: {
-        '--bg-deep': '#0A0F0A', '--panel': '#101710', '--line-dim': '#1E2A1E',
-        '--text-primary': '#D3FFDE', '--text-dim': '#5C8A66',
-        '--phos-green': '#39FF7A', '--amber': '#FFB000', '--alert-red': '#FF5555',
-        '--cyan-dim': '#57C7C0',
-        '--fill-green': '#102E19', '--fill-amber': '#2A2409', '--fill-red': '#221616',
-        '--ghost-fill': '#0B170E', '--ghost-stroke': '#0D1D11',
-        '--shadow': 'rgba(0,0,0,0.6)', '--glow': 'rgba(57,255,122,0.3)', '--crash-ink': '#FFC9C9',
-      },
-    },
-    minimal: {
-      label: 'MINIMAL MONO · near-black, hairlines, no glow',
-      vars: {
-        '--bg-deep': '#050505', '--panel': '#0B0B0B', '--line-dim': '#262626',
-        '--text-primary': '#FAFAFA', '--text-dim': '#8A8A8A',
-        '--phos-green': '#EDEDED', '--amber': '#D6D6D6', '--alert-red': '#F87171',
-        '--cyan-dim': '#93A1B5',
-        '--fill-green': '#101010', '--fill-amber': '#131313', '--fill-red': '#170D0D',
-        '--ghost-fill': '#070707', '--ghost-stroke': '#0E0E0E',
-        '--shadow': 'rgba(0,0,0,0.7)', '--glow': 'rgba(255,255,255,0.10)', '--crash-ink': '#FCA5A5',
-      },
-    },
-    blueprint: {
-      label: 'BLUEPRINT · white line-art on engineering blue',
-      vars: {
-        '--bg-deep': '#082A63', '--panel': '#0D3585', '--line-dim': '#2E5CB8',
-        '--text-primary': '#FFFFFF', '--text-dim': '#9DB9E8',
-        '--phos-green': '#FFFFFF', '--amber': '#FFD166', '--alert-red': '#FF6B6B',
-        '--cyan-dim': '#7DD3FC',
-        '--fill-green': '#0E3280', '--fill-amber': '#123A86', '--fill-red': '#471D28',
-        '--ghost-fill': '#072554', '--ghost-stroke': '#0C3286',
-        '--shadow': 'rgba(0,0,0,0.5)', '--glow': 'rgba(255,255,255,0.22)', '--crash-ink': '#FECACA',
-      },
-    },
-    glass: {
-      label: 'LIQUID GLASS · frosted cards over aurora dark',
-      attr: 'glass',
-      vars: {
-        '--bg-deep': '#060A14', '--panel': '#0E1626', '--line-dim': '#2A3A55',
-        '--text-primary': '#EAF2FF', '--text-dim': '#8CA3C7',
-        '--phos-green': '#22D3EE', '--amber': '#FBBF24', '--alert-red': '#FB7185',
-        '--cyan-dim': '#67E8F9',
-        '--fill-green': '#0C1830', '--fill-amber': '#141207', '--fill-red': '#1C0F1A',
-        '--ghost-fill': '#081020', '--ghost-stroke': '#0E1A30',
-        '--shadow': 'rgba(0,0,0,0.5)', '--glow': 'rgba(34,211,238,0.35)', '--crash-ink': '#FECDD3',
-      },
-    },
-    brutal: {
-      label: 'BRUTALIST · cream, black lines, hard shadows',
-      attr: 'brutal',
-      vars: {
-        '--bg-deep': '#FFF6E9', '--panel': '#FFFFFF', '--line-dim': '#1A1A1A',
-        '--text-primary': '#141414', '--text-dim': '#6B6257',
-        '--phos-green': '#16A34A', '--amber': '#F59E0B', '--alert-red': '#DC2626',
-        '--cyan-dim': '#2563EB',
-        '--fill-green': '#E7F6EA', '--fill-amber': '#FEF3C7', '--fill-red': '#FDE2E2',
-        '--ghost-fill': '#F1E7D2', '--ghost-stroke': '#E3D3B8',
-        '--shadow': 'rgba(26,26,26,0.35)', '--glow': 'rgba(22,163,74,0.18)', '--crash-ink': '#991B1B',
-      },
-    },
-    neon: {
-      label: 'NEON DUOTONE · black + magenta/cyan glow',
-      vars: {
-        '--bg-deep': '#000000', '--panel': '#0B0B0F', '--line-dim': '#2A2A35',
-        '--text-primary': '#F5F3FF', '--text-dim': '#8B8B9E',
-        '--phos-green': '#FF2FB3', '--amber': '#FFB300', '--alert-red': '#FF3860',
-        '--cyan-dim': '#00E5FF',
-        '--fill-green': '#1C0A16', '--fill-amber': '#1C1405', '--fill-red': '#1C0A10',
-        '--ghost-fill': '#060606', '--ghost-stroke': '#101014',
-        '--shadow': 'rgba(0,0,0,0.8)', '--glow': 'rgba(255,47,179,0.4)', '--crash-ink': '#FF8FAB',
-      },
-    },
-  };
+  /* manifest (themes/manifest.js) is the source of truth.
+     VISIBLE = curated picker list. Full MANIFEST resolves restores,
+     ?theme= lookups and popout/REC loads — hiding a theme drops it
+     from the picker without breaking any project that uses it. */
+  const MANIFEST = window.CANVAS_THEMES || [];
+  const VISIBLE_MANIFEST = MANIFEST.filter(t => !t.hidden);
+  const THEMES = Object.fromEntries(MANIFEST.map(t => [t.key, t]));
 
+  /* GOTCHA: LS_KEY lives here. It was once deleted in a rewrite and save()
+     swallows the resulting ReferenceError in its own catch, so the theme
+     silently stopped persisting with no visible error. Check this first. */
   const LS_KEY = 'llmao-theme-v1';
+
   /* Theme scope = the CANVAS scene only — never :root.
      Builder chrome keeps the :root defaults (its own fixed design language);
      themed vars set inline on #scene inherit into components alone.
@@ -125,18 +62,39 @@
     });
   }
 
+  /* ---- additive loading, activation by attribute ----
+     A sheet is injected once, on first selection, and only matches its own
+     data-theme. A loaded-but-unselected theme costs nothing and never needs
+     unloading — switching is one attribute write. <link> injection (not
+     fetch) so file:// keeps working. */
+  function themeHref(key) { return 'themes/' + key + '.css'; }
+  function loadThemeCss(key, doc) {
+    doc = doc || document;
+    if (!THEMES[key]) return false;
+    const id = 'canvas-theme-' + key;
+    if (doc.getElementById(id)) return true;
+    const l = doc.createElement('link');
+    l.id = id; l.rel = 'stylesheet'; l.href = themeHref(key);
+    (doc.head || doc.documentElement).appendChild(l);
+    return true;
+  }
+  function loadAllThemeCss(doc) { MANIFEST.forEach(t => loadThemeCss(t.key, doc)); }
+  /* popout <head> links — every sheet up front, because the cloned #scene
+     already carries its data-theme when the popout opens. */
+  function themeLinksForPopup() {
+    return MANIFEST.map(t => '<link rel="stylesheet" href="themes/' + t.key + '.css">').join('\n');
+  }
+
   function applyPreset(key) {
     const t = THEMES[key];
     if (!t) return false;
     const scope = scopeEl();
-    // clear inline overrides first so presets are clean swaps
+    // inline vars beat theme CSS — clear them first, or a theme half-applies
     ROLES.forEach(([k]) => scope.style.removeProperty(k));
-    applyVars(t.vars);
-    // design-method themes (glass/brutal) switch extra skin via data-theme attr
-    if (t.attr) scope.dataset.theme = t.attr;
-    else delete scope.dataset.theme;
+    loadThemeCss(key);
+    scope.dataset.theme = key;
     save({ preset: key });
-    syncInputs(t.vars);
+    setTimeout(() => syncInputs(currentComputed()), 60);   // sheets land async — read after
     return true;
   }
 
@@ -233,13 +191,13 @@
       <div class="ltp-note">Custom hex edits switch to CUSTOM automatically.
         COPY bakes current colors into assets/tokens.css.</div>`;
 
-    // presets
+    // presets — curated picker list only (hidden themes stay resolvable)
     const pres = panelEl.querySelector('.ltp-presets');
-    Object.entries(THEMES).forEach(([key, t]) => {
+    VISIBLE_MANIFEST.forEach(t => {
       const b = document.createElement('button');
-      b.textContent = key;
+      b.textContent = t.key;
       b.title = t.label;
-      b.onclick = () => applyPreset(key);
+      b.onclick = () => applyPreset(t.key);
       pres.appendChild(b);
     });
 
@@ -268,7 +226,7 @@
 
     // footer actions
     panelEl.querySelector('.ltp-x').onclick = () => panelEl.classList.remove('open');
-    panelEl.querySelector('[data-act=reset]').onclick = () => applyPreset('phosphor');
+    panelEl.querySelector('[data-act=reset]').onclick = () => applyPreset(VISIBLE_MANIFEST.length ? VISIBLE_MANIFEST[0].key : 'minimal');
     panelEl.querySelector('[data-act=copy]').onclick = async () => {
       const cur = currentComputed();
       const css = ':root {\n' + ROLES.map(([k]) => `  ${k}: ${cur[k]};`).join('\n') + '\n}';
@@ -293,6 +251,9 @@
     if (!new URLSearchParams(location.search).toString()) {
       if (st.preset && THEMES[st.preset]) applyPreset(st.preset);
     }
+    // non-builder documents (popout) preload every sheet — the cloned #scene
+    // already carries its data-theme, so an archived theme renders correctly
+    if (!document.getElementById('complist')) loadAllThemeCss(document);
     syncInputs(currentComputed());
 
     ensureBtnCss();
@@ -315,5 +276,6 @@
   }
 
   /* public API */
-  window.PHOSPHOR_THEMES = { THEMES, ROLES, applyPreset, applyVars, currentComputed };
+  window.PHOSPHOR_THEMES = { THEMES, VISIBLE_MANIFEST, ROLES, applyPreset, applyVars,
+    loadThemeCss, loadAllThemeCss, themeLinksForPopup, currentComputed };
 })();
