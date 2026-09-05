@@ -44,7 +44,7 @@ Load any `examples/*.json` to see a complete short.
 
 - Vanilla HTML + CSS + JS — no framework, no bundler.
 - Design tokens in `assets/tokens.css` — swap the whole palette by editing `:root`.
-- `js/themes.js` + `themes/manifest.js` — manifest-driven canvas themes (7 in the picker, 9 hidden; see `themes/README.md`).
+- `js/themes.js` + `themes/manifest.js` — manifest-driven canvas themes, all 16 in the picker (see `themes/README.md`).
 - Animations are pure CSS keyframes (`pa-*`); re-armed per-entrance so every take is clean.
 
 ## Contributing

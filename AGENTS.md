@@ -59,10 +59,10 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   themes change video output styles only. Same mechanism covers popout/present/REC
   (its own document, own `#scene`). `?theme=` / `?set=` / 🎨 panel all target the scene.
 - **Available themes** (`themes/manifest.js` — the ONLY file you edit to add/hide one;
-  `js/themes.js` never needs touching): picker shows `minimal` · `warm-paper` ·
-  `quiet-terminal` · `technical-blue` · `ink-grid` · `editorial` · `neon`, plus 9 hidden
-  (`phosphor` house · `phosphor2` · `studio-black` · `blueprint` · `blueprint-classic` ·
-  `contrast` · `paper` · `glass` · `brutal`) that still resolve for old projects/recordings.
+  `js/themes.js` never needs touching): picker shows all 16 —
+  `minimal` · `warm-paper` · `quiet-terminal` · `technical-blue` · `ink-grid` ·
+  `editorial` · `neon` · `phosphor` (house) · `phosphor2` · `studio-black` ·
+  `blueprint` · `blueprint-classic` · `contrast` · `paper` · `glass` · `brutal`.
   Each theme is one CSS file scoped to `#scene[data-theme="<key>"]` (see `themes/README.md`).
   `glass`/`brutal` pair with extra skin in `css/theme-glass.css` / `css/theme-brutal.css`
   (frosted blur / hard shadows — dormant otherwise).
