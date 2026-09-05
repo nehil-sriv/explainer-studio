@@ -512,6 +512,20 @@ body .scene .comp .sizedot:hover {
 body #connect-wire line { stroke: var(--ch-cyan); }
 body #connect-wire circle.endhl { stroke: var(--ch-amber); }
 body #gv, body #gh { background: rgba(99,102,241,.55); }
+/* multi-select chrome — children of #stage-scale outside #scene (never recorded) */
+body #stage-scale { position: relative; }
+body #marquee { position: absolute; display: none; z-index: 5001; pointer-events: none;
+  border: 1px solid var(--ch-cyan); background: rgba(6,182,212,.12); }
+body #multi-box { position: absolute; display: none; z-index: 5000; pointer-events: none;
+  border: 1px dashed var(--ch-cyan); }
+body #multi-box #multi-size { position: absolute; right: -9px; bottom: -9px;
+  width: 16px; height: 16px; border-radius: 3px;
+  background: var(--ch-bg0); border: 2px solid var(--ch-amber);
+  cursor: nwse-resize; pointer-events: auto; }
+body #multi-box #multi-size:hover { background: var(--ch-amber); box-shadow: 0 0 12px rgba(255,176,0,.8); }
+body .scene.editing .comp.multi-sel { outline: 2px dashed var(--ch-cyan); outline-offset: 3px; }
+body.recording #marquee, body.recording #multi-box,
+body.rec-crop #marquee, body.rec-crop #multi-box { display: none !important; }
 
 /* ---------- scrollbars ---------- */
 body aside::-webkit-scrollbar, body footer#beatbar::-webkit-scrollbar,

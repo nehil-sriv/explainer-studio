@@ -178,6 +178,17 @@ body {
   #gv,#gh { position:absolute; background:rgba(57,255,122,.5); display:none; z-index:85; pointer-events:none; }
   #gv { width:1px; top:0; bottom:0; } #gh { height:1px; left:0; right:0; }
   .comp.lockedbadge::after { content:'🔒'; position:absolute; top:-26px; right:-4px; font-size:16px; }
+  /* multi-select: per-member outline (in-scene) + marquee/box chrome (outside #scene, never recorded) */
+  .scene.editing .comp.multi-sel { outline:2px dashed var(--phos-green); outline-offset:3px; }
+  #stage-scale { position:relative; }
+  #marquee { position:absolute; display:none; z-index:5001; pointer-events:none;
+    border:1px solid var(--phos-green); background:rgba(57,255,122,.12); }
+  #multi-box { position:absolute; display:none; z-index:5000; pointer-events:none;
+    border:1px dashed rgba(57,255,122,.8); }
+  #multi-size { position:absolute; right:-9px; bottom:-9px; width:16px; height:16px; border-radius:3px;
+    background:var(--bg-deep); border:2px solid var(--amber); cursor:nwse-resize; pointer-events:auto; }
+  #multi-size:hover { background:var(--amber); box-shadow:0 0 12px rgba(255,176,0,.8); }
+  body.recording #marquee, body.recording #multi-box { display:none !important; }
 
   /* ===== component visuals live in css/core.css (structure) + css/phosphor.css (theme) ===== */
 
@@ -266,8 +277,10 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
+    <div id="marquee" style="display:none"></div>
+    <div id="multi-box" style="display:none"><div id="multi-size" title="drag to scale the set"></div></div>
     <div id="canvas-grid" style="display:none" title="alignment grid — never recorded"></div>
   </div></div>
 
@@ -1970,9 +1983,36 @@ const REGISTRY = {
 };
 
 /* ============ state ============ */
-let comps = [];       // {id, type, x, y, scale, rot, z, opacity, props}
+let comps = [];       // {id, type, x, y, scale, rot, z, opacity, props, groupId?}
 let selId = null;
+let selIds = new Set();   // the truth — selId is the ANCHOR inside it
 const scene = document.getElementById('scene');
+
+/* multi-select bridge: every pre-existing single-select path keeps reading selId.
+   Invariant: selIds empty ⟺ selId === null; otherwise selId ∈ selIds. */
+function selSync(){
+  [...selIds].forEach(i=>{ if(!comps.some(c=>c.id===i)) selIds.delete(i); });
+  if(selId && !comps.some(c=>c.id===selId)) selId=null;
+  if(selId && !selIds.has(selId)) selIds=new Set([selId]);   // legacy direct assign of a fresh id collapses to single
+  if(!selId && selIds.size) selIds.clear();                  // legacy selId=null sites mean deselect-all
+  if(selId && !selIds.size) selIds.add(selId);
+  if(!selId && selIds.size) selId=[...selIds][0];
+}
+function selList(){ selSync(); return [...selIds].map(id=>comps.find(c=>c.id===id)).filter(Boolean); }
+function selMovable(){ return selList().filter(c=>!c.locked && !c.parked && !isState(c)); }
+function selBox(){
+  const l=selMovable(); if(!l.length) return null;
+  let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+  l.forEach(c=>{ const w=(c._rw||c.wpx||220)*(c.scale||1), h=(c._rh||c.hpx||120)*(c.scale||1);
+    x0=Math.min(x0,c.x); y0=Math.min(y0,c.y); x1=Math.max(x1,c.x+w); y1=Math.max(y1,c.y+h); });
+  return {x:x0, y:y0, w:x1-x0, h:y1-y0, cx:(x0+x1)/2, cy:(y0+y1)/2};
+}
+function groupMembers(id){
+  const c=comps.find(x=>x.id===id);
+  if(!c || !c.groupId) return null;
+  const m=comps.filter(x=>x.groupId===c.groupId && !isState(x));
+  return m.length>1?m:null;
+}
 
 function uid(){ return Math.random().toString(36).slice(2,7); }
 
@@ -2092,10 +2132,104 @@ function startDraft(type){
   draft=type; selId=c.id; render();
 }
 
-function select(id){ selId=id; selEdge=null;
+function select(id, opts={}){
+  if(id==null){ selId=null; selIds.clear(); selEdge=null; statePreview=null; render(); return; }
   const c=comps.find(x=>x.id===id);
-  statePreview=(c && isState(c))?c.id:null;
+  if(!c){ selId=null; selIds.clear(); selEdge=null; statePreview=null; render(); return; }
+  selEdge=null;
+  statePreview=(isState(c))?c.id:null;
+  if(opts.toggle){
+    if(selIds.has(id)){
+      selIds.delete(id);
+      if(selId===id) selId=selIds.size?[...selIds][selIds.size-1]:null;
+    } else {
+      const g=(opts.solo||isState(c))?null:groupMembers(id);
+      if(g) g.forEach(m=>selIds.add(m.id)); else selIds.add(id);
+      selId=id;
+    }
+    if(!selIds.size) selId=null;
+    render(); return;
+  }
+  if(!opts.solo){
+    const g=isState(c)?null:groupMembers(id);
+    if(g){ selIds=new Set(g.map(m=>m.id)); selId=id; render(); return; }
+  }
+  selIds=new Set([id]); selId=id;
   render(); }
+function selectMany(ids, anchor){
+  selIds=new Set((ids||[]).filter(id=>comps.some(c=>c.id===id)));
+  selId=(anchor && selIds.has(anchor))?anchor:(selIds.size?[...selIds][selIds.size-1]:null);
+  if(!selIds.size) selId=null;
+  selEdge=null;
+  const c=comps.find(x=>x.id===selId);
+  statePreview=(c && isState(c))?c.id:null;
+  render();
+}
+/* ============ set operations (multi-select) ============ */
+function deleteSelection(){
+  const team=selList();
+  if(!team.length){ toastMsg('nothing selected'); return; }
+  snap();   // one undo step for the whole set
+  const ids=new Set(team.map(c=>c.id));
+  comps=comps.filter(c=>!ids.has(c.id));
+  ids.forEach(id=>{ edges=edges.filter(x=>x.from!==id && x.to!==id);
+    comps=comps.filter(x=>!(isState(x) && x.target===id)); });
+  selIds.clear(); selId=null; selEdge=null; statePreview=null;
+  render(); renderStrip();
+}
+function duplicateSelection(){
+  const team=selList().filter(c=>!isState(c));
+  if(!team.length){ toastMsg('nothing selected'); return null; }
+  if(team.length===1){ return seqDuplicateSel(); }   // single keeps the legacy path
+  snap();
+  const idMap=new Map(), copies=[];
+  team.forEach(c=>{ const d=structuredClone(c);
+    delete d._played; delete d._stateAt; delete d._lx; delete d._ly;
+    d.id=uid(); d.x=(c.x||0)+24; d.y=(c.y||0)+24; d.z=(c.z||0)+1;
+    delete d.parentId;   // re-attached below only when the parent was also copied
+    idMap.set(c.id,d.id); copies.push(d); });
+  // remap parentId when the parent was also copied, drop it otherwise
+  team.forEach((c,i)=>{ if(c.parentId && idMap.has(c.parentId)) copies[i].parentId=idMap.get(c.parentId); });
+  // splice in after the last original so sequence order stays sane
+  let at=comps.length;
+  team.forEach(c=>{ at=Math.max(at,comps.indexOf(c)+1); });
+  copies.forEach((d,k)=>comps.splice(at+k,0,d));
+  // copy wires whose BOTH endpoints were copied, repointed at the copies
+  const teamIds=new Set(team.map(c=>c.id));
+  edges.filter(e=>teamIds.has(e.from)&&teamIds.has(e.to)).forEach(e=>{
+    const ne=structuredClone(e); ne.id=uidEdge();
+    ne.from=idMap.get(e.from); ne.to=idMap.get(e.to);
+    edges.push(ne);
+  });
+  // a copied group gets one new shared groupId, not one per comp
+  const groups=[...new Set(team.map(c=>c.groupId).filter(Boolean))];
+  groups.forEach(g=>{
+    const ng='g'+uid();
+    copies.forEach((d,i)=>{ if(team[i].groupId===g) d.groupId=ng; });
+  });
+  const anchor=copies.length?copies[copies.length-1].id:null;
+  selIds=new Set(copies.map(d=>d.id)); selId=anchor;
+  render(); renderStrip();
+  return copies;
+}
+function groupSelection(){
+  const team=selMovable();
+  if(team.length<2){ toastMsg('select 2+ components to group (Shift+click or box-select)'); return; }
+  snap();
+  const g='g'+uid();
+  team.forEach(c=>c.groupId=g);
+  render();
+  toastMsg(`grouped ${team.length} — click selects the set · Alt+click picks one`);
+}
+function ungroupSelection(){
+  const team=selList();
+  const groups=[...new Set(team.map(c=>c.groupId).filter(Boolean))];
+  if(!groups.length){ toastMsg('selection has no group'); return; }
+  snap();
+  comps.forEach(c=>{ if(groups.includes(c.groupId)) delete c.groupId; });
+  render();
+  toastMsg('ungrouped');
+}
 
 /* ============ render ============ */
 const freshTrack=new WeakSet();   // comps seen before — their one-shot inner animations don't replay
@@ -2153,11 +2287,12 @@ function renderCanvas(){
     }
     if(REC.active && compVisible(c)) mirrorCompToPopup(c);   // never re-add a hidden comp
     if(REC.active) pruneHiddenFromPopup();
-    if(!c.locked && c.id===selId) makeDraggable(el,c);
+    if(selIds.size>1 && selIds.has(c.id) && !REC.active) el.classList.add('multi-sel');
+    if(!c.locked && selIds.has(c.id)) makeDraggable(el,c);
     scene.insertBefore(el,crt);
     c._rw=el.offsetWidth||c.wpx||220; c._rh=el.offsetHeight||c.hpx||120;   // live size → ports/edges/drop targets
-    // 🔗 ports on the selected component — drag a dot onto any component to link
-    if(c.id===selId && !c.locked && !c.parked){
+    // 🔗 ports on the selected component — single selection only; a set scales via the box handle
+    if(selIds.size<=1 && c.id===selId && !c.locked && !c.parked){
       const PW=c._rw, PH=c._rh;
       [['top',PW/2,0],['right',PW,PH/2],['bottom',PW/2,PH],['left',0,PH/2]].forEach(([pid,lx,ly])=>{
         const d=document.createElement('div');
@@ -2223,7 +2358,7 @@ function renderList(){
       return b; };
     if(!playing && isState(c)){
       const t=stateTarget(c);
-      li.className='strow'+(c.id===selId?' sel':'')+(!t?' orphan':'');
+      li.className='strow'+(selIds.has(c.id)?' sel':'')+(!t?' orphan':'');
       li.innerHTML=`<span class="name"><span class="marks">⇄ </span>${i+1}. state <span class="pos">${compLabel(c).slice(0,28).replace(/</g,'&lt;')}</span></span>`;
       li.title=!t?`${i+1}. state — target missing, this step does nothing`
         :`${i+1}. state → ${t.type} — ${stateSummary(c)}`;
@@ -2233,7 +2368,7 @@ function renderList(){
       );
     } else if(!playing){
       // === edit mode: full step controls per row ===
-      li.className=c.id===selId?'sel':'';
+      li.className=selIds.has(c.id)?'sel':'';
       const nStates=comps.filter(x=>isState(x)&&x.target===c.id).length;
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+((c.clearBefore||c.pin)?' ':'')+(hideN?`⊘${hideN} `:'');
       li.innerHTML=`<span class="name"><span class="marks">${marks}</span>${i+1}. ${c.type} <span class="pos">${compLabel(c).slice(0,24)}</span>${nStates?`<span class="statec" title="${nStates} state change(s) target this">⇄${nStates}</span>`:''}</span>`;
@@ -2253,7 +2388,7 @@ function renderList(){
       // the next component row must not glow (Space reveals a point, not the component)
       const locked=i>SEQ.maxShown||(driveId&&i>=SEQ.shown&&c.id!==driveId);
       const isNext=c.id===nextId&&!driveId, isHead=SEQ.shown<SEQ.maxShown && i===SEQ.maxShown-1;
-      li.className='seqrow take'+(c.id===selId?' sel':'')
+      li.className='seqrow take'+(selIds.has(c.id)?' sel':'')
         +(locked?' locked':(isNext?' next':(i<SEQ.shown?' done':' seen'))) + (isHead?' head':'');
       const marks=(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+(hideN?`⊘${hideN}`:'');
       const tname=isState(c)?'state':c.type;
@@ -2279,7 +2414,7 @@ function renderList(){
         let to=comps.indexOf(c); if(!halfBefore(e)) to++;
         comps.splice(to,0,mv); render(); renderStrip();
       };
-      li.onclick=()=>select(c.id);
+      li.onclick=e=>select(c.id, {toggle:!!(e.shiftKey||e.metaKey||e.ctrlKey), solo:!!e.altKey});
     }
     list.appendChild(li);
     // expanded point rows for the driving stepped comp — click a line to show through it
@@ -2351,6 +2486,7 @@ function renderLive(){
 }
 
 function render(){
+  selSync();
   renderCanvas(); renderList(); renderInspector(); renderStrip(); renderSelTools();
 }
 /* floating selection toolbar — child of #stage-scale (so it pans/scales with the
@@ -2358,10 +2494,38 @@ function render(){
    popout/export mirrors can never record it. Hidden while REC is live anyway. */
 function renderSelTools(){
   const bar=document.getElementById('sel-tools'); if(!bar) return;
+  const boxEl=document.getElementById('multi-box');
   const c=comps.find(x=>x.id===selId);
-  if(!c||c.parked||REC.active||isState(c)){ bar.style.display='none'; return; }
-  // counter-scale: the bar lives in the zoomed canvas, so un-zoom it to constant screen size
+  if(REC.active){ bar.style.display='none'; if(boxEl) boxEl.style.display='none'; return; }
+  // counter-scale: chrome lives in the zoomed canvas, so un-zoom to constant screen size
   const s=currentScale()||1;
+  if(selIds.size>1){
+    const box=selBox();
+    if(!box||boxEl==null){ bar.style.display='none'; return; }
+    boxEl.style.display='block';
+    boxEl.style.left=box.x+'px'; boxEl.style.top=box.y+'px';
+    boxEl.style.width=Math.max(8,box.w)+'px'; boxEl.style.height=Math.max(8,box.h)+'px';
+    const hz=boxEl.querySelector('#multi-size');
+    if(hz) hz.style.transform=`scale(${1/s})`;
+    bar.style.display='flex';
+    bar.style.transform=`scale(${1/s})`;
+    bar.style.transformOrigin='top left';
+    if(!bar.dataset.hh) bar.dataset.hh=bar.offsetHeight||28;   // layout px == screen px after un-zoom
+    const bh=parseFloat(bar.dataset.hh);
+    const below=box.y*s<(bh+14);   // no screen room above — hang it underneath instead
+    bar.style.left=box.x+'px';
+    bar.style.top=(below?box.y+box.h+8/s:box.y-8/s-bh/s)+'px';
+    const pin=bar.querySelector('[data-t="pin"]'); if(pin) pin.classList.toggle('on',!!(c&&c.pin));
+    const gb=bar.querySelector('[data-t="group"]'); if(gb) gb.style.display='';
+    const ub=bar.querySelector('[data-t="ungroup"]');
+    if(ub) ub.style.display=selList().some(m=>m.groupId)?'':'none';
+    return;
+  }
+  if(boxEl) boxEl.style.display='none';
+  if(!c||c.parked||isState(c)){ bar.style.display='none'; return; }
+  // (s already declared above) single-comp bar hangs off the anchor comp
+  const ub1=bar.querySelector('[data-t="ungroup"]');
+  if(ub1) ub1.style.display=c.groupId?'':'none';
   const h=(c._rh||c.hpx||120);
   bar.style.display='flex';
   bar.style.transform=`scale(${1/s})`;
@@ -2375,16 +2539,21 @@ function renderSelTools(){
 }
 document.querySelectorAll('#sel-tools button').forEach(b=>{
   b.onclick=e=>{ e.stopPropagation();
-    const c=comps.find(x=>x.id===selId); if(!c) return;
     const k=b.dataset.t;
-    if(k==='edit'){ showRailTab('edit');
+    if(k==='edit'){ const c=comps.find(x=>x.id===selId); if(!c) return; showRailTab('edit');
       const f=document.querySelector('#fields textarea,#fields input,#fields select'); if(f) f.focus(); }
-    else if(k==='dup'){ seqDuplicateSel(); }
-    else if(k==='pin'){ snap(); c.pin=!c.pin; render(); renderStrip(); }
-    else if(k==='del'){ snap(); const dead=c.id;
-      comps=comps.filter(x=>x.id!==dead); selId=null; dropDependents(dead); render(); }
+    else if(k==='dup'){ duplicateSelection(); }
+    else if(k==='pin'){ const team=selIds.size>1?selList():[comps.find(x=>x.id===selId)].filter(Boolean);
+      if(!team.length) return; snap();
+      const on=!team.every(m=>m.pin);
+      team.forEach(m=>{ if(on) m.pin=true; else delete m.pin; });
+      render(); renderStrip(); }
+    else if(k==='group'){ groupSelection(); }
+    else if(k==='ungroup'){ ungroupSelection(); }
+    else if(k==='del'){ deleteSelection(); }
   };
 });
+document.getElementById('multi-size').addEventListener('mousedown',e=>startMultiResize(e));
 /* right-rail tabs: Edit vs Sequence */
 function showRailTab(which){
   const edit=which!=='seq';
@@ -2394,8 +2563,8 @@ function showRailTab(which){
   document.getElementById('tabbtn-seq').classList.toggle('on',!edit);
   try{ localStorage.setItem('phosphor-railtab',edit?'edit':'seq'); }catch(_){}
 }
-function selectEdge(id){ selEdge=id; selId=null; statePreview=null; render(); }
-function clearSel(){ selId=null; selEdge=null; statePreview=null; }
+function selectEdge(id){ selEdge=id; selId=null; selIds.clear(); statePreview=null; render(); }
+function clearSel(){ selId=null; selIds.clear(); selEdge=null; statePreview=null; }
 
 /* ============ edge inspector (GravelGraph-style Edge panel) ============ */
 const EDGE_PATCH_FIELDS=[
@@ -3259,10 +3428,22 @@ function cancelNodeDrag(){
 function makeDraggable(el,c){
   el.addEventListener('mousedown', e=>{
     if(c.locked) return;
+    if(e.button!==0) return;
+    // modifier clicks act on the SET, never start a drag
+    if(e.shiftKey||e.metaKey||e.ctrlKey){ e.stopPropagation(); e.preventDefault(); select(c.id,{toggle:true}); return; }
+    if(e.altKey){ e.stopPropagation(); e.preventDefault(); select(c.id,{solo:true}); return; }
     e.preventDefault();
+    e.stopPropagation();
+    const plainClick=true;   // modifiers returned above — this is always a plain press
+    // not in the set → narrow to it first (group expands inside select);
+    // already a member → leave the set alone so the drag moves the whole set
+    if(!selIds.has(c.id)) select(c.id);
     const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
     const sx=e.clientX-c.x*(currentScale()), sy=e.clientY-c.y*currentScale();
     const startx=c.x, starty=c.y;
+    // the grabbed member drags the whole movable set (parent/child guarded below)
+    const team=selIds.has(c.id)&&selIds.size>1?selMovable():[c];
+    const inTeam=new Set(team.map(o=>o.id));
     let dragSnapped=false;   // snap lazily before the first actual move (not on click)
     const gv=document.getElementById('gv'), gh=document.getElementById('gh');
     const xs=[0,64,W/2,W-64], ys=[0,H*0.33,H/2,H*0.67,H-64];
@@ -3272,7 +3453,7 @@ function makeDraggable(el,c){
       // other comp's left/center/right (same for top/center/bottom) — Alt disables
       const w=c._rw||c.wpx||220, h=c._rh||c.hpx||120;
       const candX=xs.map(g=>[g,g]), candY=ys.map(g=>[g,g]);
-      comps.forEach(o=>{ if(o.id===c.id||o.parked) return;
+      comps.forEach(o=>{ if(inTeam.has(o.id)||o.parked) return;
         const ow=o._rw||o.wpx||220, oh=o._rh||o.hpx||120;
         [o.x,o.x+ow/2,o.x+ow].forEach(a=>{ candX.push([a,a],[a-w/2,a],[a-w,a]); });
         [o.y,o.y+oh/2,o.y+oh].forEach(b=>{ candY.push([b,b],[b-h/2,b],[b-h,b]); });
@@ -3285,13 +3466,26 @@ function makeDraggable(el,c){
       if(py&&!ev.altKey){ ny=Math.round(py[0]); gh.style.display='block'; gh.style.top=py[1]+'px'; } else gh.style.display='none';
       const dx=nx-c.x, dy=ny-c.y;
       if(dx||dy){ if(!dragSnapped){ snap(); dragSnapped=true; } }
-      if(childrenOf(c.id).length) moveGroup(c,dx,dy); else { c.x=nx; c.y=ny; }
+      else return;
+      // grabbed comp first, then the rest of the team by the same delta.
+      // a selected child of a selected parent moves once via the parent —
+      // skip it here, otherwise the delta doubles. Unselected children
+      // follow their parent via moveGroup.
+      c.x=nx; c.y=ny;
+      childrenOf(c.id).forEach(ch=>{ if(!inTeam.has(ch.id)){ ch.x+=dx; ch.y+=dy; } });
+      team.forEach(o=>{
+        if(o.id===c.id) return;
+        if(o.parentId && inTeam.has(o.parentId)) return;
+        o.x+=dx; o.y+=dy;
+        childrenOf(o.id).forEach(ch=>{ if(!inTeam.has(ch.id)){ ch.x+=dx; ch.y+=dy; } });
+      });
       renderLive();
     };
     const up=()=>{ nodeDrag=null; removeEventListener('mousemove',mv); removeEventListener('mouseup',up);
       gv.style.display='none'; gh.style.display='none';
-      const moved=c.x-startx || c.y-starty;
-      if(moved){
+      const moved=c.x!==startx || c.y!==starty;
+      if(!moved && plainClick && selIds.size>1 && !groupMembers(c.id)){ select(c.id); return; }
+      if(moved && selIds.size<=1){
       const ctr=containerAt(c.x+20,c.y+20,c.id);
       if(ctr){ c.parentId=ctr.id; }
       else { delete c.parentId; }
@@ -3301,11 +3495,96 @@ function makeDraggable(el,c){
     nodeDrag={mv,up};
   });
 }
+/* ============ marquee box-select (empty-canvas drag) ============ */
+let marquee=null;
+function marqueeStart(e){
+  if(e.button!==0) return;
+  const p0=scenePoint(e);
+  const add=e.shiftKey||e.metaKey||e.ctrlKey;
+  const before=new Set(selIds);
+  const box=document.getElementById('marquee');
+  marquee={x0:p0.x, y0:p0.y, add, before, moved:false,
+    mv:ev=>{
+      const p=scenePoint(ev);
+      const x=Math.min(marquee.x0,p.x), y=Math.min(marquee.y0,p.y);
+      const w=Math.abs(p.x-marquee.x0), h=Math.abs(p.y-marquee.y0);
+      if(Math.max(w,h)>3) marquee.moved=true;   // dead zone: plain click still deselects
+      box.style.display='block';
+      box.style.left=x+'px'; box.style.top=y+'px'; box.style.width=w+'px'; box.style.height=h+'px';
+      if(!marquee.moved) return;
+      const hit=[];
+      comps.forEach(c=>{
+        if(c.parked||isState(c)) return;
+        const cw=(c._rw||c.wpx||220)*(c.scale||1), ch=(c._rh||c.hpx||120)*(c.scale||1);
+        if(c.x<x+w && c.x+cw>x && c.y<y+h && c.y+ch>y) hit.push(c.id);   // intersection, not containment
+      });
+      let next=new Set(marquee.add?[...marquee.before, ...hit]:hit);
+      // dragging over one member of a group pulls in the whole group
+      hit.forEach(id=>{ const g=groupMembers(id); if(g) g.forEach(m=>next.add(m.id)); });
+      if(marquee.add) marquee.before.forEach(id=>next.add(id));
+      selIds=next;
+      selId=next.size?([...next][next.size-1]):null;
+      selEdge=null;
+      renderCanvas(); renderSelTools();
+    },
+    up:ev=>{
+      removeEventListener('mousemove',marquee.mv); removeEventListener('mouseup',marquee.up);
+      box.style.display='none';
+      const wasMoved=marquee.moved;
+      marquee=null;
+      if(!wasMoved){ select(null); return; }   // plain click on empty canvas → deselect
+      render();
+    }};
+  addEventListener('mousemove',marquee.mv); addEventListener('mouseup',marquee.up);
+}
+/* ============ multi-scale: one handle on the box, scales about the box centre ============ */
+let multiDrag=null;
+function cancelMultiDrag(){
+  if(!multiDrag) return;
+  removeEventListener('mousemove',multiDrag.mv); removeEventListener('mouseup',multiDrag.up);
+  multiDrag=null;
+}
+function startMultiResize(e){
+  e.stopPropagation(); e.preventDefault();
+  cancelMultiDrag(); cancelNodeDrag(); cancelSizeDrag();
+  const team=selMovable(); if(team.length<2) return;
+  const box=selBox(); if(!box) return;
+  const cx=box.cx, cy=box.cy;
+  const p0=scenePoint(e);
+  const d0=Math.max(8,Math.hypot(p0.x-cx,p0.y-cy));
+  const base=team.map(c=>({c, s:(c.scale||1), dx:c.x-cx, dy:c.y-cy}));
+  snap();
+  multiDrag={
+    mv:ev=>{ const pt=scenePoint(ev);
+      const d=Math.max(8,Math.hypot(pt.x-cx,pt.y-cy));
+      const k=Math.max(0.1,Math.min(6,d/d0));
+      // scale each comp about the box centre: scale factor + offset from centre
+      base.forEach(b=>{ b.c.scale=Math.max(0.1,Math.min(4,+(b.s*k).toFixed(3)));
+        b.c.x=cx+b.dx*k; b.c.y=cy+b.dy*k; });
+      // re-centre: scaling about unscaled offsets drifts the box — shift it back
+      const box3=selBox();
+      if(box3){ const ox=cx-box3.cx, oy=cy-box3.cy;
+        base.forEach(b=>{ b.c.x+=ox; b.c.y+=oy; }); }
+      renderLive(); },
+    up:()=>{ cancelMultiDrag(); autosave(); render(); }
+  };
+  addEventListener('mousemove',multiDrag.mv); addEventListener('mouseup',multiDrag.up);
+}
 document.getElementById('scene').addEventListener('mousedown',e=>{
+  if(e.button!==0) return;
   const edge=e.target.closest('g.edge');
   if(edge){ selectEdge(edge.dataset.id); return; }
   const comp=e.target.closest('.comp');
-  select(comp ? comp.dataset.id : null);
+  if(comp){
+    const id=comp.dataset.id;
+    if(e.shiftKey||e.metaKey||e.ctrlKey){ select(id,{toggle:true}); return; }
+    if(e.altKey){ select(id,{solo:true}); return; }
+    // already in the set → leave selection alone so the drag moves the whole set
+    if(!selIds.has(id)) select(id);
+    return;
+  }
+  if(SEQ.active||REC.active) { select(null); return; }
+  marqueeStart(e);
 });
 
 /* double-click a component on canvas → jump straight into its first text field */
@@ -3361,16 +3640,30 @@ addEventListener('keydown',e=>{
     const dp=document.getElementById('dsl-pop');
     if(dp && dp.style.display==='flex'){ dp.style.display='none'; e.preventDefault(); return; }
     if(connectPending){ cancelConnect(); e.preventDefault(); return; }
+    if(marquee){ removeEventListener('mousemove',marquee.mv); removeEventListener('mouseup',marquee.up);
+      document.getElementById('marquee').style.display='none'; marquee=null; e.preventDefault(); return; }
     if(nodeDrag){ cancelNodeDrag(); e.preventDefault(); return; }
     if(sizeDrag){ cancelSizeDrag(); e.preventDefault(); return; }
+    if(multiDrag){ cancelMultiDrag(); e.preventDefault(); return; }
     if(typeof EXP!=='undefined' && EXP.busy){ EXP.cancel=true; e.preventDefault(); return; }
     if(SEQ.auto){ seqStopAuto(); toastMsg('auto-play stopped — Space steps, Esc exits'); e.preventDefault(); return; }
     if(SEQ.active){ seqExit(); e.preventDefault(); return; }
+    if(selIds.size){ clearSel(); render(); e.preventDefault(); return; }
   }
   if((e.ctrlKey||e.metaKey) && e.key==='z' && !typing){ undo(); e.preventDefault(); return; }
   if((e.ctrlKey||e.metaKey) && (e.key==='/'||e.key==='?') && !typing){
     const db=document.getElementById('btn-dsl');
     if(db){ db.click(); e.preventDefault(); return; }
+  }
+  // ---- multi-select set shortcuts (edit mode, not typing) ----
+  if((e.ctrlKey||e.metaKey) && !e.shiftKey && (e.key==='a'||e.key==='A') && !typing && !SEQ.active && !REC.active){
+    const ids=comps.filter(c=>!c.parked&&!isState(c)).map(c=>c.id);
+    if(ids.length){ selectMany(ids, selId); toastMsg(`${ids.length} selected — drag moves the set`); }
+    e.preventDefault(); return;
+  }
+  if((e.ctrlKey||e.metaKey) && (e.key==='g'||e.key==='G') && !typing){
+    if(e.shiftKey) ungroupSelection(); else groupSelection();
+    e.preventDefault(); return;
   }
 
   // ---- selection keys ----
@@ -3381,7 +3674,7 @@ addEventListener('keydown',e=>{
   }
   const c=comps.find(x=>x.id===selId);
   if(!c || typing) return;
-  if((e.key==='d'||e.key==='D')&&(e.ctrlKey||e.metaKey)){ seqDuplicateSel(); e.preventDefault(); return; }
+  if((e.key==='d'||e.key==='D')&&(e.ctrlKey||e.metaKey)){ duplicateSelection(); e.preventDefault(); return; }
   if(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown')){
     seqMoveSel(e.key==='ArrowUp'?-1:1); e.preventDefault(); return;
   }
@@ -3390,10 +3683,17 @@ addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown'){
     if(Date.now()-nudgeSnapAt>800){ snap(); nudgeSnapAt=Date.now(); }   // one slot per burst
   }
-  if(e.key==='ArrowLeft'){c.x-=step;} else if(e.key==='ArrowRight'){c.x+=step;}
-  else if(e.key==='ArrowUp'){c.y-=step;} else if(e.key==='ArrowDown'){c.y+=step;}
-  else if(e.key==='Delete'){ snap(); const dead=c.id; comps=comps.filter(x=>x.id!==dead); selId=null;
-    dropDependents(dead); }
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='ArrowDown'){
+    const dx=e.key==='ArrowLeft'?-step:(e.key==='ArrowRight'?step:0);
+    const dy=e.key==='ArrowUp'?-step:(e.key==='ArrowDown'?step:0);
+    const team=selIds.size>1?selMovable():[c];
+    const inTeam=new Set(team.map(o=>o.id));
+    team.forEach(o=>{ if(o.parentId && inTeam.has(o.parentId)) return;   // parent already carries it
+      o.x+=dx; o.y+=dy;
+      childrenOf(o.id).forEach(ch=>{ if(!inTeam.has(ch.id)){ ch.x+=dx; ch.y+=dy; } });
+    });
+  }
+  else if(e.key==='Delete'||e.key==='Backspace'){ deleteSelection(); e.preventDefault(); return; }
   else return;
   e.preventDefault(); render();
 });
@@ -3757,7 +4057,7 @@ function undo(){
     if(Array.isArray(s)){ comps=s; }   // pre-edges snapshots
     else { comps=s.c||[]; edges=s.e||[]; }
   }catch(_){ return; }
-  selId=null; selEdge=null; statePreview=null; comps.forEach(c=>{ delete c._stateAt; }); render();
+  selId=null; selIds.clear(); selEdge=null; statePreview=null; comps.forEach(c=>{ delete c._stateAt; }); render();
 }
 
 /* ============ PNG snapshot of the recording canvas ============ */
@@ -4057,7 +4357,7 @@ function exitRecCrop(){ document.body.classList.remove('rec-crop'); try{ fit(); 
 function sceneHtmlForRecord(){
   const root=scene.cloneNode(true);
   root.querySelectorAll('.comp').forEach(n=>{
-    n.classList.remove('sel-outline');
+    n.classList.remove('sel-outline', 'multi-sel');
     n.classList.add('fresh');   // trigger replays one-shot inner animations (entrance moment)
     const c=comps.find(x=>x.id===n.dataset.id);
     if(!c || !c.anim || c.anim==='none') return;
@@ -4956,7 +5256,7 @@ document.getElementById('btn-new-project').onclick=()=>{
 let popup=null;
 function sceneInner(){
   const c=scene.cloneNode(true);
-  c.querySelectorAll('.comp').forEach(n=>n.classList.remove('sel-outline'));
+  c.querySelectorAll('.comp').forEach(n=>n.classList.remove('sel-outline', 'multi-sel'));
   /* drafts INCLUDED — the popout is the recording truth: it must match the
      builder canvas and 📸 PNG exactly, palette previews and all */
   return c.innerHTML;
