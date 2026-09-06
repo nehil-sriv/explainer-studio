@@ -753,6 +753,10 @@ let statePreview=null;
 // scene's end. Selecting a clear-screen step always arms it. Multi-select,
 // edge inspect and the 👁 toggle control the rest.
 let previewOn=true;
+// previewAnchor = the sequence step the take-preview follows (a comp id).
+// ONLY sequence-row clicks set it — clicking comps on the canvas selects
+// without touching the canvas, so later steps never vanish on canvas clicks.
+let previewAnchor=null;
 // edit mode only: show the canvas through this state step
 /* how far down the list patches apply right now */
 function stateCutoff(){
@@ -2502,6 +2506,7 @@ const scene = document.getElementById('scene');
 function selSync(){
   [...selIds].forEach(i=>{ if(!comps.some(c=>c.id===i)) selIds.delete(i); });
   if(selId && !comps.some(c=>c.id===selId)) selId=null;
+  if(previewAnchor && !comps.some(c=>c.id===previewAnchor && !c.parked)) previewAnchor=null;
   if(selId && !selIds.has(selId)) selIds=new Set([selId]);   // legacy direct assign of a fresh id collapses to single
   if(!selId && selIds.size) selIds.clear();                  // legacy selId=null sites mean deselect-all
   if(selId && !selIds.size) selIds.add(selId);
@@ -2641,13 +2646,13 @@ function startDraft(type){
   if(sc){ c.sceneId=sc; }
   comps.push(c);
   if(sc) normalizeScenes();
-  draft=type; selId=c.id; render();
+  draft=type; selId=c.id; previewAnchor=c.id; render();
 }
 
 function select(id, opts={}){
-  if(id==null){ selId=null; selIds.clear(); selEdge=null; statePreview=null; render(); return; }
+  if(id==null){ selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; render(); return; }
   const c=comps.find(x=>x.id===id);
-  if(!c){ selId=null; selIds.clear(); selEdge=null; statePreview=null; render(); return; }
+  if(!c){ selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; render(); return; }
   selEdge=null;
   statePreview=(isState(c))?c.id:null;
   if(opts.toggle){
@@ -2660,6 +2665,7 @@ function select(id, opts={}){
       selId=id;
     }
     if(!selIds.size) selId=null;
+    if(opts.seq){ if(selIds.size===1&&selId===id) previewAnchor=id; else if(!selIds.size) previewAnchor=null; }
     render(); return;
   }
   if(!opts.solo){
@@ -2667,6 +2673,7 @@ function select(id, opts={}){
     if(g){ selIds=new Set(g.map(m=>m.id)); selId=id; render(); return; }
   }
   selIds=new Set([id]); selId=id;
+  if(opts.seq) previewAnchor=id;
   render(); }
 function selectMany(ids, anchor){
   selIds=new Set((ids||[]).filter(id=>comps.some(c=>c.id===id)));
@@ -2994,7 +3001,7 @@ function renderList(){
         let to=comps.indexOf(c); if(!halfBefore(e)) to++;
         comps.splice(to,0,mv); normalizeScenes(); render(); renderStrip();
       };
-      li.onclick=e=>select(c.id, {toggle:!!(e.shiftKey||e.metaKey||e.ctrlKey), solo:!!e.altKey});
+      li.onclick=e=>select(c.id, {toggle:!!(e.shiftKey||e.metaKey||e.ctrlKey), solo:!!e.altKey, seq:true});
     }
     list.appendChild(li);
     // expanded point rows for the driving stepped comp — click a line to show through it
@@ -3209,8 +3216,8 @@ function showRailTab(which){
   document.getElementById('tabbtn-seq').classList.toggle('on',!edit);
   try{ localStorage.setItem('phosphor-railtab',edit?'edit':'seq'); }catch(_){}
 }
-function selectEdge(id){ selEdge=id; selId=null; selIds.clear(); statePreview=null; render(); }
-function clearSel(){ selId=null; selIds.clear(); selEdge=null; statePreview=null; }
+function selectEdge(id){ selEdge=id; selId=null; selIds.clear(); statePreview=null; previewAnchor=null; render(); }
+function clearSel(){ selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; }
 
 /* ============ edge inspector (GravelGraph-style Edge panel) ============ */
 const EDGE_PATCH_FIELDS=[
@@ -3597,7 +3604,7 @@ function renderInspector(){
           <div class="row" style="align-items:flex-start"><label style="padding-top:5px">⊘ hide</label>
             <span id="seq-hides" style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow-y:auto"></span></div>
           <div class="row"><button id="seq-variant" title="add a state change for this component — no clone, so its wires and text follow. Drag the new row to when the change should happen." style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-amber);border:1px solid var(--ch-amber);cursor:pointer;padding:5px;border-radius:4px">⇄ add state change</button></div>
-          <div class="row"><button id="seq-preview" title="take-view follows the selected step, or the scene end when nothing is selected — toggle off for the full canvas" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-cyan);border:1px solid var(--ch-cyan);cursor:pointer;padding:5px;border-radius:4px">${(typeof previewOn!=='undefined'&&previewOn)?'👁 preview on — click to show all':'👁 preview off — click for take view'}</button></div>`;
+          <div class="row"><button id="seq-preview" title="take-view follows the sequence row you click, or the scene end when nothing is selected — canvas clicks only select, never hide steps. Toggle off for the full canvas" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-cyan);border:1px solid var(--ch-cyan);cursor:pointer;padding:5px;border-radius:4px">${(typeof previewOn!=='undefined'&&previewOn)?'👁 preview on — click to show all':'👁 preview off — click for take view'}</button></div>`;
   wrap.innerHTML=html;
 
   // typing must NOT rebuild the inspector — update model + canvas only
@@ -3691,7 +3698,7 @@ function renderInspector(){
   if(vr){ vr.onclick=()=>seqAddStateStep(); }
   const pv=wrap.querySelector('#seq-preview');
   if(pv){ pv.onclick=()=>{ previewOn=!previewOn;
-    toastMsg(previewOn?'take view on — canvas follows the selected step':'take view off — full canvas');
+    toastMsg(previewOn?'take view on — canvas follows the sequence row you click':'take view off — full canvas');
     render(); }; }
   // ⊘ hide picker — tick earlier comps that retire when THIS step appears
   const hideBox=wrap.querySelector('#seq-hides');
@@ -4366,7 +4373,7 @@ function connectStart(e,c,pid){
       edges.push({id:uidEdge(), from:c.id, fromPort:pid, to:t.id, toPort:(np?np.id:'auto'),
         preset:'none', label:'', caption:'', routing:'smooth', branch:'none',
         weight:2, dir:'fwd', style:'dots', speed:1, animate:true});
-      selEdge=edges[edges.length-1].id; selId=null; render();
+      selEdge=edges[edges.length-1].id; selId=null; previewAnchor=null; render();
       toastMsg(`🔗 linked ${c.type} → ${t.type}`);
     }
   };
@@ -4677,12 +4684,14 @@ function compVisible(c){
   if(SEQ.scene && c.sceneId!==SEQ.scene) return false;   // scene take — only this scene plays
   if(!SEQ.active){
     // preview mode (default ON): the canvas shows the take state — through
-    // the anchor step when single-selected, else through the active scene's
-    // end. Selecting a clear step shows it on a fresh canvas (earlier steps
-    // cleared). Multi-select and edge inspect always show all.
+    // the anchored sequence row when one was clicked, else through the
+    // active scene's end. Canvas clicks only select; they never move the
+    // anchor, so later steps stay put. Selecting a clear step shows it on a
+    // fresh canvas (earlier steps cleared). Multi-select and edge inspect
+    // always show all.
     if(previewOn && !selEdge){
       let k=-1;
-      if(selIds.size===1) k=comps.findIndex(x=>x.id===selId);
+      if(selIds.size===1 && previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
       else if(selIds.size===0){
         const sc=(typeof activeSceneId==='function')?activeSceneId():null;
         const r=sc?sceneRange(sc):null;
@@ -4728,7 +4737,7 @@ function seqPlay(from=0,keepScene){
   else if(from>=comps.length) SEQ.shown=comps.length;
   else SEQ.shown=runEnd(from-1);   // smallest whole beat covering `from` — never half a beat
   SEQ.maxShown=SEQ.shown;   // revisit head — jumps never pass what the take has revealed
-  selId=null; statePreview=null;
+  selId=null; statePreview=null; previewAnchor=null;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   // re-arm entrances of the shown run so ▶ always plays them
   comps.forEach(c=>{ delete c._played; delete c._stateAt; if(typeof c.revealed!=='undefined' && c.props && c.props.stepped) c.revealed=0; });
@@ -5012,7 +5021,7 @@ function seqDuplicateSel(){
   snap();
   const c=comps[i], d=structuredClone(c);
   delete d._played; d.id=uid(); d.z=c.z+1;
-  comps.splice(i+1,0,d); selId=d.id; render(); renderStrip();
+  comps.splice(i+1,0,d); selId=d.id; previewAnchor=d.id; render(); renderStrip();
   return d;
 }
 /* ⇄ new state: legacy clone-variant (kept unwired so old hides projects load).
@@ -5026,7 +5035,7 @@ function seqVariantSel(){
   delete d._played; delete d.clearBefore;
   d.id=uid(); d.z=(c.z||0)+1;
   d.hides=[...(Array.isArray(d.hides)?d.hides.filter(id=>id!==c.id):[]), c.id];
-  comps.splice(i+1,0,d); selId=d.id; render(); renderStrip();
+  comps.splice(i+1,0,d); selId=d.id; previewAnchor=d.id; render(); renderStrip();
   toastMsg('⇄ variant placed right after — edit its status/color, Space swaps to it (list shows ⊘1)');
   return d;
 }
@@ -5251,7 +5260,7 @@ function undo(){
     if(Array.isArray(s)){ comps=s; }   // pre-edges snapshots
     else { comps=s.c||[]; edges=s.e||[]; }
   }catch(_){ return; }
-  selId=null; selIds.clear(); selEdge=null; statePreview=null; comps.forEach(c=>{ delete c._stateAt; }); render();
+  selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; comps.forEach(c=>{ delete c._stateAt; }); render();
 }
 
 /* ============ PNG snapshot of the recording canvas ============ */
@@ -6532,7 +6541,7 @@ document.getElementById('file-open').onchange=e=>{
       currentSceneName=d.currentSceneName||null;
       dslScript=d.script||'';
       ensureDefaultScene();
-      selId=null; selEdge=null; draft=null; statePreview=null;
+      selId=null; selEdge=null; draft=null; statePreview=null; previewAnchor=null;
       SEQ.active=false; SEQ.shown=comps.length; curBeat=0;
       if(imp.note) toastMsg(imp.note);
       render(); renderStrip();
@@ -6549,7 +6558,7 @@ document.getElementById('btn-clear-canvas').onclick=()=>{
   snap();
   seqStopAutoTimer();
   if(SEQ.active) seqExit();
-  comps=[]; edges=[]; selId=null; selEdge=null; statePreview=null;
+  comps=[]; edges=[]; selId=null; selEdge=null; statePreview=null; previewAnchor=null;
   SEQ.shown=0; SEQ.maxShown=0;
   render(); renderStrip();
   toastMsg('canvas cleared — Ctrl+Z brings it back');
@@ -6558,7 +6567,7 @@ document.getElementById('btn-clear-canvas').onclick=()=>{
 document.getElementById('btn-new-project').onclick=()=>{
   if(!confirm('Start a new project?\nClears the canvas, saved components and compositions (autosave too). Exported .json files are NOT deleted.')) return;
   seqStopAutoTimer();
-  comps=[]; edges=[]; selId=null; selEdge=null; draft=null; currentSceneName=null; statePreview=null; dslScript='';
+  comps=[]; edges=[]; selId=null; selEdge=null; draft=null; currentSceneName=null; statePreview=null; previewAnchor=null; dslScript='';
   SCENES=[]; activeScene=null; ensureDefaultScene();
   SEQ.active=false; SEQ.auto=false; SEQ.shown=0; curBeat=0; beatLabels.length=0;
   storeSaved([]);
