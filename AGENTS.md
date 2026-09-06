@@ -141,8 +141,8 @@ SHOW (video)
   footer dots — keys never start a take. **← / PageUp** → back. **Esc** → exit to edit (show all).
   One more Space past the last step (or auto-play reaching the end) ends the take itself.
 - **Toasts** (`#navtoast`) always dock under the header — the footer strip owns the bottom edge.
-- **Clear / retire:** `🧹` on a step clears the screen before it appears; `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. Edit mode always shows everything.
-  For a truly empty beat, add an **Empty canvas** (`seq` group): draws nothing anywhere — manage it from its list row. One Space press lands on it. Selecting it previews the empty beat (pins stay) so the next section is placed against the true canvas.
+- **Clear / retire:** `🧹` on a step clears the screen and reveals it on the fresh canvas, same beat — in takes and in edit preview alike. `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears.
+- **Take preview in edit mode (default ON):** the canvas shows the take state — through the selected step when single-selected, else through the active scene's end. Multi-select, edge inspect and the 👁 toggle show the full canvas.
 - **Take preview in edit mode (default ON):** the canvas shows the take state — through the selected step when single-selected, else through the active scene's end (clear/pin/hide honored). Click steps to walk the story; multi-select, edge inspect and the 👁 toggle show the full canvas. Plain arranging always has an all-visible path.
 - **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ add state change`
   adds a `state` patch-step at the end of the list — it draws nothing and patches the

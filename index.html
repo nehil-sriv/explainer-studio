@@ -209,6 +209,12 @@ body {
   /* rec-crop mode — hide editor chrome so the canvas fills the tab during ⏺ REC.
      The capture is cropped to #scene, so title bar / URL / UI never reach the clip. */
   body.rec-crop header, body.rec-crop aside, body.rec-crop footer, body.rec-crop #sidebar-rsz { display:none; }
+  /* one stop button for takes and recording: take-stop stays visible and
+     stops everything; the REC button hides while recording */
+  body.recording #btn-record { display:none !important; }
+  /* auto-timed takes are stop-only — no back/next while the timer drives */
+  body.auto-take #t-next, body.auto-take #t-back,
+  body.rec-auto #t-next, body.rec-auto #t-back { display:none !important; }
   body.rec-crop main { display:block; }
   body.rec-crop .stage-wrap { padding:0; overflow:hidden; height:100vh; }
   /* 🔗 connection ports — dots on the selected component; drag one to any component to link */
@@ -438,8 +444,11 @@ body {
     .rec-row input { width:70px; background:var(--bg-deep); border:1px solid var(--line-dim); color:var(--text-primary); font-family:inherit; padding:4px 6px; }
     #rec-status { font-size:12px; color:var(--amber); min-height:15px; margin-bottom:10px; white-space:pre-wrap; line-height:1.5; }
     .rec-btns { display:flex; gap:6px; }
-    /* while recording: lock the editor except the REC controls */
-    body.recording header :not(#btn-record) { pointer-events:none; }
+    /* while recording: lock the editor except the REC + take-transport controls */
+    body.recording header :not(#btn-record):not(#t-next):not(#t-back):not(#t-exit) { pointer-events:none; }
+    /* explicit clickability for the take transport (belts-and-braces over the :not chain) */
+    body.recording #btn-record, body.recording #t-next,
+    body.recording #t-back, body.recording #t-exit { pointer-events:auto; }
     body.recording.live aside { pointer-events:auto; }   /* live take: scene/queue panels stay usable */
     body.recording aside { pointer-events:none; }
   </style>
@@ -737,9 +746,6 @@ function seqEndIndex(){ if(SEQ.scene){ const r=sceneRange(SEQ.scene); if(r) retu
    position in the list onward. The target keeps its id, so wires/text follow.
    {id, type:'state', target, label, anim, animDur, seqHold, props:{}, patch:{}} */
 const STATE_TYPE='state';
-/* a clear-screen step draws a placeholder in edit mode and nothing in takes —
-   its clearBefore flag does the work through the ordinary clear rule */
-const EMPTYCANVAS_TYPE='emptycanvas';
 function isState(c){ return !!c && c.type===STATE_TYPE; }
 let statePreview=null;
 // edit-mode take preview, ON by default: the canvas shows the take state —
@@ -1407,15 +1413,6 @@ const REGISTRY = {
     props:{text:'↻ see: recursion'},
     fields:['text'],
     markup:p=>`<div class="loopbox">${p.text}</div>` },
-
-  emptycanvas:{ name:'Empty canvas',
-    group:'seq',
-    help:'empty beat — clears the screen and shows nothing, on canvas or in takes. Space lands here, next Space continues the story',
-    props:{label:'act 2'},
-    fields:['label'],
-    markup:p=>`<div style="border:2px dashed var(--text-dim);border-radius:14px;padding:26px 40px;text-align:center;opacity:.85">`
-      +`<div style="font-size:calc(46px*var(--fscale,1))">🧹</div>`
-      +`<div style="font-family:var(--font-mono);font-size:calc(18px*var(--fscale,1));letter-spacing:2px;color:var(--text-dim);margin-top:8px">${rich(p.label)||'CLEAR SCREEN'}</div></div>` },
 
   box:      { name:'Box (border+fill)',
     group:'meta',
@@ -2641,7 +2638,6 @@ function startDraft(type){
   if(SEQ.active) seqExit();   // adding while playing → back to edit so you see it
   const sc=targetSceneId();
   if(sc){ c.sceneId=sc; }
-  if(c.type===EMPTYCANVAS_TYPE) c.clearBefore=true;   // a clear beat always clears
   comps.push(c);
   if(sc) normalizeScenes();
   draft=type; selId=c.id; render();
@@ -2670,7 +2666,6 @@ function select(id, opts={}){
     if(g){ selIds=new Set(g.map(m=>m.id)); selId=id; render(); return; }
   }
   selIds=new Set([id]); selId=id;
-  if(c.type===EMPTYCANVAS_TYPE){ previewOn=true; toastMsg('previewing the empty beat — click steps to walk the story'); }
   render(); }
 function selectMany(ids, anchor){
   selIds=new Set((ids||[]).filter(id=>comps.some(c=>c.id===id)));
@@ -2795,7 +2790,6 @@ function renderCanvas(){
   const crt=scene.querySelector('.crt'), corners=scene.querySelector('.corners');
   comps.forEach(c=>{
     if(isState(c)) return;   // ADD: state steps draw nothing
-    if(c.type===EMPTYCANVAS_TYPE) return;   // clear beats draw nothing, edit or take
     // --- SEQUENCE visibility: edit = show all; playback = first SEQ.shown ---
     if(!compVisible(c)) return;
     const reg=REGISTRY[c.type];
@@ -3904,7 +3898,6 @@ function insertComposition(cp, opts={}){
       if(!o.target) return;   // target outside this stamp — drop the state step
     }
     if(sceneId) o.sceneId=sceneId;
-    if(o.type===EMPTYCANVAS_TYPE) o.clearBefore=true;
     if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
     comps.push(o); stamped.push(o);
   });
@@ -4099,7 +4092,6 @@ function addCompFrom(src){
   const c=structuredClone(src);
   delete c._played;
   c.id=uid(); c.draft=false; c.z=comps.length+10; delete c.beat;
-  if(c.type===EMPTYCANVAS_TYPE) c.clearBefore=true;
   if(SEQ.active) seqExit();
   const sc=targetSceneId(); if(sc) c.sceneId=sc;   // new work always joins a scene
   comps.push(c);
@@ -4661,8 +4653,8 @@ function compVisible(c){
   if(!SEQ.active){
     // preview mode (default ON): the canvas shows the take state — through
     // the anchor step when single-selected, else through the active scene's
-    // end. Multi-select and edge inspect always show all: arranging needs
-    // the full context.
+    // end. Selecting a clear step shows it on a fresh canvas (earlier steps
+    // cleared). Multi-select and edge inspect always show all.
     if(previewOn && !selEdge){
       let k=-1;
       if(selIds.size===1) k=comps.findIndex(x=>x.id===selId);
@@ -5077,6 +5069,11 @@ function renderStrip(){
   const vis=(id,show)=>{ const b=document.getElementById(id); if(b) b.style.display=show?'':'none'; };
   vis('t-play',!SEQ.active); vis('t-auto',!SEQ.active);
   vis('t-next',SEQ.active); vis('t-back',SEQ.active); vis('t-exit',SEQ.active);
+  // a take that ends mid-recording must not take the stop button with it —
+  // body class, not REC (TDZ: this runs before const REC initializes)
+  if(document.body.classList.contains('recording')){ const x=document.getElementById('t-exit'); if(x) x.style.display=''; }
+  // auto-timed takes are stop-only (CSS hides next/back) — SEQ defined up top, no TDZ risk
+  document.body.classList.toggle('auto-take', !!SEQ.auto);
   const tAuto=document.getElementById('t-auto');
   if(tAuto) tAuto.textContent=SEQ.auto?'⏸ stop auto':'⏩ auto';
   const tHold=document.getElementById('t-hold');
@@ -5172,9 +5169,22 @@ function themeize(o){
   if(o.patch) themeize(o.patch);
   return o;
 }
+/* an empty-canvas component type existed briefly and was folded back into the
+   🧹 flag — convert survivors: the following step inherits the clear beat. */
+function migrateEmptyCanvas(list){
+  for(let k=list.length-1;k>=0;k--){
+    if(list[k]&&list[k].type==='emptycanvas'){
+      let nx=null;
+      for(let j=k+1;j<list.length;j++){ if(!isState(list[j])){ nx=list[j]; break; } }
+      if(nx) nx.clearBefore=true;
+      list.splice(k,1);
+    }
+  }
+  return list;
+}
 function importProject(d){
   const out={ comps:[], edges:[], note:'' };
-  const spread=c=>{ const o=themeize({ scale:1, rot:0, opacity:1, z:10, ...c }); if(o.type==='clearstep') o.type='emptycanvas'; delete o.beat; delete o._stateAt; delete o._played;
+  const spread=c=>{ const o=themeize({ scale:1, rot:0, opacity:1, z:10, ...c }); delete o.beat; delete o._stateAt; delete o._played;
     if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
     if(o.carry && !o.pin){ o.pin=true; } delete o.carry; return o; };
   // base canvas comps first (sorted by old beat), then legacy named scenes in order
@@ -5189,6 +5199,7 @@ function importProject(d){
   // edges layer (v3+) + legacy flowlink comps → edges
   const fl=flowlinksToEdges(out.comps);
   out.comps=fl.comps;
+  migrateEmptyCanvas(out.comps);
   out.edges=(Array.isArray(d.edges)?d.edges:[]).concat(fl.fresh)
     .filter(e=>out.comps.some(c=>c.id===e.from)&&out.comps.some(c=>c.id===e.to));
   if((d.beats!=null && +d.beats>1) || names.length) out.note='imported old project → flattened to sequence ('+out.comps.length+' steps)';
@@ -5507,10 +5518,15 @@ function setRecBtn(on){
   const tc=document.getElementById('transport-tc');
   if(tc && !on) tc.textContent='00:00.0';
   document.body.classList.toggle('recording', on);
-  // header (with ⏺ REC) hides during cropped capture — the dialog buttons become the stop affordance
+  document.body.classList.toggle('rec-auto', !!(on && typeof REC!=='undefined' && REC.autoMode));
+  // the header stays visible, so its ⏹ is the stop affordance; the rec
+  // dialog hides the moment recording starts
+  if(on){ const p=document.getElementById('rec-pop'); if(p) p.style.display='none'; }
   const st=document.getElementById('rec-step'), au=document.getElementById('rec-auto');
   if(st) st.textContent=on?'⏹ stop':'⏺ step · Space';
   if(au) au.textContent=on?'⏹ stop':'⏩ auto · timed';
+  const ex=document.getElementById('t-exit');
+  if(ex) ex.title=on?'stop recording — back to edit mode':'stop the take — back to edit mode';
 }
 function exitRecCrop(){ document.body.classList.remove('rec-crop'); try{ fit(); }catch(_){} }
 /* scene HTML with every entrance re-armed: CSS anims get their inline animation
@@ -5558,8 +5574,9 @@ REC.stop=()=>{
   if(REC.autoTimer){ clearTimeout(REC.autoTimer); REC.autoTimer=null; }
   setLiveSync(false);
   const r=REC.recorder; REC.recorder=null;   // claim it — prevents double-stop races
-  if(r && r.state!=='inactive') r.stop();
-  else { cleanupRec(); REC.active=false; REC.autoMode=false; setRecBtn(false); seqExit(); }   // stopped before/at consent
+  let stopping=false;
+  if(r && r.state!=='inactive'){ try{ r.stop(); stopping=true; }catch(err){ console.warn('recorder stop failed:',err); } }
+  if(!stopping){ cleanupRec(); REC.active=false; REC.autoMode=false; setRecBtn(false); seqExit(); }
 };
 
 document.getElementById('btn-record').onclick=()=>{
@@ -5779,7 +5796,7 @@ document.getElementById('t-auto').onclick=()=>{
 };
 document.getElementById('t-next').onclick=()=>seqNext();
 document.getElementById('t-back').onclick=()=>seqPrev();
-document.getElementById('t-exit').onclick=()=>seqExit();
+document.getElementById('t-exit').onclick=()=>{ if(REC.active){ REC.stop(); } else { seqExit(); } };
 document.getElementById('t-hold').onchange=e=>{
   const v=parseFloat(e.target.value);
   if(isFinite(v)&&v>=0){ SEQ.holdDefault=v; autosave(); }
@@ -5898,12 +5915,13 @@ function autosave(){
     if(d){ if(d.scene){ inW.value=d.scene.w; inH.value=d.scene.h; setSceneSize(d.scene.w,d.scene.h); }
            const list=(d.comps||[]).map((c,i)=>({ c, i }));
            list.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
-           comps=list.map(({c})=>{ const o=themeize({scale:1,rot:0,opacity:1,z:10,...c}); if(o.type==='clearstep') o.type='emptycanvas'; delete o.beat; delete o._stateAt; delete o._played;
+           comps=list.map(({c})=>{ const o=themeize({scale:1,rot:0,opacity:1,z:10,...c}); delete o.beat; delete o._stateAt; delete o._played;
              if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
              if(o.carry && !o.pin) o.pin=true; delete o.carry; return o; });
            edges=Array.isArray(d.edges)?d.edges:[];
            const fl0=flowlinksToEdges(comps);
            comps=fl0.comps; edges=edges.concat(fl0.fresh);
+           migrateEmptyCanvas(comps);
            pruneEdges();
            if(d.saved) { storeSaved(d.saved); renderSaved(); }
            if(Array.isArray(d.scenes)) SCENES=d.scenes.filter(s=>s&&s.id).map(s=>({id:String(s.id),name:String(s.name||'Scene')}));
@@ -5920,6 +5938,7 @@ function autosave(){
 setInterval(autosave, 2000);
 SEQ.active=false; SEQ.shown=0;
 ensureDefaultScene();
+migrateEmptyCanvas(comps);
 render(); renderStrip();
 /* right-rail tabs (defined here — after showRailTab exists) */
 document.getElementById('tabbtn-edit').onclick=()=>showRailTab('edit');
@@ -6020,7 +6039,6 @@ const DSL_ALIAS={
   pinecone:'vdb', weaviate:'vdb', qdrant:'vdb', chroma:'vdb', faiss:'vdb', milvus:'vdb',
   chunk:'splitter', chunks:'splitter', chunker:'splitter', chunking:'splitter', split:'splitter',
   llm:'model', gpt:'model', claude:'model', llama:'model', gemini:'model', mistral:'model', ai:'model',
-  clear:'emptycanvas', blank:'emptycanvas', empty:'emptycanvas',
   vs:'versus', myth:'myth', pros:'proscons', cons:'proscons', proscons:'proscons',
   matrix:'matrix', tiers:'tiers', tierlist:'tiers', ranking:'tiers',
   quotecard:'quotecard', beforeafter:'beforeafter',
@@ -6335,8 +6353,7 @@ function dslApply(text, mode){
     } else {
       c={id, type:s.type, x:120, y:120, scale:TK_DSCALE[s.type]||1, rot:0, z:comps.length+10, opacity:1, props:s.props, draft:false};
       const sc=targetSceneId(); if(sc) c.sceneId=sc;   // new work always joins a scene
-      if(c.type===EMPTYCANVAS_TYPE) c.clearBefore=true;
-      comps.push(c); newComps.push(c);
+          comps.push(c); newComps.push(c);
     }
     placeMap.set(s.name,c);
   });
