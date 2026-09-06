@@ -643,6 +643,50 @@ function splitStepsAt(i){
   if(!c||!c.stepId){ toastMsg('this row is not merged'); return; }
   splitBySids(new Set([c.stepId]));
 }
+/* explode a stepped component's lines into one step per line, so each point
+   can be dragged anywhere in the play order. Mirrors how the markup splits:
+   checklist rows on newlines only (| is status data there), everything else
+   on newlines and | — same loop stepTotal counts. One-line clones are plain
+   steps (stepped off, run detached); ordering flags stay on the first only.
+   Layout: the clones tile exactly where the original block stood (measured
+   in two passes, like the layout engine) — only the sequence changes. */
+function splitLinesToSteps(){
+  const c=comps.find(x=>x.id===selId);
+  if(!c||isState(c)){ toastMsg('select a stepped component first'); return; }
+  if(!c.props||!c.props.stepped){ toastMsg('tick stepped first — then split its lines'); return; }
+  let lines=null, mode=null;
+  if(typeof c.props.items==='string'){
+    mode='items';
+    lines=(c.type==='checklist'
+      ? String(c.props.items).split('\n').map(s=>s.trim()).filter(Boolean)
+      : String(c.props.items).split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean));
+  } else if(typeof c.props.body==='string'){
+    mode='body';
+    lines=String(c.props.body).split('\n');
+  }
+  if(!lines||lines.length<2){ toastMsg('nothing to split — single line'); return; }
+  snap(); if(SEQ.active) seqExit();
+  const i=comps.indexOf(c);
+  const clones=lines.map((ln,k)=>{
+    const d=structuredClone(c);
+    delete d._played; delete d._stateAt; delete d.revealed;
+    delete d.stepId; d.stepped=false;
+    d.id=uid(); d.z=(c.z||0)+k;
+    if(mode==='items') d.props.items=ln; else d.props.body=ln;
+    if(k>0){ delete d.clearBefore; delete d.hides; }
+    return d;
+  });
+  comps.splice(i,1,...clones);
+  render();   // pass 1 paints so single-line heights are real
+  const s=c.scale||1;   // tile down from the original block's visual top
+  let yy=c.y+(c._rh||120)*(1-s)/2;
+  clones.forEach(d=>{ const chh=d._rh||20; d.x=c.x; d.y=Math.round(yy-chh*(1-s)/2); yy+=chh*s; });
+  const g='g'+uid();   // the points move as one set by default (Alt+click picks one)
+  clones.forEach(d=>d.groupId=g);
+  selectMany(clones.map(d=>d.id));
+  renderStrip();
+  toastMsg(`split into ${clones.length} steps — grouped as one (Alt+click picks one)`);
+}
 
 /* ===== SCENES — Sequence → Scene → Components =====
    Same shared-field pattern as runs: c.sceneId plus an ordered SCENES array.
@@ -693,8 +737,16 @@ function seqEndIndex(){ if(SEQ.scene){ const r=sceneRange(SEQ.scene); if(r) retu
    position in the list onward. The target keeps its id, so wires/text follow.
    {id, type:'state', target, label, anim, animDur, seqHold, props:{}, patch:{}} */
 const STATE_TYPE='state';
+/* a clear-screen step draws a placeholder in edit mode and nothing in takes —
+   its clearBefore flag does the work through the ordinary clear rule */
+const EMPTYCANVAS_TYPE='emptycanvas';
 function isState(c){ return !!c && c.type===STATE_TYPE; }
 let statePreview=null;
+// edit-mode take preview, ON by default: the canvas shows the take state —
+// through the anchor step when single-selected, else through the active
+// scene's end. Selecting a clear-screen step always arms it. Multi-select,
+// edge inspect and the 👁 toggle control the rest.
+let previewOn=true;
 // edit mode only: show the canvas through this state step
 /* how far down the list patches apply right now */
 function stateCutoff(){
@@ -1239,6 +1291,93 @@ const REGISTRY = {
     fields:['text','who','accent'], fieldTypes:{text:'textarea'},
     markup:p=>`<div style="border-left:4px solid ${p.accent};padding:6px 0 6px 26px;max-width:820px"><div style="font-size:calc(44px*var(--fscale,1));color:${p.accent};line-height:1">“</div><div style="font-size:calc(30px*var(--fscale,1));color:var(--ct,var(--text-primary))">${rich(p.text)}</div><div style="margin-top:10px;font-size:calc(20px*var(--fscale,1));color:var(--text-dim)">— ${rich(p.who)}</div></div>` },
 
+  versus:   { name:'VS · claim vs counter-claim',
+    group:'meta',
+    help:'two sides, one winner pending — title frames the debate',
+    props:{title:'Tabs vs Spaces', left:'fewer files to juggle', right:'fewer brackets to count', accent:'var(--phos-green)'},
+    fields:['title','left','right','accent'], fieldTypes:{left:'textarea',right:'textarea'},
+    markup:p=>`<div style="max-width:1000px;text-align:center">`
+      +(p.title?`<div style="font-size:calc(34px*var(--fscale,1));font-weight:700;color:var(--ct,var(--text-primary));margin-bottom:14px">${rich(p.title)}</div>`:'')
+      +`<div style="display:flex;gap:16px;align-items:stretch;text-align:left">`
+      +`<div style="flex:1;border:1px solid var(--line-dim);border-radius:12px;padding:18px 22px;font-size:calc(24px*var(--fscale,1));color:var(--ct,var(--text-primary))">${rich(p.left)}</div>`
+      +`<div style="align-self:center;flex:none;width:58px;height:58px;border-radius:50%;border:2px solid ${p.accent};display:grid;place-items:center;font-weight:700;font-size:calc(20px*var(--fscale,1));color:${p.accent}">VS</div>`
+      +`<div style="flex:1;border:1px solid var(--line-dim);border-radius:12px;padding:18px 22px;font-size:calc(24px*var(--fscale,1));color:var(--ct,var(--text-primary))">${rich(p.right)}</div>`
+      +`</div></div>` },
+
+  myth:     { name:'Myth vs reality',
+    group:'meta',
+    help:'crossed-out myth on top, reality below in green',
+    props:{myth:'more servers = more reliable', reality:'more servers = more ways to fail', accent:'var(--phos-green)'},
+    fields:['myth','reality','accent'], fieldTypes:{myth:'textarea',reality:'textarea'},
+    markup:p=>`<div style="max-width:900px;display:flex;flex-direction:column;gap:14px;font-size:calc(26px*var(--fscale,1))">`
+      +`<div style="display:flex;gap:14px;align-items:baseline"><span style="flex:none;font-weight:700;color:var(--alert-red)">✗ MYTH</span><s style="opacity:.7;color:var(--ct,var(--text-primary))">${rich(p.myth)}</s></div>`
+      +`<div style="display:flex;gap:14px;align-items:baseline"><span style="flex:none;font-weight:700;color:${p.accent}">✓ REALITY</span><span style="color:var(--ct,var(--text-primary))">${rich(p.reality)}</span></div>`
+      +`</div>` },
+
+  proscons: { name:'Pros and cons',
+    group:'meta',
+    help:'one per line (or | separated) on each side',
+    props:{title:'Should we ship Friday?', pro:'small diff|easy rollback', con:'tired reviewers|no cover on weekend', accent:'var(--phos-green)'},
+    fields:['title','pro','con','accent'], fieldTypes:{pro:'textarea',con:'textarea'},
+    markup:p=>{ const side=t=>String(t||'').split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean);
+      const col=(items,mark,mc)=>items.map(t=>`<div style="display:flex;gap:10px;margin-top:8px"><span style="color:${mc};font-weight:700">${mark}</span><span>${rich(t)}</span></div>`).join('');
+      return `<div style="max-width:1000px;text-align:center">`
+      +(p.title?`<div style="font-size:calc(32px*var(--fscale,1));font-weight:700;color:var(--ct,var(--text-primary));margin-bottom:12px">${rich(p.title)}</div>`:'')
+      +`<div style="display:flex;gap:16px;text-align:left;font-size:calc(23px*var(--fscale,1));color:var(--ct,var(--text-primary))">`
+      +`<div style="flex:1;border:1px solid var(--line-dim);border-radius:12px;padding:16px 20px"><div style="font-weight:700;color:${p.accent};letter-spacing:2px">PROS</div>${col(side(p.pro),'✓',p.accent)}</div>`
+      +`<div style="flex:1;border:1px solid var(--line-dim);border-radius:12px;padding:16px 20px"><div style="font-weight:700;color:var(--alert-red);letter-spacing:2px">CONS</div>${col(side(p.con),'✗','var(--alert-red)')}</div>`
+      +`</div></div>`; } },
+
+  matrix:   { name:'Decision matrix',
+    group:'meta',
+    help:'one criterion per line as crit | left | right — ✓/✗ cells tint themselves',
+    props:{title:'Pick a queue', left:'Kafka', right:'SQS', rows:'ops burden|high|none\ncost at scale|low|high\nordering|exact|best-effort', accent:'var(--phos-green)'},
+    fields:['title','left','right','rows','accent'], fieldTypes:{rows:'textarea'},
+    markup:p=>{ const cell=t=>{ const v=String(t||'').trim();
+        const good=/^(✓|✔|yes|y|true)$/i.test(v), bad=/^(✗|✘|no|n|false)$/i.test(v);
+        return `<span style="${good?`color:${p.accent};font-weight:700`:bad?'color:var(--alert-red);font-weight:700':''}">${rich(v)}</span>`; };
+      const rows=String(p.rows||'').split('\n').map(l=>l.trim()).filter(Boolean);
+      return `<div style="max-width:1000px;text-align:center">`
+      +(p.title?`<div style="font-size:calc(32px*var(--fscale,1));font-weight:700;color:var(--ct,var(--text-primary));margin-bottom:12px">${rich(p.title)}</div>`:'')
+      +`<div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px 18px;text-align:left;font-size:calc(22px*var(--fscale,1));color:var(--ct,var(--text-primary));align-items:center">`
+      +`<span></span><b style="color:${p.accent}">${rich(p.left)}</b><b style="color:${p.accent}">${rich(p.right)}</b>`
+      +rows.map(r=>{ const [c,a,b]=r.split('|'); return `<span style="color:var(--text-dim)">${rich((c||'').trim())}</span><span>${cell(a)}</span><span>${cell(b)}</span>`; }).join('')
+      +`</div></div>`; } },
+
+  tiers:    { name:'Tier list',
+    group:'meta',
+    help:'S/A/B/C rows — items separated by | or new lines',
+    props:{title:'Message queues', s:'Kafka', a:'NATS | SQS', b:'RabbitMQ', c:'in-house DIY', accent:'var(--phos-green)'},
+    fields:['title','s','a','b','c','accent'], fieldTypes:{s:'textarea',a:'textarea',b:'textarea',c:'textarea'},
+    markup:p=>{ const items=t=>String(t||'').split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean);
+      const tier=(L,col,v)=>{ const it=items(v); if(!it.length) return '';
+        return `<div style="display:flex;gap:14px;align-items:center;margin-top:10px"><span style="flex:none;width:52px;height:52px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:calc(26px*var(--fscale,1));color:var(--bg-deep);background:${col}">${L}</span><span style="font-size:calc(24px*var(--fscale,1));color:var(--ct,var(--text-primary))">${it.map(rich).join(' · ')}</span></div>`; };
+      return `<div style="max-width:1000px;text-align:center">`
+      +(p.title?`<div style="font-size:calc(32px*var(--fscale,1));font-weight:700;color:var(--ct,var(--text-primary));margin-bottom:6px">${rich(p.title)}</div>`:'')
+      +tier('S','#FFB000',p.s)+tier('A',p.accent,p.a)+tier('B','#57C7C0',p.b)+tier('C','#5C8A66',p.c)
+      +`</div>`; } },
+
+  quotecard:{ name:'Quote card',
+    group:'meta',
+    help:'framed pull-quote — bolder sibling of Quote',
+    props:{text:'the network is neither fast nor reliable — plan like it', who:'every on-call engineer', role:'3am wisdom', accent:'var(--phos-green)'},
+    fields:['text','who','role','accent'], fieldTypes:{text:'textarea'},
+    markup:p=>`<div style="max-width:860px;text-align:center;border:1px solid var(--line-dim);border-top:5px solid ${p.accent};border-radius:16px;padding:34px 48px;background:var(--cbg,var(--panel))">`
+      +`<div style="font-family:var(--font-display);font-size:calc(38px*var(--fscale,1));color:var(--ct,var(--text-primary));line-height:1.35">“${rich(p.text)}”</div>`
+      +`<div style="margin-top:16px;font-size:calc(22px*var(--fscale,1));color:var(--text-dim)">— ${rich(p.who)}${p.role?`, ${rich(p.role)}`:''}</div></div>` },
+
+  beforeafter:{ name:'Before / after',
+    group:'meta',
+    help:'dim past on the left, accent future on the right',
+    props:{before:'deploy Friday\npray', after:'deploy daily\nsleep', blabel:'BEFORE', alabel:'AFTER', accent:'var(--phos-green)'},
+    fields:['before','after','blabel','alabel','accent'], fieldTypes:{before:'textarea',after:'textarea'},
+    markup:p=>{ const lines=t=>String(t||'').split('\n').map(s=>s.trim()).filter(Boolean).map(l=>`<div>${rich(l)}</div>`).join('');
+      return `<div style="display:flex;gap:18px;align-items:stretch;max-width:1100px">`
+      +`<div style="flex:1;border:1px solid var(--line-dim);border-radius:12px;padding:20px 26px;opacity:.6"><div style="font-size:calc(18px*var(--fscale,1));letter-spacing:3px;color:var(--text-dim);margin-bottom:10px">${rich(p.blabel)}</div><div style="font-size:calc(26px*var(--fscale,1));color:var(--ct,var(--text-primary))">${lines(p.before)}</div></div>`
+      +`<div style="align-self:center;font-size:calc(44px*var(--fscale,1));color:${p.accent}">→</div>`
+      +`<div style="flex:1;border:2px solid ${p.accent};border-radius:12px;padding:20px 26px"><div style="font-size:calc(18px*var(--fscale,1));letter-spacing:3px;color:${p.accent};margin-bottom:10px">${rich(p.alabel)}</div><div style="font-size:calc(26px*var(--fscale,1));color:var(--ct,var(--text-primary))">${lines(p.after)}</div></div>`
+      +`</div>`; } },
+
   blame:    { name:'git blame tag',
     group:'meta',
     props:{who:'<rahul@management>', msg:'just a small change'},
@@ -1268,6 +1407,15 @@ const REGISTRY = {
     props:{text:'↻ see: recursion'},
     fields:['text'],
     markup:p=>`<div class="loopbox">${p.text}</div>` },
+
+  emptycanvas:{ name:'Empty canvas',
+    group:'seq',
+    help:'empty beat — clears the screen and shows nothing, on canvas or in takes. Space lands here, next Space continues the story',
+    props:{label:'act 2'},
+    fields:['label'],
+    markup:p=>`<div style="border:2px dashed var(--text-dim);border-radius:14px;padding:26px 40px;text-align:center;opacity:.85">`
+      +`<div style="font-size:calc(46px*var(--fscale,1))">🧹</div>`
+      +`<div style="font-family:var(--font-mono);font-size:calc(18px*var(--fscale,1));letter-spacing:2px;color:var(--text-dim);margin-top:8px">${rich(p.label)||'CLEAR SCREEN'}</div></div>` },
 
   box:      { name:'Box (border+fill)',
     group:'meta',
@@ -2493,6 +2641,7 @@ function startDraft(type){
   if(SEQ.active) seqExit();   // adding while playing → back to edit so you see it
   const sc=targetSceneId();
   if(sc){ c.sceneId=sc; }
+  if(c.type===EMPTYCANVAS_TYPE) c.clearBefore=true;   // a clear beat always clears
   comps.push(c);
   if(sc) normalizeScenes();
   draft=type; selId=c.id; render();
@@ -2521,6 +2670,7 @@ function select(id, opts={}){
     if(g){ selIds=new Set(g.map(m=>m.id)); selId=id; render(); return; }
   }
   selIds=new Set([id]); selId=id;
+  if(c.type===EMPTYCANVAS_TYPE){ previewOn=true; toastMsg('previewing the empty beat — click steps to walk the story'); }
   render(); }
 function selectMany(ids, anchor){
   selIds=new Set((ids||[]).filter(id=>comps.some(c=>c.id===id)));
@@ -2645,6 +2795,7 @@ function renderCanvas(){
   const crt=scene.querySelector('.crt'), corners=scene.querySelector('.corners');
   comps.forEach(c=>{
     if(isState(c)) return;   // ADD: state steps draw nothing
+    if(c.type===EMPTYCANVAS_TYPE) return;   // clear beats draw nothing, edit or take
     // --- SEQUENCE visibility: edit = show all; playback = first SEQ.shown ---
     if(!compVisible(c)) return;
     const reg=REGISTRY[c.type];
@@ -3450,7 +3601,8 @@ function renderInspector(){
             <span style="font-size:10px;color:var(--ch-mut)">hide from story (kept safe)</span></div>
           <div class="row" style="align-items:flex-start"><label style="padding-top:5px">⊘ hide</label>
             <span id="seq-hides" style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow-y:auto"></span></div>
-          <div class="row"><button id="seq-variant" title="add a state change for this component — no clone, so its wires and text follow. Drag the new row to when the change should happen." style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-amber);border:1px solid var(--ch-amber);cursor:pointer;padding:5px;border-radius:4px">⇄ add state change</button></div>`;
+          <div class="row"><button id="seq-variant" title="add a state change for this component — no clone, so its wires and text follow. Drag the new row to when the change should happen." style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-amber);border:1px solid var(--ch-amber);cursor:pointer;padding:5px;border-radius:4px">⇄ add state change</button></div>
+          <div class="row"><button id="seq-preview" title="take-view follows the selected step, or the scene end when nothing is selected — toggle off for the full canvas" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-cyan);border:1px solid var(--ch-cyan);cursor:pointer;padding:5px;border-radius:4px">${(typeof previewOn!=='undefined'&&previewOn)?'👁 preview on — click to show all':'👁 preview off — click for take view'}</button></div>`;
   wrap.innerHTML=html;
 
   // typing must NOT rebuild the inspector — update model + canvas only
@@ -3542,6 +3694,10 @@ function renderInspector(){
     if(c.parked) selId=null; render(); renderStrip(); }; }
   const vr=wrap.querySelector('#seq-variant');
   if(vr){ vr.onclick=()=>seqAddStateStep(); }
+  const pv=wrap.querySelector('#seq-preview');
+  if(pv){ pv.onclick=()=>{ previewOn=!previewOn;
+    toastMsg(previewOn?'take view on — canvas follows the selected step':'take view off — full canvas');
+    render(); }; }
   // ⊘ hide picker — tick earlier comps that retire when THIS step appears
   const hideBox=wrap.querySelector('#seq-hides');
   if(hideBox){
@@ -3619,7 +3775,8 @@ function renderInspector(){
     row.append(
       mk('▸ next','reveal next line (or press Space with component selected)',()=>{ c.revealed=Math.min(total,(typeof c.revealed==='number'?c.revealed+1:1)); renderCanvas(); renderList(); renderStrip(); }),
       mk('↺','hide all lines',()=>{ c.revealed=0; renderCanvas(); }),
-      mk('all','show every line',()=>{ delete c.revealed; renderCanvas(); })
+      mk('all','show every line',()=>{ delete c.revealed; renderCanvas(); }),
+      mk('⤴','split each line into its own step — drag rows to order them freely',()=>{ splitLinesToSteps(); })
     );
     wrap.appendChild(row);
   }
@@ -3747,6 +3904,7 @@ function insertComposition(cp, opts={}){
       if(!o.target) return;   // target outside this stamp — drop the state step
     }
     if(sceneId) o.sceneId=sceneId;
+    if(o.type===EMPTYCANVAS_TYPE) o.clearBefore=true;
     if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
     comps.push(o); stamped.push(o);
   });
@@ -3941,6 +4099,7 @@ function addCompFrom(src){
   const c=structuredClone(src);
   delete c._played;
   c.id=uid(); c.draft=false; c.z=comps.length+10; delete c.beat;
+  if(c.type===EMPTYCANVAS_TYPE) c.clearBefore=true;
   if(SEQ.active) seqExit();
   const sc=targetSceneId(); if(sc) c.sceneId=sc;   // new work always joins a scene
   comps.push(c);
@@ -4029,6 +4188,7 @@ const TK_DEFAULT_ANIM={
   blame:'pa-left', comment:'pa-left', stamp:'pa-zoom', sticky:'pa-zoomout', loopbox:'pa-fade',
   box:'pa-fade', caption:'pa-up', progress:'pa-fade', rec:'pa-zoom', diff:'pa-fade',
   checklist:'pa-up', arrow:'pa-fade', circle:'pa-fade', rect:'pa-fade', ellipse:'pa-fade', verdict:'pa-zoom', image:'pa-fade', callout:'pa-fade', code:'pa-up',
+  versus:'pa-up', myth:'pa-left', proscons:'pa-up', matrix:'pa-fade', tiers:'pa-left', quotecard:'pa-zoom', beforeafter:'pa-left',
   info:'pa-left', alert:'pa-down', success:'pa-zoom', popup:'pa-zoom', textbg:'pa-fade', lower3rd:'pa-up', quote:'pa-left',
   user:'pa-right',
   svc:'pa-left', gnode:'pa-up', server:'pa-up', vm:'pa-up', container:'pa-zoom', pod:'pa-up', bootnode:'pa-up',
@@ -4117,24 +4277,26 @@ function startResize(e,c){
 }
 /* ============ drag-to-size: E/S edge handles → width / height ============
    If the comp carries numeric w/h props (house convention = geometric size)
-   those are written, so inspector sliders stay the source of truth;
-   otherwise the explicit wpx/hpx box renderCanvas already honors is used.
-   Reuses the sizeDrag slot, so Esc cancels it like the uniform handle. */
+   those are written, so inspector sliders stay the source of truth; square
+   comps with a size prop scale through it; otherwise the explicit wpx/hpx
+   box renderCanvas already honors is used. Reuses the sizeDrag slot, so Esc
+   cancels it like the uniform handle. */
 function startWHResize(e,c,axis){
   e.stopPropagation(); e.preventDefault();
   cancelSizeDrag(); cancelNodeDrag();
   snap();
   const useW=c.props&&typeof c.props.w==='number', useH=c.props&&typeof c.props.h==='number';
-  if(axis!=='h'&&!useW&&c.wpx==null) c.wpx=Math.max(20,Math.round(c._rw||220));
-  if(axis!=='w'&&!useH&&c.hpx==null) c.hpx=Math.max(20,Math.round(c._rh||120));
+  const useSize=!useW&&!useH&&c.props&&typeof c.props.size==='number';
+  if(axis!=='h'&&!useW&&!useSize&&c.wpx==null) c.wpx=Math.max(20,Math.round(c._rw||220));
+  if(axis!=='w'&&!useH&&!useSize&&c.hpx==null) c.hpx=Math.max(20,Math.round(c._rh||120));
   const p0=scenePoint(e);
-  const w0=useW?c.props.w:c.wpx, h0=useH?c.props.h:c.hpx;
+  const w0=useW?c.props.w:(useSize?c.props.size:c.wpx), h0=useH?c.props.h:(useSize?c.props.size:c.hpx);
   sizeDrag={
     mv:ev=>{ const pt=scenePoint(ev);
       const wv=Math.max(20,Math.round(w0+(pt.x-p0.x)));
       const hv=Math.max(20,Math.round(h0+(pt.y-p0.y)));
-      if(axis!=='h'){ if(useW) c.props.w=wv; else c.wpx=wv; }
-      if(axis!=='w'){ if(useH) c.props.h=hv; else c.hpx=hv; }
+      if(axis!=='h'){ if(useW) c.props.w=wv; else if(useSize) c.props.size=wv; else c.wpx=wv; }
+      if(axis!=='w'){ if(useH) c.props.h=hv; else if(useSize) c.props.size=hv; else c.hpx=hv; }
       renderLive(); },
     up:()=>{ cancelSizeDrag(); autosave(); render(); }
   };
@@ -4496,7 +4658,31 @@ function seqIndex(c){ return comps.indexOf(c); }
 function compVisible(c){
   if(c.parked) return false;                           // 🅿 out of the story — hidden but kept
   if(SEQ.scene && c.sceneId!==SEQ.scene) return false;   // scene take — only this scene plays
-  if(!SEQ.active) return true;                         // edit mode: show everything
+  if(!SEQ.active){
+    // preview mode (default ON): the canvas shows the take state — through
+    // the anchor step when single-selected, else through the active scene's
+    // end. Multi-select and edge inspect always show all: arranging needs
+    // the full context.
+    if(previewOn && !selEdge){
+      let k=-1;
+      if(selIds.size===1) k=comps.findIndex(x=>x.id===selId);
+      else if(selIds.size===0){
+        const sc=(typeof activeSceneId==='function')?activeSceneId():null;
+        const r=sc?sceneRange(sc):null;
+        k=r?r.end-1:comps.length-1;
+      } else return true;
+      if(k>=0){
+        const i=seqIndex(c);
+        if(i>k) return false;                            // not reached yet
+        for(let j=k;j>=0;j--){ const s=comps[j];
+          if(s && s.clearBefore){ if(i<j && !c.pin) return false; break; } }
+        for(let j=0;j<=k;j++){ const s=comps[j];
+          if(s && Array.isArray(s.hides) && s.hides.includes(c.id)) return false; }
+        return true;
+      }
+    }
+    return true;                                         // edit mode: show everything
+  }
   const k=SEQ.shown, i=seqIndex(c);
   if(i<0 || i>=k) return false;                        // not reached yet
   // 🧹 clear: the nearest shown clear-step hides everything before it (📌 pinned survive)
@@ -4988,7 +5174,7 @@ function themeize(o){
 }
 function importProject(d){
   const out={ comps:[], edges:[], note:'' };
-  const spread=c=>{ const o=themeize({ scale:1, rot:0, opacity:1, z:10, ...c }); delete o.beat; delete o._stateAt; delete o._played;
+  const spread=c=>{ const o=themeize({ scale:1, rot:0, opacity:1, z:10, ...c }); if(o.type==='clearstep') o.type='emptycanvas'; delete o.beat; delete o._stateAt; delete o._played;
     if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
     if(o.carry && !o.pin){ o.pin=true; } delete o.carry; return o; };
   // base canvas comps first (sorted by old beat), then legacy named scenes in order
@@ -5712,7 +5898,7 @@ function autosave(){
     if(d){ if(d.scene){ inW.value=d.scene.w; inH.value=d.scene.h; setSceneSize(d.scene.w,d.scene.h); }
            const list=(d.comps||[]).map((c,i)=>({ c, i }));
            list.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
-           comps=list.map(({c})=>{ const o=themeize({scale:1,rot:0,opacity:1,z:10,...c}); delete o.beat; delete o._stateAt; delete o._played;
+           comps=list.map(({c})=>{ const o=themeize({scale:1,rot:0,opacity:1,z:10,...c}); if(o.type==='clearstep') o.type='emptycanvas'; delete o.beat; delete o._stateAt; delete o._played;
              if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
              if(o.carry && !o.pin) o.pin=true; delete o.carry; return o; });
            edges=Array.isArray(d.edges)?d.edges:[];
@@ -5834,6 +6020,10 @@ const DSL_ALIAS={
   pinecone:'vdb', weaviate:'vdb', qdrant:'vdb', chroma:'vdb', faiss:'vdb', milvus:'vdb',
   chunk:'splitter', chunks:'splitter', chunker:'splitter', chunking:'splitter', split:'splitter',
   llm:'model', gpt:'model', claude:'model', llama:'model', gemini:'model', mistral:'model', ai:'model',
+  clear:'emptycanvas', blank:'emptycanvas', empty:'emptycanvas',
+  vs:'versus', myth:'myth', pros:'proscons', cons:'proscons', proscons:'proscons',
+  matrix:'matrix', tiers:'tiers', tierlist:'tiers', ranking:'tiers',
+  quotecard:'quotecard', beforeafter:'beforeafter',
   rect:'rect', rectangle:'rect', square:'rect', ellipse:'ellipse', oval:'ellipse', circle:'circle',
   info:'info', warning:'alert', success:'success', popup:'popup', lowerthird:'lower3rd', quote:'quote', textbg:'textbg',
   agent:'agentloop', loop:'agentloop', mcp:'mcp', tool:'tool', toolcall:'tool', memory:'memory',
@@ -6145,6 +6335,7 @@ function dslApply(text, mode){
     } else {
       c={id, type:s.type, x:120, y:120, scale:TK_DSCALE[s.type]||1, rot:0, z:comps.length+10, opacity:1, props:s.props, draft:false};
       const sc=targetSceneId(); if(sc) c.sceneId=sc;   // new work always joins a scene
+      if(c.type===EMPTYCANVAS_TYPE) c.clearBefore=true;
       comps.push(c); newComps.push(c);
     }
     placeMap.set(s.name,c);
