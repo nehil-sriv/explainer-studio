@@ -2237,6 +2237,10 @@
 .tk-bullets .cline::marker {
   font-size: 1.1em;
 }
+/* marker variants (mechanics: counters + list-style; glyphs live in the skin) */
+.tk-bullets.mk-num, .tk-bullets.mk-alpha, .tk-bullets.mk-none { list-style: none; }
+.tk-bullets.mk-num, .tk-bullets.mk-alpha { counter-reset: tkb; }
+.tk-bullets.mk-num .cline, .tk-bullets.mk-alpha .cline { counter-increment: tkb; }
 
 /* ===== Code block (structure: layout + whitespace, colours only as var(--*)) ===== */
 .codeblock { background: var(--cbg, var(--panel)); border: 1px solid var(--line-dim); border-radius: 10px; overflow: hidden; box-shadow: 0 30px 80px var(--shadow); }

@@ -1451,10 +1451,11 @@ const REGISTRY = {
 
   bullets:  { name:'TK · bullet points',
     group:'basics',
-    help:'one point per line (or | separated) · tick stepped, then Space (or next ⏭) reveals each point when you want it',
-    props:{items:'First win|Second win|Third win', stepped:true, accent:'var(--phos-green)'},
-    fields:['items','stepped','accent'], fieldTypes:{items:'textarea', stepped:'check'},
-    markup:p=>`<ul class="tk-bullets" style="--stroke:${p.accent}">${String(p.items||'').split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean).map(t=>`<li class="cline">${rich(t)}</li>`).join('')}</ul>` },
+    help:'one point per line (or | separated) · tick stepped, then Space (or next ⏭) reveals each point when you want it · marker: dots, 1.2.3., A.B.C. or none',
+    props:{items:'First win|Second win|Third win', stepped:true, marker:'dot', accent:'var(--phos-green)'},
+    fields:['items','stepped','marker','accent'], fieldTypes:{items:'textarea', stepped:'check', marker:'select'},
+    options:{marker:['dot','num','alpha','none']},
+    markup:p=>{const mk=['dot','num','alpha','none'].includes(p.marker)?p.marker:'dot';return `<ul class="tk-bullets mk-${mk}" style="--stroke:${p.accent}">${String(p.items||'').split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean).map(t=>`<li class="cline">${rich(t)}</li>`).join('')}</ul>`} },
 
   checklist:{ name:'Checklist card',
     group:'basics',
@@ -4026,11 +4027,35 @@ const SCENE_TEMPLATES=[
     C('caption',{text:p.label2||''},200,600),
     C('kicker',{text:p.channel||''},200,720),
   ])},
+  {key:'quiz', name:'Quiz', desc:'guess-the-output short: code, 4 options, answer, why', fields:[
+    {k:'title',label:'title',def:'GUESS THE OUTPUT'},
+    {k:'code',label:'code',def:'for i in range(3):\n    print(i * 2)',area:true},
+    {k:'optA',label:'option A',def:'0 2 4'},{k:'optB',label:'option B',def:'0 1 2'},
+    {k:'optC',label:'option C',def:'2 4 6'},{k:'optD',label:'option D',def:'1 3 5'},
+    {k:'answer',label:'answer (A–D)',def:'A'},
+    {k:'explain',label:'explanation',def:'range(3) gives 0, 1, 2 — doubled.',area:true}],
+  build:p=>{
+    const letters=['A','B','C','D'];
+    const opts=[p.optA,p.optB,p.optC,p.optD].map((t,i)=>({L:letters[i],t:String(t==null?'':t)}));
+    const ai=letters.indexOf(String(p.answer||'A').trim().toUpperCase()[0]);
+    const marked=opts.map((o,i)=>`${o.t} ${i===ai?'✅':'❌'}`).join('|');
+    const items=opts.map(o=>o.t).join('|');
+    const list=[
+      C('title',{text:p.title||'GUESS THE OUTPUT',glitch:'',size:120},200,220),
+      C('code',{title:'what prints?',body:String(p.code==null?'':p.code)},150,400),
+      C('bullets',{items:items,marker:'alpha',stepped:false},200,660),
+      S('n2','reveal answer',{items:marked}),
+    ];
+    if(p.explain&&String(p.explain).trim()) list.push(C('caption',{text:p.explain},200,820));
+    return CP('Quiz',p.title,list);
+  }},
 ];
 function runSceneTemplate(t){
   openSceneDlg({
     title:`Stamp “${t.name}”`,
-    body:t.fields.map(f=>`<div class="row"><label>${f.label}</label><input data-tp="${f.k}" type="text" value="${String(f.def).replace(/"/g,'&quot;')}" style="flex:1;min-width:0"></div>`).join(''),
+    body:t.fields.map(f=>f.area
+      ? `<div class="row" style="align-items:flex-start"><label style="padding-top:5px">${f.label}</label><textarea data-tp="${f.k}" rows="4" style="flex:1;min-width:0;resize:vertical">${String(f.def).replace(/</g,'&lt;')}</textarea></div>`
+      : `<div class="row"><label>${f.label}</label><input data-tp="${f.k}" type="text" value="${String(f.def).replace(/"/g,'&quot;')}" style="flex:1;min-width:0"></div>`).join(''),
     buttons:[{id:'ok',label:'stamp',primary:true},{id:'cancel',label:'cancel'}],
     onAction:(act)=>{
       if(act!=='ok') return;
