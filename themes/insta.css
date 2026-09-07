@@ -1,0 +1,25 @@
+/* Insta · funky gradient pop — canvas theme (picker).
+   Dark plum base with an IG-aura gradient wash, hot-pink primary,
+   handwritten display type. Scoped override; assets/tokens.css holds the base. */
+#scene[data-theme="insta"] {
+  --bg-deep: #150818;
+  --panel: #241029;
+  --line-dim: #4A2358;
+  --text-primary: #FFF5F7;
+  --text-dim: #C08BB0;
+  --phos-green: #FF2E93;
+  --amber: #FCB045;
+  --alert-red: #FD1D1D;
+  --cyan-dim: #B366FF;
+  --fill-green: #33102A;
+  --fill-amber: #33200A;
+  --fill-red: #330F14;
+  --ghost-fill: #1A0A18;
+  --ghost-stroke: #2A1230;
+  --shadow: rgba(0,0,0,0.65);
+  --glow: rgba(255,46,147,0.4);
+  --crash-ink: #FFB3D9;
+  --font-display: 'Caveat', cursive;
+  --canvas-texture: radial-gradient(120% 90% at 15% 0%, rgba(131,58,180,0.5), transparent 60%), radial-gradient(120% 100% at 90% 10%, rgba(253,29,29,0.35), transparent 55%), radial-gradient(140% 120% at 50% 100%, rgba(252,176,69,0.28), transparent 60%);
+  --canvas-texture-size: auto;
+}

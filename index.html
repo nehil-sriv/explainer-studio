@@ -1140,16 +1140,17 @@ function edgeBuild(e,ov){
     if(cap){
       const fs=Math.max(8,Math.min(40,+e.labSize||12)), u=fs/12;
       const w=Math.round(cap.length*7.3*u+20*u), h=Math.round(22*u);
+      const pa=e.pillAccent||'';
       const r=document.createElementNS(NS,'rect');
       r.setAttribute('x',-w/2); r.setAttribute('y',8); r.setAttribute('width',w); r.setAttribute('height',h);
-      r.setAttribute('rx',Math.round(7*u)); r.setAttribute('fill','#0B100C'); r.setAttribute('fill-opacity','0.96');
-      r.setAttribute('stroke',col); r.setAttribute('stroke-opacity','0.45'); r.setAttribute('stroke-width',1.5);
+      r.setAttribute('rx',Math.round(7*u)); r.setAttribute('fill',pa||'#0B100C'); r.setAttribute('fill-opacity',pa?'0.25':'0.96');
+      r.setAttribute('stroke',pa||col); r.setAttribute('stroke-opacity',pa?'1':'0.45'); r.setAttribute('stroke-width',1.5);
       t.appendChild(r);
       const cx=document.createElementNS(NS,'text');
       cx.setAttribute('y',8+h/2); cx.setAttribute('text-anchor','middle');
       cx.setAttribute('dominant-baseline','middle');
       cx.setAttribute('font-family',"'JetBrains Mono',monospace"); cx.setAttribute('font-size',fs);
-      cx.setAttribute('fill',e.labColor||themeHex('--text-dim','#5C8A66')); cx.textContent=cap; t.appendChild(cx); }
+      cx.setAttribute('fill',pa||themeHex('--text-dim','#5C8A66')); cx.textContent=cap; t.appendChild(cx); }
     g.appendChild(t);
     g._track=track; g._label=t;
   }
@@ -2780,12 +2781,13 @@ function select(id, opts={}){
       selId=id;
     }
     if(!selIds.size) selId=null;
-    if(opts.seq){ if(selIds.size===1&&selId===id) previewAnchor=id; else if(!selIds.size) previewAnchor=null; }
+    if(selIds.size>1) previewAnchor=null;   // leaving review mode — the set needs the full canvas
+    else if(opts.seq&&selIds.size===1&&selId===id) previewAnchor=id;
     render(); return;
   }
   if(!opts.solo){
     const g=isState(c)?null:groupMembers(id);
-    if(g){ selIds=new Set(g.map(m=>m.id)); selId=id; render(); return; }
+    if(g){ selIds=new Set(g.map(m=>m.id)); selId=id; previewAnchor=null; render(); return; }
   }
   selIds=new Set([id]); selId=id;
   if(opts.seq) previewAnchor=id;
@@ -2794,6 +2796,7 @@ function selectMany(ids, anchor){
   selIds=new Set((ids||[]).filter(id=>comps.some(c=>c.id===id)));
   selId=(anchor && selIds.has(anchor))?anchor:(selIds.size?[...selIds][selIds.size-1]:null);
   if(!selIds.size) selId=null;
+  if(selIds.size>1) previewAnchor=null;
   selEdge=null;
   const c=comps.find(x=>x.id===selId);
   statePreview=(c && isState(c))?c.id:null;
@@ -3342,7 +3345,7 @@ const EDGE_PATCH_FIELDS=[
   ['routing','select',['smooth','step','straight','curved']],
   ['dir','select',['fwd','both','bwd']],
   ['label','text',null],['caption','text',null],
-  ['labSize','number',null],['labColor','text',null],
+  ['labSize','number',null],['pillAccent','accent',null],
   ['labPos','select',['start','mid','end']],['labRot','select',['flat','follow']],
   ['weight','number',null],['speed','number',null],['animate','check',null],['accent','accent',null],
 ];
@@ -3526,8 +3529,8 @@ function renderEdgeInspector(wrap,empty){
     +`<div class="row"><label>quick</label><span id="ee-quick" style="flex:1;display:flex;gap:4px;flex-wrap:wrap">${['request','response','data','packets','event','error'].map(q=>`<button data-q="${q}" style="font-family:var(--ch-font);font-size:11px;padding:3px 10px;cursor:pointer;border-radius:99px;border:1px solid var(--ch-line);background:var(--ch-bg3);color:var(--ch-dim)">${q}</button>`).join('')}</span></div>`
     +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">caption</label><textarea id="ee-cap" rows="1" placeholder="small text on the wire" style="flex:1;resize:vertical;min-height:26px;font-size:12px;padding:4px 7px;">${(e.caption||'').replace(/</g,'&lt;')}</textarea></div>`
     +`<div class="row"><label>pill size</label><input type="range" id="ee-ls" min="8" max="40" step="1" value="${+e.labSize||11}" style="flex:2;accent-color:var(--ch-focus)"><input type="number" id="ee-lsn" min="8" max="40" step="1" value="${+e.labSize||11}" style="width:56px;flex:none"></div>`
-    +`<div class="row" style="flex-wrap:wrap"><label>pill color</label><span id="ee-lcsw" style="display:flex;gap:4px;flex-wrap:wrap">${EDGE_THEME.map(([hex,n])=>`<button data-hex="${hex}" title="${n}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${(e.labColor||'')===hex?'#fff':'transparent'};background:${hex};cursor:pointer"></button>`).join('')}</span></div>`
-    +`<div class="row"><label>pill hex</label><input type="color" id="ee-lcpick" value="${(e.labColor&&e.labColor.startsWith('#'))?e.labColor:themeHex('--text-dim','#5C8A66')}" style="width:40px;flex:none;height:26px;padding:0;border:1px solid var(--ch-line);background:none"><input type="text" id="ee-lc" value="${(e.labColor||'').replace(/"/g,'&quot;')}" placeholder="default dim — empty" style="flex:1;min-width:0"></div>`
+    +`<div class="row" style="flex-wrap:wrap"><label>pill accent</label><span id="ee-paccsw" style="display:flex;gap:4px;flex-wrap:wrap">${EDGE_THEME.map(([hex,n])=>`<button data-hex="${hex}" title="${n}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${(e.pillAccent||'')===hex?'#fff':'transparent'};background:${hex};cursor:pointer"></button>`).join('')}</span></div>`
+    +`<div class="row"><label>accent hex</label><input type="color" id="ee-paccpick" value="${(e.pillAccent&&e.pillAccent.startsWith('#'))?e.pillAccent:themeHex('--phos-green','#39FF7A')}" style="width:40px;flex:none;height:26px;padding:0;border:1px solid var(--ch-line);background:none"><input type="text" id="ee-pacc" value="${(e.pillAccent||'').replace(/"/g,'&quot;')}" placeholder="wire color — empty" style="flex:1;min-width:0"></div>`
     +`<div class="row"><label>label place</label>${seg('labPos',['start','mid','end'],{start:'Start',mid:'Middle',end:'End'})}</div>`
     +`<div class="row"><label>label angle</label>${seg('labRot',['flat','follow'],{flat:'― Flat',follow:'⤢ Follow wire'})}</div>`
     +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">preset</label><span data-eseg="preset" style="flex:1;display:flex;gap:4px;flex-wrap:wrap">${presetChips}</span></div>`
@@ -3547,10 +3550,10 @@ function renderEdgeInspector(wrap,empty){
   const lS=wrap.querySelector('#ee-ls'), lN=wrap.querySelector('#ee-lsn');
   if(lS){ const setL=v=>{ e.labSize=Math.max(8,Math.min(40,parseInt(v)||11)); lS.value=e.labSize; lN.value=e.labSize; rerender(); };
     lS.oninput=()=>setL(lS.value); lN.onchange=()=>setL(lN.value); }
-  const lC=wrap.querySelector('#ee-lc'), lP=wrap.querySelector('#ee-lcpick'), lSW=wrap.querySelector('#ee-lcsw');
-  if(lSW) lSW.querySelectorAll('button').forEach(b=>{ b.onclick=()=>{ e.labColor=b.dataset.hex; render(); autosave(); }; });
-  if(lP) lP.oninput=()=>{ e.labColor=lP.value; if(lC) lC.value=lP.value; rerender(); };
-  if(lC) lC.oninput=()=>{ e.labColor=lC.value.trim(); rerender(); };
+  const pC=wrap.querySelector('#ee-pacc'), pP=wrap.querySelector('#ee-paccpick'), pSW=wrap.querySelector('#ee-paccsw');
+  if(pSW) pSW.querySelectorAll('button').forEach(b=>{ b.onclick=()=>{ e.pillAccent=b.dataset.hex; render(); autosave(); }; });
+  if(pP) pP.oninput=()=>{ e.pillAccent=pP.value; if(pC) pC.value=pP.value; rerender(); };
+  if(pC) pC.oninput=()=>{ e.pillAccent=pC.value.trim(); rerender(); };
   const quick=wrap.querySelector('#ee-quick');
   if(quick) quick.querySelectorAll('button').forEach(b=>{
     b.onclick=()=>{ e.label=b.dataset.q; render(); autosave(); };
@@ -3736,7 +3739,7 @@ function renderInspector(){
           <div class="row" style="align-items:flex-start"><label style="padding-top:5px">⊘ hide</label>
             <span id="seq-hides" style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow-y:auto"></span></div>
           <div class="row"><button id="seq-variant" title="add a state change for this component — no clone, so its wires and text follow. Drag the new row to when the change should happen." style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-amber);border:1px solid var(--ch-amber);cursor:pointer;padding:5px;border-radius:4px">⇄ add state change</button></div>
-          <div class="row"><button id="seq-preview" title="take-view follows the sequence row you click — deselecting holds the view, canvas clicks only select and never hide steps. Toggle off for the full canvas" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-cyan);border:1px solid var(--ch-cyan);cursor:pointer;padding:5px;border-radius:4px">${(typeof previewOn!=='undefined'&&previewOn)?'👁 preview on — click to show all':'👁 preview off — click for take view'}</button></div>`;
+          <div class="row"><button id="seq-preview" title="take-view follows the last row you click; canvas clicks only select and never change the view. Deselecting holds it, multi-select shows all. Toggle off for the full canvas" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-cyan);border:1px solid var(--ch-cyan);cursor:pointer;padding:5px;border-radius:4px">${(typeof previewOn!=='undefined'&&previewOn)?'👁 preview on — click to show all':'👁 preview off — click for take view'}</button></div>`;
   wrap.innerHTML=html;
 
   // typing must NOT rebuild the inspector — update model + canvas only
@@ -4665,6 +4668,7 @@ function marqueeStart(e){
       if(marquee.add) marquee.before.forEach(id=>next.add(id));
       selIds=next;
       selId=next.size?([...next][next.size-1]):null;
+      if(next.size>1) previewAnchor=null;
       selEdge=null;
       renderCanvas(); renderSelTools();
     },
@@ -4869,9 +4873,10 @@ function compVisible(c){
     if(previewOn){
       let k=-1;
       if(selIds.size===1 && previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
-      else if(selIds.size===0){
-        if(previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
-        else if(!selEdge){
+      else if(selIds.size===0 || (selIds.size===1 && !previewAnchor)){
+        if(selEdge){
+          if(previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
+        } else {
           const sc=(typeof activeSceneId==='function')?activeSceneId():null;
           const r=sc?sceneRange(sc):null;
           k=r?r.end-1:comps.length-1;

@@ -142,8 +142,8 @@ SHOW (video)
   One more Space past the last step (or auto-play reaching the end) ends the take itself.
 - **Toasts** (`#navtoast`) always dock under the header — the footer strip owns the bottom edge.
 - **Clear / retire:** `🧹` on a step clears the screen and reveals it on the fresh canvas, same beat — in takes and in edit preview alike. `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears.
-- **Take preview in edit mode (default ON):** the canvas shows the take state — through the clicked sequence row when one is selected, else through the active scene's end. Deselecting holds the last row's view — canvas clicks only select, edge inspect holds the cutofff; multi-select and the 👁 toggle show the full canvas.
-- **Take preview in edit mode (default ON):** the canvas shows the take state — through the clicked sequence row when one is selected, else through the active scene's end (clear/pin/hide honored). Deselecting holds the view; click steps to walk the story; edge inspect holds the preview cutoff; multi-select and the 👁 toggle show the full canvas. Plain arranging always has an all-visible path.
+- **Take preview in edit mode (default ON):** the canvas shows the take state — through the last row clicked, else through the active scene's end. Canvas clicks only select and never move the view; deselecting holds it; multi-select shows all; edge inspect holds the cutofff; multi-select and the 👁 toggle show the full canvas.
+- **Take preview in edit mode (default ON):** the canvas shows the take state — through the last row clicked, else through the active scene's end (clear/pin/hide honored). Canvas clicks only select and never move the view; deselecting holds it; multi-select shows all; edge inspect holds the preview cutoff; multi-select and the 👁 toggle show the full canvas. Plain arranging always has an all-visible path.
 - **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ add state change`
   adds a `state` patch-step at the end of the list — it draws nothing and patches the
   target comp's props (or a wire's settings) from its position onward. Target keeps its
