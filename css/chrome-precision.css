@@ -430,7 +430,7 @@ footer#beatbar .sqpill {
   padding: 3px 10px; border-radius: 999px; cursor: pointer;
   font-family: var(--ch-mono); font-size: 11px; white-space: nowrap;
   background: var(--ch-bg3); border: 1px solid var(--ch-line); color: var(--ch-gray);
-  overflow: hidden; text-overflow: ellipsis; flex-basis: 40px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; flex-basis: 0; min-width: 22px;
 }
 footer#beatbar .sqpill b { font-weight: 600; }
 footer#beatbar .sqpill.lit { border-color: var(--ch-accent); color: var(--ch-text); }

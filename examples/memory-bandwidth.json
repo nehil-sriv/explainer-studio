@@ -63,7 +63,9 @@
    "type": "title",
    "x": 50,
    "y": 200,
-   "z": 10
+   "z": 10,
+   "out": "rise",
+   "hideWhen": "t3"
   },
   {
    "anim": "pa-up",

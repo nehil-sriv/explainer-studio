@@ -757,6 +757,19 @@ function normalizeScenes(){
     const bo=(b.c.sceneId&&order.has(b.c.sceneId))?order.get(b.c.sceneId)+1:-1;
     return (ao-bo)||(a.i-b.i);
   }).forEach((d,k)=>{ comps[k]=d.c; });
+  revalidateExits(comps);
+}
+/* exit triggers must stay downstream — a reorder/load that strands hideWhen
+   on a missing, earlier, or same-position target clears it (the dropdown
+   can't produce that state, so it's never what was meant) */
+function revalidateExits(list){
+  (list||[]).forEach((c,i)=>{
+    if(c && c.hideWhen){
+      const t=list.findIndex(x=>x&&x.id===c.hideWhen);
+      if(t<0||t<=i) delete c.hideWhen;
+    }
+  });
+  return list;
 }
 function seqStartIndex(){ if(SEQ.scene){ const r=sceneRange(SEQ.scene); if(r) return r.start; } return 0; }
 function seqEndIndex(){ if(SEQ.scene){ const r=sceneRange(SEQ.scene); if(r) return r.end; } return comps.length; }
@@ -5405,17 +5418,19 @@ function renderStrip(){
   if(tHold && document.activeElement!==tHold) tHold.value=SEQ.holdDefault;
   // sequence dots — click jumps to that step (a scene take shows its own block).
   // pills stretch ∝ beat seconds; drag across them to scrub (edit: preview anchor, take: jump)
-  let scrubbing=false;
+  let scrubbing=false, lastScrub=null;
   const scrubTo=(c,i)=>{
     if(!c) return;
     if(!SEQ.active) select(c.id,{seq:true});
     else seqJump(i);
   };
-  strip.onmousedown=()=>{ scrubbing=false; };
+  strip.onmousedown=()=>{ scrubbing=false; lastScrub=null; };
   strip.onmousemove=e=>{
     if(e.buttons!==1) return;
     const pill=e.target.closest&&e.target.closest('.sqpill');
     if(!pill||pill._si==null) return;
+    if(pill._si===lastScrub) return;   // one render per pill crossed, not per pixel
+    lastScrub=pill._si;
     scrubbing=true;
     const c=comps[pill._si];
     scrubTo(c,pill._si);
@@ -5561,6 +5576,7 @@ function importProject(d){
   const fl=flowlinksToEdges(out.comps);
   out.comps=fl.comps;
   migrateEmptyCanvas(out.comps);
+  revalidateExits(out.comps);
   out.edges=(Array.isArray(d.edges)?d.edges:[]).concat(fl.fresh)
     .filter(e=>out.comps.some(c=>c.id===e.from)&&out.comps.some(c=>c.id===e.to));
   if((d.beats!=null && +d.beats>1) || names.length) out.note='imported old project → flattened to sequence ('+out.comps.length+' steps)';
@@ -6303,6 +6319,7 @@ function autosave(){
            const fl0=flowlinksToEdges(comps);
            comps=fl0.comps; edges=edges.concat(fl0.fresh);
            migrateEmptyCanvas(comps);
+           revalidateExits(comps);
            pruneEdges();
            if(d.saved) { storeSaved(d.saved); renderSaved(); }
            if(Array.isArray(d.scenes)) SCENES=d.scenes.filter(s=>s&&s.id).map(s=>({id:String(s.id),name:String(s.name||'Scene')}));
