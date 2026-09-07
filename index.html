@@ -2732,6 +2732,15 @@ let draft=null; // {type}
 
 // last-used transform values → new components start where you've been working
 const lastUsed={ x:null, y:null, scale:null, opacity:null };
+/* insert a new comp at the reviewed point (right after the preview anchor),
+   not the sequence end — but only when the anchor lives in the same scene
+   the comp is joining; otherwise append like before */
+function seqInsertAt(c){
+  const sc=(c.sceneId||null);
+  const ai=(typeof previewAnchor!=='undefined'&&previewAnchor)?comps.findIndex(x=>x.id===previewAnchor):-1;
+  if(ai>=0 && ((comps[ai].sceneId||null)===sc)){ comps.splice(ai+1,0,c); return; }
+  comps.push(c);
+}
 function startDraft(type){
   const W=parseInt(inW.value)||1920, H=parseInt(inH.value)||1080;
   const x=(lastUsed.x!==null)?lastUsed.x:Math.round(W*0.5-300);
@@ -2747,13 +2756,16 @@ function startDraft(type){
   if(SEQ.active) seqExit();   // adding while playing → back to edit so you see it
   const sc=targetSceneId();
   if(sc){ c.sceneId=sc; }
-  comps.push(c);
+  seqInsertAt(c);
   if(sc) normalizeScenes();
   draft=type; selId=c.id; previewAnchor=c.id; render();
 }
 
 function select(id, opts={}){
-  if(id==null){ selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; render(); return; }
+  // deselecting holds the take-preview view — the anchor survives, so the
+  // canvas stays at the reviewed state for all future edits (rows, takes
+  // and the 👁 toggle move it — canvas clicks never do)
+  if(id==null){ selId=null; selIds.clear(); selEdge=null; statePreview=null; render(); return; }
   const c=comps.find(x=>x.id===id);
   if(!c){ selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; render(); return; }
   selEdge=null;
@@ -3320,7 +3332,7 @@ function showRailTab(which){
   try{ localStorage.setItem('phosphor-railtab',edit?'edit':'seq'); }catch(_){}
 }
 function selectEdge(id){ selEdge=id; selId=null; selIds.clear(); statePreview=null; render(); }
-function clearSel(){ selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; }
+function clearSel(){ selId=null; selIds.clear(); selEdge=null; statePreview=null; }
 
 /* ============ edge inspector (GravelGraph-style Edge panel) ============ */
 const EDGE_PATCH_FIELDS=[
@@ -3724,7 +3736,7 @@ function renderInspector(){
           <div class="row" style="align-items:flex-start"><label style="padding-top:5px">⊘ hide</label>
             <span id="seq-hides" style="flex:1;display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow-y:auto"></span></div>
           <div class="row"><button id="seq-variant" title="add a state change for this component — no clone, so its wires and text follow. Drag the new row to when the change should happen." style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-amber);border:1px solid var(--ch-amber);cursor:pointer;padding:5px;border-radius:4px">⇄ add state change</button></div>
-          <div class="row"><button id="seq-preview" title="take-view follows the sequence row you click, or the scene end when nothing is selected — canvas clicks only select, never hide steps. Toggle off for the full canvas" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-cyan);border:1px solid var(--ch-cyan);cursor:pointer;padding:5px;border-radius:4px">${(typeof previewOn!=='undefined'&&previewOn)?'👁 preview on — click to show all':'👁 preview off — click for take view'}</button></div>`;
+          <div class="row"><button id="seq-preview" title="take-view follows the sequence row you click — deselecting holds the view, canvas clicks only select and never hide steps. Toggle off for the full canvas" style="flex:1;font-family:var(--ch-font);font-size:11px;background:none;color:var(--ch-cyan);border:1px solid var(--ch-cyan);cursor:pointer;padding:5px;border-radius:4px">${(typeof previewOn!=='undefined'&&previewOn)?'👁 preview on — click to show all':'👁 preview off — click for take view'}</button></div>`;
   wrap.innerHTML=html;
 
   // typing must NOT rebuild the inspector — update model + canvas only
@@ -4282,7 +4294,7 @@ function addCompFrom(src){
   c.id=uid(); c.draft=false; c.z=comps.length+10; delete c.beat;
   if(SEQ.active) seqExit();
   const sc=targetSceneId(); if(sc) c.sceneId=sc;   // new work always joins a scene
-  comps.push(c);
+  seqInsertAt(c);
   if(sc) normalizeScenes();
   return c;
 }
@@ -4858,7 +4870,7 @@ function compVisible(c){
       let k=-1;
       if(selIds.size===1 && previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
       else if(selIds.size===0){
-        if(selEdge && previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
+        if(previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
         else if(!selEdge){
           const sc=(typeof activeSceneId==='function')?activeSceneId():null;
           const r=sc?sceneRange(sc):null;
