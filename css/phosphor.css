@@ -475,3 +475,17 @@
 .pbar-fill.pf-a { background: var(--amber); }
 .pbar-fill.pf-r { background: var(--alert-red); }
 .pbar-pct { font-family: var(--font-body); color: #fff; }
+
+/* ===== Duo · side-by-side cards (skin) ===== */
+.tk-duo { font-family: var(--font-body); }
+.duo-card { background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.duo-chip { font-family: var(--font-body); background: var(--cc); color: #fff; }
+.duo-head { color: var(--text-primary); }
+.duo-quote { color: var(--text-dim); }
+.duo-body { color: var(--text-primary); }
+
+/* ===== TK · bandwidth pipe (skin: colours/fonts only) ===== */
+.tk-pipe { font-family: var(--font-body); color: var(--text-primary); }
+.pipe-body { stroke: var(--text-dim); fill: color-mix(in srgb, var(--text-primary) 6%, transparent); }
+.pipe-flange { stroke: var(--text-dim); }
+.pipe-flow { stroke: var(--stroke,var(--phos-green)); }

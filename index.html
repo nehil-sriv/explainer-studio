@@ -1201,6 +1201,10 @@ function gnIcon(kind){
     user:`<circle cx="12" cy="8" r="4" ${S}/><path d="M4 21 C4 16 7 14 12 14 C17 14 20 16 20 21" ${S}/>`,
     cdn:`<path d="M6 19 A4.5 4.5 0 1 1 8 10 A5.5 5.5 0 0 1 18 12 A3.5 3.5 0 0 1 17.5 19 Z" ${S}/>`,
     app:`<rect x="3" y="4" width="18" height="16" rx="2" ${S}/><path d="M3 9 H21" ${S}/>`,
+    ram:`<rect x="2" y="8" width="20" height="9" rx="1" ${S}/><rect x="6" y="10.5" width="4" height="4" ${S}/><rect x="14" y="10.5" width="4" height="4" ${S}/><path d="M6 17 V21 M12 17 V21 M18 17 V21" ${S}/>`,
+    cpu:`<rect x="7" y="7" width="10" height="10" rx="1" ${S}/><rect x="10.5" y="10.5" width="3" height="3" ${S}/><path d="M9 7 V3 M12 7 V3 M15 7 V3 M9 21 V17 M12 21 V17 M15 21 V17 M7 9 H3 M7 12 H3 M7 15 H3 M21 9 H17 M21 12 H17 M21 15 H17" ${S}/>`,
+    gpu:`<rect x="2" y="6" width="20" height="11" rx="1" ${S}/><circle cx="9" cy="11.5" r="3" ${S}/><path d="M9 8.5 V11.5 M9 11.5 L11.6 13 M9 11.5 L6.4 13" ${S}/><path d="M6 17 V21 M18 17 V21 M15 11.5 H20" ${S}/>`,
+    bw:`<path d="M4 17 A8 8 0 0 1 20 17" ${S}/><path d="M12 17 L16 10" ${S}/><circle cx="12" cy="17" r="1.5" ${S}/><path d="M2 17 H22" ${S}/>`,
   };
   return M[kind]||M.api;
 }
@@ -1347,6 +1351,21 @@ const REGISTRY = {
     props:{text:'premature optimization is the root of all evil', who:'Knuth (allegedly)', accent:'var(--phos-green)'},
     fields:['text','who','accent'], fieldTypes:{text:'textarea'},
     markup:p=>`<div style="border-left:4px solid ${p.accent};padding:6px 0 6px 26px;max-width:820px"><div style="font-size:calc(44px*var(--fscale,1));color:${p.accent};line-height:1">“</div><div style="font-size:calc(30px*var(--fscale,1));color:var(--ct,var(--text-primary))">${rich(p.text)}</div><div style="margin-top:10px;font-size:calc(20px*var(--fscale,1));color:var(--text-dim)">— ${rich(p.who)}</div></div>` },
+
+  duo:      { name:'Duo · side-by-side cards',
+    group:'meta',
+    help:'two cards: chip pill + head + quote + body each · tick stepped to reveal left, then right',
+    props:{chipL:'Top-k', colorL:'#E07864', headL:'Fixed headcount', quoteL:'"Always let exactly k words into the room."', bodyL:'Simple and predictable, but blind to context — same cutoff whether the model is very sure or very unsure.',
+           chipR:'Top-p', colorR:'#3FA37C', headR:'Fixed confidence', quoteR:'"Let in however many words it takes to reach 85% sure."', bodyR:'Adapts automatically: fewer words when the model is confident, more words when it is unsure.', stepped:false},
+    fields:['chipL','colorL','headL','quoteL','bodyL','chipR','colorR','headR','quoteR','bodyR','stepped'],
+    fieldTypes:{quoteL:'textarea',bodyL:'textarea',quoteR:'textarea',bodyR:'textarea',stepped:'check'},
+    markup:p=>{
+      const card=(chip,color,head,quote,body)=>`<div class="cline duo-card">`
+        +`<span class="duo-chip" style="--cc:${color}">${rich(chip)}</span>`
+        +`<div class="duo-head">${rich(head)}</div>`
+        +(String(quote||'').trim()?`<div class="duo-quote">${rich(quote)}</div>`:'')
+        +`<div class="duo-body">${rich(body)}</div></div>`;
+      return `<div class="tk-duo">${card(p.chipL,p.colorL,p.headL,p.quoteL,p.bodyL)}${card(p.chipR,p.colorR,p.headR,p.quoteR,p.bodyR)}</div>`} },
 
   versus:   { name:'VS · claim vs counter-claim',
     group:'meta',
@@ -1624,7 +1643,7 @@ const REGISTRY = {
     props:{icon:'api', title:'API', sub:'REST service', accent:'#57C7C0'},
     fields:['icon','title','sub','accent'],
     fieldTypes:{icon:'select'},
-    options:{icon:['gateway','api','db','cache','queue','worker','user','cdn','app']},
+    options:{icon:['gateway','api','db','cache','queue','worker','user','cdn','app','ram','cpu','gpu','bw']},
     markup:p=>`<div class="gnode" style="--stroke:${p.accent}"><span class="gicon"><svg width="22" height="22" viewBox="0 0 24 24">${gnIcon(p.icon)}</svg></span><span class="gtext"><b>${rich(p.title)}</b>${p.sub?`<i>${rich(p.sub)}</i>`:''}</span></div>` },
 
   server:   { name:'TK · rack server',
@@ -1991,6 +2010,19 @@ const REGISTRY = {
         <circle cx="84" cy="13" r="11" stroke="var(--amber)" stroke-width="3.5"/>
         <line x1="74" y1="13" x2="94" y2="13" stroke="var(--amber)" stroke-width="2.5"/>
       </svg><span>${rich(p.label)}</span></span>` },
+
+  pipe:     { name:'TK · bandwidth pipe',
+    group:'flow',
+    help:'bore = pipe width in px — narrow vs wide · flow animates the stream, untick for a dry pipe · drag E/S to resize like shapes',
+    props:{label:'narrow pipe · trickle', len:560, bore:14, flow:true, accent:'var(--phos-green)'},
+    fields:['label','len','bore','flow','accent'], fieldTypes:{len:'number',bore:'number',flow:'check'},
+    markup:p=>{ const len=Math.max(120,+p.len||560), bore=Math.max(6,Math.min(80,+p.bore||14));
+      const cy=34, h=cy*2+bore, mid=cy+bore/2, fw=Math.max(3,Math.round(bore*0.35));
+      return `<div class="tk-pipe" style="--stroke:${p.accent}"><svg width="${len}" height="${h}" fill="none">`
+      +`<rect x="4" y="${cy}" width="${len-8}" height="${bore}" rx="${bore/2}" class="pipe-body"/>`
+      +`<line x1="16" y1="${mid}" x2="${len-16}" y2="${mid}" stroke-width="${fw}" class="pipe-flow${p.flow?' go':''}"/>`
+      +`<path d="M10 ${cy-6} V${cy+bore+6} M${len-10} ${cy-6} V${cy+bore+6}" class="pipe-flange"/>`
+      +`</svg><span>${rich(p.label)}</span></div>`} },
 
   scale:    { name:'TK · autoscaling',
     group:'meta',
@@ -3277,7 +3309,7 @@ function showRailTab(which){
   document.getElementById('tabbtn-seq').classList.toggle('on',!edit);
   try{ localStorage.setItem('phosphor-railtab',edit?'edit':'seq'); }catch(_){}
 }
-function selectEdge(id){ selEdge=id; selId=null; selIds.clear(); statePreview=null; previewAnchor=null; render(); }
+function selectEdge(id){ selEdge=id; selId=null; selIds.clear(); statePreview=null; render(); }
 function clearSel(){ selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; }
 
 /* ============ edge inspector (GravelGraph-style Edge panel) ============ */
@@ -4133,6 +4165,26 @@ const SCENE_TEMPLATES=[
     ];
     return CP('Model thinking',p.title,list);
   }},
+  {key:'sidebyside', name:'Side by side', desc:'duo cards: step kicker, title, two chip+head+quote+body cards', fields:[
+    {k:'step',label:'step no.',def:'4'},
+    {k:'title',label:'title',def:'Side by side'},
+    {k:'chipL',label:'left chip',def:'Top-k'},{k:'colorL',label:'left color',def:'#E07864'},
+    {k:'headL',label:'left head',def:'Fixed headcount'},
+    {k:'quoteL',label:'left quote',def:'"Always let exactly k words into the room."',area:true},
+    {k:'bodyL',label:'left body',def:'Simple and predictable, but blind to context — same cutoff whether the model is very sure or very unsure.',area:true},
+    {k:'chipR',label:'right chip',def:'Top-p'},{k:'colorR',label:'right color',def:'#3FA37C'},
+    {k:'headR',label:'right head',def:'Fixed confidence'},
+    {k:'quoteR',label:'right quote',def:'"Let in however many words it takes to reach 85% sure."',area:true},
+    {k:'bodyR',label:'right body',def:'Adapts automatically: fewer words when the model is confident, more words when it is unsure.',area:true}],
+  build:p=>{
+    const list=[
+      C('kicker',{text:`STEP ${p.step||'4'} // SIDE BY SIDE`},200,150),
+      C('title',{text:p.title||'Side by side',glitch:'',size:110},200,215),
+      C('duo',{chipL:p.chipL,colorL:p.colorL,headL:p.headL,quoteL:p.quoteL,bodyL:p.bodyL,
+               chipR:p.chipR,colorR:p.colorR,headR:p.headR,quoteR:p.quoteR,bodyR:p.bodyR,stepped:true},200,400),
+    ];
+    return CP('Side by side',p.title,list);
+  }},
 ];
 function runSceneTemplate(t){
   openSceneDlg({
@@ -4459,7 +4511,7 @@ function connectStart(e,c,pid){
       edges.push({id:uidEdge(), from:c.id, fromPort:pid, to:t.id, toPort:(np?np.id:'auto'),
         preset:'none', label:'', caption:'', routing:'smooth', branch:'none',
         weight:2, dir:'fwd', style:'dots', speed:1, animate:true});
-      selEdge=edges[edges.length-1].id; selId=null; previewAnchor=null; render();
+      selEdge=edges[edges.length-1].id; selId=null; render();
       toastMsg(`🔗 linked ${c.type} → ${t.type}`);
     }
   };
@@ -4772,16 +4824,19 @@ function compVisible(c){
     // preview mode (default ON): the canvas shows the take state — through
     // the anchored sequence row when one was clicked, else through the
     // active scene's end. Canvas clicks only select; they never move the
-    // anchor, so later steps stay put. Selecting a clear step shows it on a
-    // fresh canvas (earlier steps cleared). Multi-select and edge inspect
-    // always show all.
-    if(previewOn && !selEdge){
+    // anchor, so later steps stay put. Edge inspect holds the same cutoff
+    // instead of revealing everything. Selecting a clear step shows it on a
+    // fresh canvas (earlier steps cleared). Multi-select always shows all.
+    if(previewOn){
       let k=-1;
       if(selIds.size===1 && previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
       else if(selIds.size===0){
-        const sc=(typeof activeSceneId==='function')?activeSceneId():null;
-        const r=sc?sceneRange(sc):null;
-        k=r?r.end-1:comps.length-1;
+        if(selEdge && previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
+        else if(!selEdge){
+          const sc=(typeof activeSceneId==='function')?activeSceneId():null;
+          const r=sc?sceneRange(sc):null;
+          k=r?r.end-1:comps.length-1;
+        }
       } else return true;
       if(k>=0){
         const i=seqIndex(c);

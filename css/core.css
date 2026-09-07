@@ -2262,3 +2262,18 @@
 .pbar-track { flex: 1; min-width: 0; height: calc(38px*var(--fscale,1)); border-radius: 999px; }
 .pbar-fill { display: flex; align-items: center; justify-content: flex-end; height: 100%; min-width: 10px; border-radius: 999px; }
 .pbar-pct { font-size: calc(20px*var(--fscale,1)); font-weight: 700; white-space: nowrap; padding-right: 10px; }
+
+/* ===== Duo · side-by-side cards (structure) ===== */
+.tk-duo { width: 1240px; max-width: 1500px; display: flex; gap: 28px; align-items: stretch; }
+.duo-card { flex: 1; min-width: 0; border-radius: 22px; padding: 30px 36px; display: flex; flex-direction: column; gap: 14px; }
+.duo-chip { align-self: flex-start; font-size: calc(20px*var(--fscale,1)); font-weight: 700; letter-spacing: 1px; padding: 5px 18px; border-radius: 999px; }
+.duo-head { font-size: calc(30px*var(--fscale,1)); font-weight: 700; }
+.duo-quote { font-size: calc(23px*var(--fscale,1)); line-height: 1.45; }
+.duo-body { font-size: calc(23px*var(--fscale,1)); line-height: 1.5; }
+
+/* ===== TK · bandwidth pipe (structure: layout + metrics, colours only as var(--*)) ===== */
+.tk-pipe { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; font-size: calc(22px*var(--fscale,1)); }
+.pipe-body { stroke-width: 3; }
+.pipe-flange { stroke-width: 3; }
+.pipe-flow { stroke-linecap: round; stroke-dasharray: 12 12; }
+.pipe-flow.go { animation: flowdash .8s linear infinite; }
