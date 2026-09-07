@@ -484,6 +484,9 @@
 .duo-quote { color: var(--text-dim); }
 .duo-body { color: var(--text-primary); }
 
+/* ===== Thumbnail title (skin: colours/fonts only) ===== */
+.thumb-title { font-family: var(--font-body); color: var(--tfill,#FFB000); -webkit-text-stroke: 3px var(--tstroke,#0A0F0A); paint-order: stroke fill; text-shadow: 0 6px 0 var(--tstroke,#0A0F0A), 0 0 34px var(--glow); }
+
 /* ===== TK · bandwidth pipe (skin: colours/fonts only) ===== */
 .tk-pipe { font-family: var(--font-body); color: var(--text-primary); }
 .pipe-body { stroke: var(--text-dim); fill: color-mix(in srgb, var(--text-primary) 6%, transparent); }

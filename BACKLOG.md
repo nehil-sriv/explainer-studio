@@ -18,7 +18,7 @@ Status of ideas for `html-png/components/builder.html`.
 ## ✅ Shipped (was: Medium — polish)
 
 - **Undo/redo** — Ctrl/Cmd+Z, 60-step stack covering delete/move/clear/scene-load.
-  (Redo not implemented.)
+  Redo via Ctrl+Shift+Z / Ctrl+Y; new edits clear the redo branch.
 - **Snap & align guides** — drag snaps to edges/center/thirds with green guide lines;
   hold Alt to bypass snapping.
 - **Component lock** — 🔓/🔒 per component; locked = no drag/nudge/delete + badge.

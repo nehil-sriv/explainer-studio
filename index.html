@@ -204,19 +204,37 @@ body {
   #sidebar-rsz:hover { background:rgba(57,255,122,0.25); }
 
   /* present mode — everything hidden except the scene at 1:1, for OBS capture */
-  body.present header, body.present aside, body.present footer { display:none; }
+  body.present header, body.present aside, body.present footer { display:none !important; }
   body.present main { display:block; }
   /* rec-crop mode — hide editor chrome so the canvas fills the tab during ⏺ REC.
      The capture is cropped to #scene, so title bar / URL / UI never reach the clip. */
-  body.rec-crop header, body.rec-crop aside, body.rec-crop footer, body.rec-crop #sidebar-rsz { display:none; }
+  body.rec-crop header, body.rec-crop footer, body.rec-crop #sidebar-rsz,
+  body.rec-crop aside#rail-left { display:none !important; }
   /* one stop button for takes and recording: take-stop stays visible and
      stops everything; the REC button hides while recording */
   body.recording #btn-record { display:none !important; }
   /* auto-timed takes are stop-only — no back/next while the timer drives */
   body.auto-take #t-next, body.auto-take #t-back,
   body.rec-auto #t-next, body.rec-auto #t-back { display:none !important; }
-  body.rec-crop main { display:block; }
+  body.rec-crop main { display:flex; }
   body.rec-crop .stage-wrap { padding:0; overflow:hidden; height:100vh; }
+  /* capture safety: HUD + toasts dock in the rail column (outside #scene's
+     rect for any canvas aspect — never the left gutter, which only exists
+     while the canvas is portrait) */
+  body.rec-crop { --rec-hud:104px; }
+  body.rec-crop #rec-pop { left:auto !important; right:14px !important; top:auto !important; bottom:14px !important; width:332px; }
+  body.rec-crop #navtoast { left:auto !important; right:14px !important; transform:none !important; top:auto !important; bottom:132px !important; max-width:332px; }
+  /* rail ends above the HUD; HUD never grows past its budget (padding 28 +
+     status 25 + buttons 30 + gap 8 = 91px in 104px — change --rec-hud only) */
+  body.rec-crop aside#rail-right { height:calc(100vh - var(--rec-hud)); }
+  body.recording #rec-pop { max-height:var(--rec-hud,104px); overflow:hidden; }
+  body.recording #rec-pop #rec-status { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* collapsed HUD while rolling — status + stop only */
+  body.recording #rec-pop-title, body.recording #rec-pop .rec-row, body.recording #rec-pop .hint { display:none; }
+  /* every other overlay is centred/full-screen — shut them out mid-take */
+  body.rec-crop #tour, body.rec-crop #beat-choose, body.rec-crop #dsl-pop, body.rec-crop #exp-pop,
+  body.rec-crop #scene-menu, body.rec-crop #scene-dlg,
+  body.rec-crop #LLmao-theme-btn, body.rec-crop .llmao-theme-panel { display:none !important; }
   /* 🔗 connection ports — dots on the selected component; drag one to any component to link */
   .comp .portdot { position:absolute; width:14px; height:14px; border-radius:50%;
     background:var(--bg-deep); border:2px solid var(--phos-green); z-index:90; cursor:crosshair;
@@ -260,6 +278,7 @@ body {
     <input type="number" id="scene-h" value="1080" min="200" step="10" style="display:none">
     <button class="palette" id="preset-yt" title="Landscape 1920×1080"><span class="ori-icon landscape"></span></button>
     <button class="palette" id="preset-shorts" title="Portrait 1080×1920"><span class="ori-icon portrait"></span></button>
+    <button class="palette" id="preset-thumb" title="Thumbnail 1280×720"><span class="ori-icon landscape"></span></button>
     <button class="mini" id="btn-clear-canvas" title="empty this scene (components + wires) — saved items kept, Ctrl+Z undoes">🧹 clear</button>
     <button class="mini" id="btn-grid" title="alignment gridlines (40/200px) — editing aid, never recorded">▦ grid</button>
     <button class="mini" id="btn-safe" title="safe areas — title/action safe on 16:9, YouTube Shorts UI cover on 9:16 — never recorded">@ safe</button>
@@ -419,6 +438,7 @@ body {
     #exp-pop .hint { margin:0 0 10px; }
     #exp-status { font-size:12px; color:var(--amber); min-height:15px; margin-bottom:10px; white-space:pre-wrap; line-height:1.5; }
   </style>
+  <div id="rec-count" style="position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:9999;pointer-events:none;font-family:VT323,monospace;font-size:220px;color:var(--alert-red);text-shadow:0 0 60px var(--glow);display:none">3</div>
   <div id="rec-pop">
     <div id="rec-pop-title">⏺ record clip</div>
     <p class="hint">captures <b>only the canvas</b> (auto-cropped) — browser title, URL and editor UI never appear. Keep this tab visible during the take.</p>
@@ -1268,6 +1288,13 @@ const REGISTRY = {
       let t=rich(p.text);
       if(p.glitch) t=t.replace(p.glitch, `<span class="glitch-word" data-w="${p.glitch}">${p.glitch}</span>`);
       return `<div class="title-line" style="font-size:${p.size}px">${t}</div>`; } },
+
+  thumbtitle:{ name:'Thumbnail title (outlined)',
+    group:'basics',
+    help:'huge stroked shout for thumbnails — pair with the 1280×720 canvas preset · rotate freely for energy',
+    props:{text:'STOP DOING THIS', fill:'#FFB000', stroke:'#0A0F0A', size:150},
+    fields:['text','fill','stroke','size'], fieldTypes:{size:'number'},
+    markup:p=>`<div class="thumb-title" style="font-size:${Math.max(40,+p.size||150)}px;--tfill:${p.fill};--tstroke:${p.stroke}">${rich(p.text)}</div>` },
 
   terminal: { name:'Terminal window',
     group:'basics',
@@ -4227,6 +4254,16 @@ const SCENE_TEMPLATES=[
     ];
     return CP('Side by side',p.title,list);
   }},
+  {key:'thumb', name:'Thumbnail', desc:'1280×720 shout: outlined title, arrow, hand circle', fields:[
+    {k:'title',label:'title',def:'STOP DOING THIS',area:true}],
+  build:p=>{
+    const list=[
+      C('thumbtitle',{text:p.title||'STOP DOING THIS',fill:'#FFB000',stroke:'#0A0F0A',size:150},70,230),
+      C('arrow',{accent:'var(--phos-green)',w:260,thick:true},760,320),
+      C('circle',{accent:'#FFB000',s:340},880,120),
+    ];
+    return CP('Thumbnail',p.title,list);
+  }},
 ];
 function runSceneTemplate(t){
   openSceneDlg({
@@ -4799,6 +4836,8 @@ addEventListener('keydown',e=>{
     if(SEQ.active){ seqExit(); e.preventDefault(); return; }
     if(selIds.size){ clearSel(); render(); e.preventDefault(); return; }
   }
+  if((e.ctrlKey||e.metaKey) && e.shiftKey && (e.key==='z'||e.key==='Z') && !typing){ redo(); e.preventDefault(); return; }
+  if(e.ctrlKey && !e.metaKey && (e.key==='y'||e.key==='Y') && !typing){ redo(); e.preventDefault(); return; }
   if((e.ctrlKey||e.metaKey) && e.key==='z' && !typing){ undo(); e.preventDefault(); return; }
   if((e.ctrlKey||e.metaKey) && (e.key==='/'||e.key==='?') && !typing){
     const db=document.getElementById('btn-dsl');
@@ -5452,12 +5491,24 @@ function toastMsg(msg){
 }
 /* ============ undo ============ */
 const undoStack=[];
-function snap(){ undoStack.push(JSON.stringify({c:comps,e:edges})); if(undoStack.length>60) undoStack.shift(); }
+const redoStack=[];
+function snap(){ undoStack.push(JSON.stringify({c:comps,e:edges})); if(undoStack.length>60) undoStack.shift(); redoStack.length=0; }
 function undo(){
   if(!undoStack.length){ alert('nothing to undo'); return; }
   try{
+    redoStack.push(JSON.stringify({c:comps,e:edges})); if(redoStack.length>60) redoStack.shift();
     const s=JSON.parse(undoStack.pop());
     if(Array.isArray(s)){ comps=s; }   // pre-edges snapshots
+    else { comps=s.c||[]; edges=s.e||[]; }
+  }catch(_){ return; }
+  selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; comps.forEach(c=>{ delete c._stateAt; }); render();
+}
+function redo(){
+  if(!redoStack.length){ alert('nothing to redo'); return; }
+  try{
+    undoStack.push(JSON.stringify({c:comps,e:edges})); if(undoStack.length>60) undoStack.shift();
+    const s=JSON.parse(redoStack.pop());
+    if(Array.isArray(s)){ comps=s; }
     else { comps=s.c||[]; edges=s.e||[]; }
   }catch(_){ return; }
   selId=null; selIds.clear(); selEdge=null; statePreview=null; previewAnchor=null; comps.forEach(c=>{ delete c._stateAt; }); render();
@@ -5753,12 +5804,14 @@ function setRecBtn(on){
   if(tc && !on) tc.textContent='00:00.0';
   document.body.classList.toggle('recording', on);
   document.body.classList.toggle('rec-auto', !!(on && typeof REC!=='undefined' && REC.autoMode));
-  // the header stays visible, so its ⏹ is the stop affordance; the rec
-  // dialog hides the moment recording starts
-  if(on){ const p=document.getElementById('rec-pop'); if(p) p.style.display='none'; }
+  // the header hides during rec-crop, so the dialog itself is the stop
+  // affordance — keep it visible with a stop button while rolling
+  const p=document.getElementById('rec-pop');
+  if(p && on) p.style.display='block';
   const st=document.getElementById('rec-step'), au=document.getElementById('rec-auto');
   if(st) st.textContent=on?'⏹ stop':'⏺ step · Space';
   if(au) au.textContent=on?'⏹ stop':'⏩ auto · timed';
+  if(au) au.style.display=on?'none':'';   // both relabel to stop — hide one
   const ex=document.getElementById('t-exit');
   if(ex) ex.title=on?'stop recording — back to edit mode':'stop the take — back to edit mode';
 }
@@ -5964,9 +6017,12 @@ async function startRec(autoMode){
       status.textContent= usePopup
         ? `starting in ${n}…  (pick the "llmao-scene" TAB — windows include the title bar)`
         : `starting in ${n}…  (pick THIS tab — only the canvas is captured)`;
+      const cdEl=document.getElementById('rec-count');
+      if(cdEl){ cdEl.textContent=n; cdEl.style.display='block'; }
       await sleep(700);
-      if(!REC.active) return;        // stopped during countdown — recorder never started
+      if(!REC.active){ const cdOff=document.getElementById('rec-count'); if(cdOff) cdOff.style.display='none'; return; }        // stopped during countdown — recorder never started
     }
+    const cdDone=document.getElementById('rec-count'); if(cdDone) cdDone.style.display='none';
 
     status.textContent= REC.autoMode
       ? `● recording (AUTO) — playing all ${comps.length} in order · ⏹/Esc stops`
@@ -5982,6 +6038,7 @@ async function startRec(autoMode){
       // cropped path records the builder canvas directly — it already shows step 0 (blank)
       lastPushedHtml=sceneInner();
     }
+    if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();   // focus guard: Space must step, not type into rec-dur/rec-hold
     setLiveSync(true);             // Space advances the sequence live — crop follows the canvas
     rec.start(250);
     t0=performance.now();
@@ -5991,8 +6048,8 @@ async function startRec(autoMode){
       const e=(performance.now()-t0)/1000;
       if(tcEl) tcEl.textContent=`● ${fmtT(e)}`;
       status.textContent= REC.autoMode
-        ? `● recording AUTO ${e.toFixed(1)}s${isFinite(durS)?' / '+durS+'s':''} — ${SEQ.shown}/${comps.length} shown · ⏹/Esc stops`
-        : `● recording STEP ${e.toFixed(1)}s${isFinite(durS)?' / '+durS+'s':''} — Space pulls (${SEQ.shown}/${comps.length}) · ⏹/Esc stops`;
+        ? `● AUTO ${e.toFixed(1)}s${isFinite(durS)?'/'+durS+'s':''} · ${SEQ.shown}/${comps.length}`
+        : `● STEP ${e.toFixed(1)}s · ${SEQ.shown}/${comps.length} · space`;
     },100);
     if(REC.autoMode) recAutoDrive();
     if(isFinite(durS)){
@@ -6002,6 +6059,7 @@ async function startRec(autoMode){
     /* no max set → keep rolling until you stop it */
   }catch(err){
     console.warn('record failed:',err);
+    const cdFail=document.getElementById('rec-count'); if(cdFail) cdFail.style.display='none';
     status.textContent='⚠ record failed: '+err.message;
     if(REC.recorder && REC.recorder.state==='recording') REC.recorder.stop();   // keep the partial clip
   }finally{
@@ -6021,6 +6079,7 @@ inW.oninput=()=>setSceneSize(parseInt(inW.value)||1920, parseInt(inH.value)||108
 inH.oninput=()=>setSceneSize(parseInt(inW.value)||1920, parseInt(inH.value)||1080);
 document.getElementById('preset-yt').onclick=()=>{inW.value=1920;inH.value=1080;setSceneSize(1920,1080);};
 document.getElementById('preset-shorts').onclick=()=>{inW.value=1080;inH.value=1920;setSceneSize(1080,1920);};
+document.getElementById('preset-thumb').onclick=()=>{inW.value=1280;inH.value=720;setSceneSize(1280,720);};
 /* header transport: play / auto / hold (footer dots stay the visual timeline) */
 document.getElementById('t-play').onclick=()=>seqPlay(1);   // opens with the first component already shown
 document.getElementById('t-auto').onclick=()=>{
