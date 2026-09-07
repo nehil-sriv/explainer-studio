@@ -309,7 +309,7 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><button data-t="del" title="delete (+ attached edges)">🗑</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><select id="sel-scene" title="move selection to another scene" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
     <div id="marquee" style="display:none"></div>
     <div id="multi-box" style="display:none"><div id="multi-size" title="drag to scale the set"></div></div>
@@ -3130,7 +3130,8 @@ function renderList(){
     }
     if(!playing){   // edit rows reorder by drag — take rows stay click-to-jump
       li.draggable=true;
-      li.ondragstart=e=>{ e.dataTransfer.setData('text/plain',c.id); e.dataTransfer.effectAllowed='move'; li.classList.add('dragging'); };
+      li.ondragstart=e=>{ const team=(selIds.size>1&&selIds.has(c.id))?[...selIds].sort((a,b)=>comps.findIndex(x=>x.id===a)-comps.findIndex(x=>x.id===b)):[c.id];
+        e.dataTransfer.setData('text/plain',JSON.stringify(team)); e.dataTransfer.effectAllowed='move'; li.classList.add('dragging'); };
       li.ondragend=()=>list.querySelectorAll('.dragging,.drop-before,.drop-after').forEach(x=>x.classList.remove('dragging','drop-before','drop-after'));
       const halfBefore=e=>{ const r=li.getBoundingClientRect(); return (e.clientY-r.top)<r.height/2; };
       li.ondragover=e=>{ e.preventDefault(); e.dataTransfer.dropEffect='move';
@@ -3138,13 +3139,13 @@ function renderList(){
       li.ondragleave=()=>li.classList.remove('drop-before','drop-after');
       li.ondrop=e=>{ e.preventDefault();
         if(e.dataTransfer.getData('text/scene')) return;   // headers drop on headers only
-        const id=e.dataTransfer.getData('text/plain'); if(!id||id===c.id) return;
-        const from=comps.findIndex(x=>x.id===id); if(from<0) return;
+        const ids=dragIds(e.dataTransfer.getData('text/plain')); if(!ids.length||ids.includes(c.id)) return;
         snap();
-        const [mv]=comps.splice(from,1);
-        mv.sceneId=c.sceneId;   // row in another scene joins this scene
+        const moving=ids.map(id=>comps.find(x=>x.id===id)).filter(Boolean);
+        moving.forEach(m=>{ m.sceneId=c.sceneId; });   // row in another scene joins this scene
+        comps=comps.filter(x=>!ids.includes(x.id));
         let to=comps.indexOf(c); if(!halfBefore(e)) to++;
-        comps.splice(to,0,mv); normalizeScenes(); render(); renderStrip();
+        comps.splice(to,0,...moving); normalizeScenes(); render(); renderStrip();
       };
       li.onclick=e=>select(c.id, {toggle:!!(e.shiftKey||e.metaKey||e.ctrlKey), solo:!!e.altKey, seq:true});
     }
@@ -3201,14 +3202,15 @@ function renderList(){
         SCENES.splice(to,0,mv); normalizeScenes(); render(); renderStrip();
         return;
       }
-      const id=e.dataTransfer.getData('text/plain');   // component row → header: joins at end
-      if(!id) return;
-      const from=comps.findIndex(x=>x.id===id); if(from<0) return;
+      const raw=e.dataTransfer.getData('text/plain');   // component row(s) → header: join at end
+      const ids=dragIds(raw); if(!ids.length) return;
       snap();
-      const [mv]=comps.splice(from,1);
-      mv.sceneId=s.id;
+      const moving=ids.map(id=>comps.find(x=>x.id===id)).filter(Boolean);
+      comps=comps.filter(x=>!ids.includes(x.id));
+      moving.forEach(m=>{ m.sceneId=s.id; });
       const r=sceneRange(s.id);
-      comps.splice(r?r.end:comps.length,0,mv); normalizeScenes(); render(); renderStrip();
+      comps.splice(r?r.end:comps.length,0,...moving); normalizeScenes(); render(); renderStrip();
+      if(moving.length>1) toastMsg(`moved ${moving.length} into ${s.name}`);
     };
     list.appendChild(hd);
     if(folded) return;
@@ -3309,6 +3311,7 @@ function renderSelTools(){
     const mg=bar.querySelector('[data-t="merge"]'); if(mg) mg.style.display='';
     const sp=bar.querySelector('[data-t="split"]');
     if(sp) sp.style.display=selList().some(m=>m.stepId)?'':'none';
+    syncSelScene();
     return;
   }
   if(boxEl) boxEl.style.display='none';
@@ -3330,6 +3333,15 @@ function renderSelTools(){
   bar.style.left=c.x+'px';
   bar.style.top=(below?c.y+h+8/s:c.y-8/s-bh/s)+'px';
   const pin=bar.querySelector('[data-t="pin"]'); if(pin) pin.classList.toggle('on',!!c.pin);
+  syncSelScene();
+}
+/* scene-move dropdown in the selection toast — multi (or single) → pick target scene */
+function syncSelScene(){
+  const sel=document.getElementById('sel-scene'); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">move → scene…</option>`+SCENES.map(s=>`<option value="${s.id}">${String(s.name).replace(/</g,'&lt;')} (${sceneComps(s.id).filter(c=>!c.parked).length})</option>`).join('');
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:'';
+  sel.style.display='';
 }
 document.querySelectorAll('#sel-tools button').forEach(b=>{
   b.onclick=e=>{ e.stopPropagation();
@@ -3350,6 +3362,10 @@ document.querySelectorAll('#sel-tools button').forEach(b=>{
     else if(k==='ungroup'){ ungroupSelection(); }
     else if(k==='del'){ deleteSelection(); }
   };
+});
+document.getElementById('sel-scene').addEventListener('change',e=>{
+  const sid=e.target.value; if(!sid) return;
+  assignSelectionToScene(sid);
 });
 document.getElementById('multi-size').addEventListener('mousedown',e=>startMultiResize(e));
 /* right-rail tabs: Edit vs Sequence */
@@ -5309,6 +5325,11 @@ function camSyncForSeq(){
       popup.document.head.appendChild(st);
     }
   }catch(err){ console.warn('camera:',err); }
+}
+/* row drags carry the whole selection (ordered) when the dragged row is multi-selected */
+function dragIds(raw){
+  try{ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length) return a.filter(id=>comps.some(c=>c.id===id)); }catch(_){}
+  return (raw&&comps.some(c=>c.id===raw))?[raw]:[];
 }
 function renderStrip(){
   const strip=document.getElementById('strip'); if(!strip) return;
