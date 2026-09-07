@@ -2938,13 +2938,39 @@ function ungroupSelection(){
 
 /* ============ render ============ */
 const freshTrack=new WeakSet();   // comps seen before — their one-shot inner animations don't replay
+const lastVisible=new Set();   // ids painted visible last pass — take exits replay from it
+const lastPainted=new Set();   // scratch for this pass — flushed into lastVisible after the loop
+/* one last paint for a comp exiting mid-take: exit motion with forwards fill,
+   dropped on the next render. Fresh DOM every pass, so going back replays clean. */
+function paintLeaving(c){
+  const reg=REGISTRY[c.type]; if(!reg) return;
+  const P=effProps(c);
+  const el=document.createElement('div');
+  el.className='comp leaving';
+  el.dataset.draft=c.draft?'1':'0';
+  el.dataset.id=c.id;
+  el.style.cssText=`left:${c.x}px;top:${c.y}px;z-index:${c.z};transform:scale(${c.scale}) rotate(${c.rot}deg);opacity:${c.opacity};`;
+  el.style.setProperty('--ks', c.scale||1);
+  el.style.setProperty('--kr', (c.rot||0)+'deg');
+  if(c.wpx) el.style.width=c.wpx+'px';
+  if(c.hpx) el.style.height=c.hpx+'px';
+  el.style.setProperty('--fscale', c.fscale||1);
+  el.innerHTML=reg.markup(P);
+  el.style.animation=`tk-out-${c.out} ${c.animDur||0.6}s ease-in 0s forwards`;
+  scene.insertBefore(el,scene.querySelector('.crt'));
+  c._rw=el.offsetWidth||0; c._rh=el.offsetHeight||0;
+}
 function renderCanvas(){
   scene.querySelectorAll('.comp').forEach(n=>n.remove());
   const crt=scene.querySelector('.crt'), corners=scene.querySelector('.corners');
   comps.forEach(c=>{
     if(isState(c)) return;   // ADD: state steps draw nothing
     // --- SEQUENCE visibility: edit = show all; playback = first SEQ.shown ---
-    if(!compVisible(c)) return;
+    if(!compVisible(c)){
+      if(SEQ.active && c.out && c.out!=='none' && lastVisible.has(c.id)) paintLeaving(c);
+      return;
+    }
+    lastPainted.add(c.id);
     const reg=REGISTRY[c.type];
     if(!reg) return;   // unknown type (e.g. a newer file) — skip, don't crash the scene
     const P=effProps(c);   // ADD: base + applied patches
@@ -3027,6 +3053,7 @@ function renderCanvas(){
         el.appendChild(sh); }
     }
   });
+  lastVisible.clear(); lastPainted.forEach(id=>lastVisible.add(id)); lastPainted.clear();
   renderEdges();                       // edge layer above nodes, below nothing else
   if(REC.active) mirrorEdgesToPopup(); // stepped takes re-push the overlay wholesale
 }
@@ -3776,6 +3803,13 @@ function renderInspector(){
           <div class="row"><label>📌 pin</label>
             <input type="checkbox" id="seq-pin" ${c.pin?'checked':''} style="accent-color:var(--ch-amber)">
             <span style="font-size:10px;color:var(--ch-mut)">survives clears</span></div>
+          <div class="row"><label>🚪 exit</label>
+            <select id="seq-out" style="flex:1;min-width:0">${['none','fade','rise','fall','zoom'].map(o=>`<option value="${o}" ${(c.out||'none')===o?'selected':''}>${o==='none'?'none':o+' out'}</option>`).join('')}</select></div>
+          <div class="row"><label>exit when</label>
+            <select id="seq-outwhen" style="flex:1;min-width:0" title="this component disappears as the chosen step appears">
+              <option value="">stays till cleared</option>
+              ${comps.filter(x=>x.id!==c.id&&!isState(x)&&comps.indexOf(x)>comps.indexOf(c)).map(x=>{const j=comps.indexOf(x);const lab=compLabel(x);return `<option value="${x.id}" ${c.hideWhen===x.id?'selected':''}>${j+1}. ${x.clearBefore?'🧹 ':''}${x.type}${lab?' · '+lab.slice(0,16):''}</option>`;}).join('')}
+            </select></div>
           <div class="row"><label>🅿 park</label>
             <input type="checkbox" id="seq-park" ${c.parked?'checked':''} style="accent-color:var(--ch-amber)">
             <span style="font-size:10px;color:var(--ch-mut)">hide from story (kept safe)</span></div>
@@ -3869,6 +3903,10 @@ function renderInspector(){
   if(clr){ clr.onchange=()=>{ snap(); c.clearBefore=clr.checked||undefined; if(!c.clearBefore) delete c.clearBefore; render(); renderStrip(); }; }
   const pin=wrap.querySelector('#seq-pin');
   if(pin){ pin.onchange=()=>{ snap(); c.pin=pin.checked||undefined; if(!c.pin) delete c.pin; render(); renderStrip(); }; }
+  const outm=wrap.querySelector('#seq-out');
+  if(outm) outm.onchange=()=>{ c.out=outm.value==='none'?undefined:outm.value; renderCanvas(); autosave(); };
+  const outw=wrap.querySelector('#seq-outwhen');
+  if(outw) outw.onchange=()=>{ snap(); c.hideWhen=outw.value||undefined; if(!c.hideWhen) delete c.hideWhen; render(); renderStrip(); };
   const park=wrap.querySelector('#seq-park');
   if(park){ park.onchange=()=>{ snap(); c.parked=park.checked||undefined; if(!c.parked) delete c.parked;
     if(c.parked) selId=null; render(); renderStrip(); }; }
@@ -4942,6 +4980,7 @@ function compVisible(c){
           if(s && s.clearBefore){ if(i<j && !c.pin) return false; break; } }
         for(let j=0;j<=k;j++){ const s=comps[j];
           if(s && Array.isArray(s.hides) && s.hides.includes(c.id)) return false; }
+        if(retiredBy(c,k)) return false;   // scheduled exit
         return true;
       }
     }
@@ -4959,7 +4998,14 @@ function compVisible(c){
     const s=comps[j];
     if(s && Array.isArray(s.hides) && s.hides.includes(c.id)) return false;
   }
+  if(retiredBy(c,k)) return false;   // scheduled exit
   return true;
+}
+/* scheduled exit: hideWhen = id of the step whose appearance retires this comp */
+function retiredBy(c,k){
+  if(!c.hideWhen) return false;
+  const t=comps.findIndex(x=>x.id===c.hideWhen);
+  return t>=0 && k>t;
 }
 function seqHoldFor(c){
   const per=parseFloat(c.seqHold);
@@ -5329,6 +5375,8 @@ function dragIds(raw){
   try{ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length) return a.filter(id=>comps.some(c=>c.id===id)); }catch(_){}
   return (raw&&comps.some(c=>c.id===raw))?[raw]:[];
 }
+/* timeline: one beat's screen time = entrance delay + duration + hold (stepped lines add live time on top) */
+function beatSecs(c){ return Math.max(0.2,(+c.animDelay||0)+(+c.animDur||0.6)+seqHoldFor(c)); }
 function renderStrip(){
   const strip=document.getElementById('strip'); if(!strip) return;
   strip.innerHTML='';
@@ -5355,14 +5403,34 @@ function renderStrip(){
   if(tAuto) tAuto.textContent=SEQ.auto?'⏸ stop auto':'⏩ auto';
   const tHold=document.getElementById('t-hold');
   if(tHold && document.activeElement!==tHold) tHold.value=SEQ.holdDefault;
-  // sequence dots — click jumps to that step (a scene take shows its own block)
+  // sequence dots — click jumps to that step (a scene take shows its own block).
+  // pills stretch ∝ beat seconds; drag across them to scrub (edit: preview anchor, take: jump)
+  let scrubbing=false;
+  const scrubTo=(c,i)=>{
+    if(!c) return;
+    if(!SEQ.active) select(c.id,{seq:true});
+    else seqJump(i);
+  };
+  strip.onmousedown=()=>{ scrubbing=false; };
+  strip.onmousemove=e=>{
+    if(e.buttons!==1) return;
+    const pill=e.target.closest&&e.target.closest('.sqpill');
+    if(!pill||pill._si==null) return;
+    scrubbing=true;
+    const c=comps[pill._si];
+    scrubTo(c,pill._si);
+  };
+  strip.onmouseup=()=>{ if(scrubbing){ strip._scrubbed=true; scrubbing=false; } };
   comps.forEach((c,i)=>{
     if(SEQ.scene&&c.sceneId!==SEQ.scene) return;
     const shown=SEQ.active ? compVisible(c) : true;
     const tn=isState(c)?'state':c.type;
+    const secs=beatSecs(c);
     const pill=document.createElement('span');
-    pill.className='sqpill'+(c.stepId?' merged':'')+(SEQ.active?(shown?' lit':' dim'):'');
-    pill.title=`${runIndexOf(i)+1}. ${tn}${c.clearBefore?' — 🧹 clears screen first':''}${c.pin?' — 📌 pinned':''} — click to ${SEQ.active?'jump here':'preview from here'}`;
+    pill.className='sqpill'+(c.stepId?' merged':'')+(SEQ.active?(shown?' lit':' dim'):'')+((SEQ.active&&i===Math.max(0,SEQ.shown-1))||(!SEQ.active&&selId===c.id)?' now':'');
+    pill._si=i;
+    pill.style.flexGrow=secs.toFixed(2);
+    pill.title=`${runIndexOf(i)+1}. ${tn}${c.clearBefore?' — 🧹 clears screen first':''}${c.pin?' — 📌 pinned':''} · ${secs.toFixed(1)}s — click to ${SEQ.active?'jump here':'preview from here'} · drag to scrub`;
     const num=document.createElement('b'); num.textContent=runIndexOf(i)+1;
     pill.appendChild(num);
     const nm=document.createElement('span');
@@ -5370,6 +5438,7 @@ function renderStrip(){
     nm.textContent=(c.parked?'🅿 ':'')+(c.clearBefore?'🧹':'')+(c.pin?'📌':'')+tn+(s?' · '+s.slice(0,12):'');
     pill.appendChild(nm);
     pill.onclick=()=>{
+      if(strip._scrubbed){ strip._scrubbed=false; return; }
       if(!SEQ.active) seqPlay(i);
       else seqJump(i);
     };

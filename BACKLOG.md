@@ -41,9 +41,8 @@ Status of ideas for `html-png/components/builder.html`.
 
 ## 🔜 Next up
 
-1. **Redo** (Ctrl+Shift+Z) to complement undo.
-2. **Global timeline view** — visual list of components with start-times instead of only
-   per-component delays; scrub preview.
+1. **Global timeline view** — ✅ v1 shipped: footer pills stretch ∝ beat seconds
+   (delay+dur+hold), playhead ring, drag-to-scrub (edit anchors preview, takes jump).
 3. **Layout presets per pillar** — one-click brand layouts ("hot-take short", "explainer",
    "skit", "receipts"), vertical + horizontal variants.
 4. **Episode metadata panel** — title/caption/pin/pillar stored in the project JSON;

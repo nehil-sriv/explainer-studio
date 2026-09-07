@@ -1,0 +1,468 @@
+{
+ "currentSceneName": null,
+ "saved": [],
+ "scene": {
+  "h": 1920,
+  "w": 1080
+ },
+ "scenes": {},
+ "version": 1,
+ "edges": [
+  {
+   "animate": true,
+   "branch": "none",
+   "caption": "",
+   "dir": "fwd",
+   "from": "db1",
+   "fromPort": "right",
+   "id": "e1",
+   "label": "every token",
+   "preset": "none",
+   "routing": "smooth",
+   "speed": 1,
+   "style": "dots",
+   "to": "s1",
+   "toPort": "left",
+   "weight": 4
+  }
+ ],
+ "comps": [
+  {
+   "anim": "pa-left",
+   "animDelay": 0,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "k1",
+   "opacity": 1,
+   "props": {
+    "text": "EP.VRAM // EXPLAINER"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "kicker",
+   "x": 60,
+   "y": 70,
+   "z": 10
+  },
+  {
+   "anim": "pa-zoom",
+   "animDelay": 0.2,
+   "animDur": 0.5,
+   "draft": false,
+   "fscale": 1,
+   "id": "t1",
+   "opacity": 1,
+   "props": {
+    "glitch": "FASTER AI",
+    "size": 96,
+    "text": "MORE MEMORY \u2260 [r]FASTER AI[/r]"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "title",
+   "x": 50,
+   "y": 200,
+   "z": 10
+  },
+  {
+   "anim": "pa-up",
+   "animDelay": 0.4,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "m1",
+   "opacity": 1,
+   "props": {
+    "accent": "var(--phos-green)",
+    "myth": "more memory makes my model run faster",
+    "reality": "memory is capacity \u2014 speed is bandwidth"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "myth",
+   "x": 90,
+   "y": 560,
+   "z": 10
+  },
+  {
+   "anim": "pa-fade",
+   "animDelay": 0.6,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "c1",
+   "opacity": 1,
+   "props": {
+    "text": "i learned this the hard way\u2026"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "caption",
+   "x": 60,
+   "y": 1500,
+   "z": 10
+  },
+  {
+   "anim": "pa-left",
+   "animDelay": 0,
+   "animDur": 0.6,
+   "clearBefore": true,
+   "draft": false,
+   "fscale": 1,
+   "id": "c2",
+   "opacity": 1,
+   "props": {
+    "text": "to make ONE token, the [c]whole model[/c] rides from memory \u2192 processor"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "caption",
+   "x": 60,
+   "y": 220,
+   "z": 10
+  },
+  {
+   "anim": "pa-up",
+   "animDelay": 0.2,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "db1",
+   "opacity": 1,
+   "props": {
+    "icon": "ram",
+    "title": "MEMORY",
+    "sub": "70B weights in VRAM",
+    "accent": "#57C7C0"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "gnode",
+   "x": 110,
+   "y": 640,
+   "z": 10
+  },
+  {
+   "anim": "pa-up",
+   "animDelay": 0.4,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "s1",
+   "opacity": 1,
+   "props": {
+    "icon": "cpu",
+    "title": "PROCESSOR",
+    "sub": "one token at a time",
+    "accent": "var(--phos-green)"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "gnode",
+   "x": 600,
+   "y": 640,
+   "z": 10
+  },
+  {
+   "anim": "pa-fade",
+   "animDelay": 0.6,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "c3",
+   "opacity": 1,
+   "props": {
+    "text": "every. single. token. the full tanker, every time."
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "caption",
+   "x": 60,
+   "y": 1500,
+   "z": 10
+  },
+  {
+   "anim": "pa-zoom",
+   "animDelay": 0,
+   "animDur": 0.5,
+   "clearBefore": true,
+   "draft": false,
+   "fscale": 1,
+   "id": "t3",
+   "opacity": 1,
+   "props": {
+    "glitch": "WATER",
+    "size": 110,
+    "text": "THINK [c]WATER[/c]"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "title",
+   "x": 50,
+   "y": 200,
+   "z": 10
+  },
+  {
+   "anim": "pa-fade",
+   "animDelay": 0.2,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "bg3",
+   "opacity": 1,
+   "props": {
+    "accent": "var(--phos-green)",
+    "border": false,
+    "fill": true,
+    "h": 0,
+    "text": "a 512-litre tanker has to reach the purifier \u2014 through a pipe.",
+    "w": 0
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "textbg",
+   "x": 90,
+   "y": 480,
+   "z": 10
+  },
+  {
+   "anim": "pa-up",
+   "animDelay": 0.4,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "b3",
+   "opacity": 1,
+   "props": {
+    "accent": "#57C7C0",
+    "label": "512 L TANKER"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "bucket",
+   "x": 460,
+   "y": 760,
+   "z": 10
+  },
+  {
+   "animDur": 0.6,
+   "animDelay": 0.2,
+   "draft": false,
+   "fscale": 1,
+   "opacity": 1,
+   "rot": 0,
+   "scale": 1,
+   "z": 10,
+   "id": "p4a",
+   "type": "pipe",
+   "x": 230,
+   "y": 1000,
+   "anim": "pa-left",
+   "props": {
+    "label": "narrow pipe \u00b7 trickle",
+    "len": 560,
+    "bore": 10,
+    "flow": true,
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "animDur": 0.6,
+   "animDelay": 0.4,
+   "draft": false,
+   "fscale": 1,
+   "opacity": 1,
+   "rot": 0,
+   "scale": 1,
+   "z": 10,
+   "id": "p4b",
+   "type": "pipe",
+   "x": 230,
+   "y": 1210,
+   "anim": "pa-right",
+   "props": {
+    "label": "wide pipe \u00b7 flood",
+    "len": 560,
+    "bore": 34,
+    "flow": true,
+    "accent": "var(--phos-green)"
+   }
+  },
+  {
+   "anim": "pa-fade",
+   "animDelay": 0.6,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "c4",
+   "opacity": 1,
+   "props": {
+    "text": "same tank \u2014 different pipe, different speed"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "caption",
+   "x": 60,
+   "y": 1500,
+   "z": 10
+  },
+  {
+   "anim": "pa-left",
+   "animDelay": 0,
+   "animDur": 0.6,
+   "clearBefore": true,
+   "draft": false,
+   "fscale": 1,
+   "id": "c5",
+   "opacity": 1,
+   "props": {
+    "text": "in AI, the pipe is called [a]memory bandwidth[/a]"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "caption",
+   "x": 60,
+   "y": 220,
+   "z": 10
+  },
+  {
+   "animDur": 0.6,
+   "animDelay": 0.3,
+   "draft": false,
+   "fscale": 1,
+   "opacity": 1,
+   "rot": 0,
+   "scale": 1,
+   "z": 10,
+   "id": "bw5",
+   "type": "gnode",
+   "x": 350,
+   "y": 470,
+   "anim": "pa-up",
+   "props": {
+    "icon": "bw",
+    "title": "BANDWIDTH",
+    "sub": "900 GB/sec \u00b7 loads the model",
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "anim": "pa-up",
+   "animDelay": 0.2,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "g5",
+   "opacity": 1,
+   "props": {
+    "accent": "#FFB000",
+    "label": "MEMORY BANDWIDTH \u00b7 GB/sec",
+    "over": false,
+    "pct": 92,
+    "w": 640
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "gauge",
+   "x": 220,
+   "y": 820,
+   "z": 10
+  },
+  {
+   "anim": "pa-fade",
+   "animDelay": 0.4,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "c6",
+   "opacity": 1,
+   "props": {
+    "text": "it decides how fast the model loads. every token."
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "caption",
+   "x": 60,
+   "y": 1500,
+   "z": 10
+  },
+  {
+   "anim": "pa-zoom",
+   "animDelay": 0,
+   "animDur": 0.5,
+   "clearBefore": true,
+   "draft": false,
+   "fscale": 1,
+   "id": "t6",
+   "opacity": 1,
+   "props": {
+    "glitch": "SLOW",
+    "size": 96,
+    "text": "BIG TANK + NARROW PIPE = [r]SLOW[/r]"
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "title",
+   "x": 50,
+   "y": 200,
+   "z": 10
+  },
+  {
+   "anim": "pa-zoom",
+   "animDelay": 0.2,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "v6",
+   "opacity": 1,
+   "props": {
+    "kind": "bad",
+    "s": 220
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "verdict",
+   "x": 430,
+   "y": 560,
+   "z": 10
+  },
+  {
+   "anim": "pa-up",
+   "animDelay": 0.4,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "cl6",
+   "opacity": 1,
+   "props": {
+    "items": "device GB \u2014 how big the tank is|done\nGB per second \u2014 how wide the pipe is|done",
+    "stepped": true
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "checklist",
+   "x": 90,
+   "y": 900,
+   "z": 10
+  },
+  {
+   "anim": "pa-fade",
+   "animDelay": 0.6,
+   "animDur": 0.6,
+   "draft": false,
+   "fscale": 1,
+   "id": "c7",
+   "opacity": 1,
+   "props": {
+    "text": "don't just check the GB. check the [a]GB/sec[/a]."
+   },
+   "rot": 0,
+   "scale": 1,
+   "type": "caption",
+   "x": 60,
+   "y": 1560,
+   "z": 10
+  }
+ ]
+}

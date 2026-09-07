@@ -141,7 +141,7 @@ SHOW (video)
   footer dots — keys never start a take. **← / PageUp** → back. **Esc** → exit to edit (show all).
   One more Space past the last step (or auto-play reaching the end) ends the take itself.
 - **Toasts** (`#navtoast`) always dock under the header — the footer strip owns the bottom edge.
-- **Clear / retire:** `🧹` on a step clears the screen and reveals it on the fresh canvas, same beat — in takes and in edit preview alike. `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears.
+- **Clear / retire:** `🧹` on a step clears the screen and reveals it on the fresh canvas, same beat — in takes and in edit preview alike. `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. `🚪 exit` + `exit when` schedules a comp's own disappearance (fade/rise/fall/zoom, animated on the way out).
 - **Take preview in edit mode (default ON):** the canvas shows the take state — through the last row clicked, else through the active scene's end. Canvas clicks only select and never move the view; deselecting holds it; multi-select shows all; edge inspect holds the cutofff; multi-select and the 👁 toggle show the full canvas.
 - **Take preview in edit mode (default ON):** the canvas shows the take state — through the last row clicked, else through the active scene's end (clear/pin/hide honored). Canvas clicks only select and never move the view; deselecting holds it; multi-select shows all; edge inspect holds the preview cutoff; multi-select and the 👁 toggle show the full canvas. Plain arranging always has an all-visible path.
 - **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ add state change`

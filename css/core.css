@@ -2255,6 +2255,13 @@
 .tk-timer-label { font-size: calc(20px*var(--fscale,1)); letter-spacing: .18em; }
 .tk-timer-digits { font-size: calc(84px*var(--fscale,1)); line-height: 1; font-variant-numeric: tabular-nums; }
 
+/* ===== take exits (motion: exit keyframes carry the comp transform, held by forwards fill on a dying node) ===== */
+.comp.leaving { pointer-events: none; }
+@keyframes tk-out-fade { to { opacity: 0; } }
+@keyframes tk-out-rise { to { opacity: 0; transform: translateY(-70px) scale(var(--ks,1)) rotate(var(--kr,0deg)); } }
+@keyframes tk-out-fall { to { opacity: 0; transform: translateY(70px) scale(var(--ks,1)) rotate(var(--kr,0deg)); } }
+@keyframes tk-out-zoom { to { opacity: 0; transform: scale(calc(var(--ks,1) * 0.4)) rotate(var(--kr,0deg)); } }
+
 /* ===== TK · probability bars (structure: layout + metrics, colours only as var(--*)) ===== */
 .tk-probars { width: var(--w,760px); max-width: 1500px; display: flex; flex-direction: column; gap: 12px; }
 .pbar-row { display: flex; align-items: center; gap: 16px; }
