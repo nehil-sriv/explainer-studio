@@ -460,3 +460,18 @@
 .code-body .py-fn { color: #D3FFDE; }
 .code-body .py-cls { color: #D3FFDE; font-weight: 700; }
 .code-body .py-dec { color: var(--alert-red); }
+
+/* ===== TK · timer (skin: colours/fonts only) ===== */
+.tk-timer-label { font-family: var(--font-body); color: var(--text-dim); }
+.tk-timer-digits { font-family: var(--font-body); color: var(--stroke,var(--phos-green)); text-shadow: 0 0 24px var(--stroke,var(--phos-green)); }
+.tk-timer.done .tk-timer-digits { color: var(--alert-red); text-shadow: 0 0 24px var(--alert-red); }
+
+/* ===== TK · probability bars (skin: colours/fonts only) ===== */
+.tk-probars { font-family: var(--font-body); }
+.pbar-word { color: var(--text-primary); }
+.pbar-track { background: color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.pbar-fill.pf-g { background: var(--phos-green); }
+.pbar-fill.pf-b { background: var(--cyan-dim); }
+.pbar-fill.pf-a { background: var(--amber); }
+.pbar-fill.pf-r { background: var(--alert-red); }
+.pbar-pct { font-family: var(--font-body); color: #fff; }

@@ -876,7 +876,10 @@ function rich(t){
   // pass 4: restore rendered tokens — repeat because tokens can nest
   let prev=null;
   while(t!==prev){ prev=t; t=t.replace(/\u0000(\d+)\u0000/g,(m,i)=>tokens[+i]); }
-  return t;
+  // pass 5: newlines → <br> (after escaping, so the tag survives; after
+  // restore, so breaks work inside [b]/[color] spans too). Line-splitting
+  // comps (bullets, checklist, terminal) rich() per line, so they're unaffected.
+  return t.replace(/\r?\n/g,'<br>');
 }
 
 /* ============ code component: Python highlighting + verbatim indentation (#114) ============
@@ -1202,6 +1205,38 @@ function gnIcon(kind){
   return M[kind]||M.api;
 }
 
+/* ============ TK · timer: ticks every second (one global 1s ticker, no per-comp intervals) ============
+   Each visible .tk-timer starts on first paint (edit) or on its reveal beat (takes, via
+   renderCanvas) and keeps its own t0 in TIMERS keyed by comp id — re-renders never reset
+   it. Takes reset all timers on play/exit so replays start clean. Countdowns clamp at
+   00:00 and flip the .done class. Exports (GIF/WebM) capture the live digits. */
+function fmtTime(s){
+  s=Math.max(0,Math.floor(s||0));
+  const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60, p=n=>String(n).padStart(2,'0');
+  return h>0?`${h}:${p(m)}:${p(x)}`:`${p(m)}:${p(x)}`;
+}
+const TIMERS={};
+function timerDisplay(mode,start,nowMs,t0Ms){
+  const el=Math.max(0,Math.floor((nowMs-t0Ms)/1000));
+  if(mode==='down'){ const r=Math.max(0,start-el); return {text:fmtTime(r), done:r<=0}; }
+  return {text:fmtTime(start+el), done:false};
+}
+function timerTick(){
+  if(typeof document==='undefined') return;
+  const now=Date.now(), seen=new Set();
+  document.querySelectorAll('#scene .comp .tk-timer').forEach(box=>{
+    const comp=box.closest('.comp'); if(!comp||!comp.dataset||!comp.dataset.id) return;
+    const id=comp.dataset.id; seen.add(id);
+    if(!TIMERS[id]) TIMERS[id]={t0:now};
+    const d=timerDisplay(box.dataset.mode==='down'?'down':'up', parseInt(box.dataset.start||'0',10)||0, now, TIMERS[id].t0);
+    const dig=box.querySelector('.tk-timer-digits');
+    if(dig&&dig.textContent!==d.text) dig.textContent=d.text;
+    box.classList.toggle('done', !!d.done);
+  });
+  Object.keys(TIMERS).forEach(id=>{ if(!seen.has(id)) delete TIMERS[id]; });
+}
+function timerResetAll(){ Object.keys(TIMERS).forEach(k=>delete TIMERS[k]); }
+
 const REGISTRY = {
   kicker:   { name:'Kicker chip (EP.NNN // TYPE)',
     group:'basics',
@@ -1239,6 +1274,17 @@ const REGISTRY = {
     fieldTypes:{lang:'select', body:'code', w:'number', nums:'check', stepped:'check'},
     options:{lang:['python','text']},
     markup:p=>codeMarkup(p) },   // deliberately NOT rich() — its escaping + [b]-tags fight the tokenizer
+
+  timer:    { name:'Timer · ticks every second',
+    group:'basics',
+    help:'stopwatch (up) or countdown (down) — starts when revealed, ticks live on canvas and in recordings · seconds = start value',
+    props:{label:'ELAPSED', mode:'up', seconds:60, accent:'var(--phos-green)'},
+    fields:['label','mode','seconds','accent'], fieldTypes:{mode:'select', seconds:'number'},
+    options:{mode:['up','down']},
+    markup:p=>{
+      const mode=(p.mode==='down')?'down':'up';
+      const start=Math.max(0,Math.floor(+p.seconds||0));
+      return `<div class="tk-timer" data-mode="${mode}" data-start="${start}" style="--stroke:${p.accent}"><div class="tk-timer-label">${rich(p.label)}</div><div class="tk-timer-digits">${fmtTime(start)}</div></div>`} },
 
   hottake:  { name:'Lower third · HOT TAKE',
     group:'meta',
@@ -1282,10 +1328,11 @@ const REGISTRY = {
 
   textbg:   { name:'Text with background',
     group:'basics',
-    help:'centered text on a soft accent wash — no border',
-    props:{text:'the cache is a lie we all agree on', accent:'var(--phos-green)'},
-    fields:['text','accent'], fieldTypes:{text:'textarea'},
-    markup:p=>`<div style="background:color-mix(in srgb, ${p.accent} 16%, transparent);border-radius:14px;padding:22px 38px;max-width:900px;font-size:calc(30px*var(--fscale,1));color:var(--ct,var(--text-primary));text-align:center">${rich(p.text)}</div>` },
+    help:'centered text on a soft accent wash — no border · w/h = box size via the E/S handles or inspector (0 = auto-fit the text)',
+    props:{text:'the cache is a lie we all agree on', accent:'var(--phos-green)', w:0, h:0},
+    fields:['text','accent','w','h'], fieldTypes:{text:'textarea', w:'number', h:'number'},
+    markup:p=>{const w=Math.max(0,+p.w||0), h=Math.max(0,+p.h||0);
+      return `<div style="background:color-mix(in srgb, ${p.accent} 16%, transparent);border-radius:14px;padding:22px 38px;${w>0?`width:${w}px;`:''}${h>0?`min-height:${h}px;display:flex;flex-direction:column;align-items:center;justify-content:center;`:''}font-size:calc(30px*var(--fscale,1));color:var(--ct,var(--text-primary));text-align:center">${rich(p.text)}</div>`} },
 
   lower3rd: { name:'Lower third',
     group:'meta',
@@ -2151,6 +2198,20 @@ const REGISTRY = {
     fields:['label','pct','d','color'], fieldTypes:{pct:'number',d:'number'},
     markup:p=>{ const pct=Math.max(0,Math.min(100,+p.pct||0));
       return `<div class="tk-chart"><div class="tk-donut" style="--d:${+p.d||220}px;--pct:${pct};--dc:${p.color}"><span class="dcap">${rich(p.label||(pct+'%'))}</span></div></div>`; } },
+
+  probars:  { name:'TK · probability bars',
+    group:'charts',
+    help:'one per line: word|pct · fill color follows value (green→blue→amber→red) · tick stepped to reveal bars one by one',
+    props:{items:'fish|40\nfood|25\nmilk|15\ntreats|10\nyarn|5\nrocks|1\nmoon|0', stepped:true, w:760},
+    fields:['items','stepped','w'], fieldTypes:{items:'textarea', stepped:'check', w:'number'},
+    markup:p=>{
+      const rows=String(p.items||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+        const i=l.indexOf('|'), word=(i<0?l:l.slice(0,i)).trim();
+        let v=parseFloat(i<0?'0':l.slice(i+1)); v=isFinite(v)?Math.max(0,Math.min(100,v)):0;
+        const cls=v>=25?'pf-g':v>=10?'pf-b':v>=3?'pf-a':'pf-r';
+        return `<div class="cline pbar-row"><span class="pbar-word">${rich(word)}</span><span class="pbar-track"><span class="pbar-fill ${cls}" style="width:${v}%"><span class="pbar-pct">${Math.round(v)}%</span></span></span></div>`;
+      }).join('');
+      return `<div class="tk-probars" style="--w:${+p.w||760}px">${rows}</div>`} },
 
   tbl:      { name:'TK · table',
     group:'charts',
@@ -4056,6 +4117,22 @@ const SCENE_TEMPLATES=[
     if(p.explain&&String(p.explain).trim()) list.push(C('caption',{text:p.explain},200,820));
     return CP('Quiz',p.title,list);
   }},
+  {key:'think', name:'Model thinking', desc:'next-token bars: step kicker, title, context, word|pct options, footnote', fields:[
+    {k:'step',label:'step no.',def:'1'},
+    {k:'title',label:'title',def:"Here's what the model is thinking"},
+    {k:'context',label:'context line',def:'Say the sentence so far is "I fed my cat some…" — the model scores every possible next word:',area:true},
+    {k:'options',label:'options (word|pct per line)',def:'fish|40\nfood|25\nmilk|15\ntreats|10\nyarn|5\nrocks|1\nmoon|0',area:true},
+    {k:'foot',label:'footnote',def:'👉 In real models this list has ~50,000 words, most with tiny slivers of probability. Picking randomly from ALL of them risks landing on "moon."',area:true}],
+  build:p=>{
+    const list=[
+      C('kicker',{text:`STEP ${p.step||'1'} // NEXT WORD`},200,150),
+      C('title',{text:p.title||"Here's what the model is thinking",glitch:'',size:110},200,215),
+      C('textbg',{text:String(p.context==null?'':p.context),accent:'var(--phos-green)'},200,390),
+      C('probars',{items:String(p.options==null?'':p.options),stepped:true,w:760},200,540),
+      C('textbg',{text:String(p.foot==null?'':p.foot),accent:'var(--amber)'},200,880),
+    ];
+    return CP('Model thinking',p.title,list);
+  }},
 ];
 function runSceneTemplate(t){
   openSceneDlg({
@@ -4309,6 +4386,15 @@ function startWHResize(e,c,axis){
   e.stopPropagation(); e.preventDefault();
   cancelSizeDrag(); cancelNodeDrag();
   snap();
+  if(!c.props) c.props={};
+  // promote auto-sized (0) or legacy comps onto the live measured box when a
+  // handle is grabbed, so the first drag continues from the visible size
+  // instead of jumping — and the write lands in props (markup's truth).
+  // Restricted to comps whose registry declares w/h, so everyone else keeps
+  // the wpx/hpx fallback path.
+  const reg=REGISTRY[c.type]||{props:{}};
+  if(axis!=='h'&&!(c.props.w>0)&&typeof reg.props.w==='number') c.props.w=Math.round(c._rw||reg.props.w||220);
+  if(axis!=='w'&&!(c.props.h>0)&&typeof reg.props.h==='number') c.props.h=Math.round(c._rh||reg.props.h||0);
   const useW=c.props&&typeof c.props.w==='number', useH=c.props&&typeof c.props.h==='number';
   const useSize=!useW&&!useH&&c.props&&typeof c.props.size==='number';
   if(axis!=='h'&&!useW&&!useSize&&c.wpx==null) c.wpx=Math.max(20,Math.round(c._rw||220));
@@ -4732,7 +4818,7 @@ function seqPlay(from=0,keepScene){
   if(!comps.filter(c=>!c.parked).length){ toastMsg('nothing to play — add components first'); return; }
   snap();
   if(!keepScene) SEQ.scene=null;   // footer dots always return to the whole sequence
-  SEQ.active=true; SEQ.auto=false; seqStopAutoTimer();
+  SEQ.active=true; SEQ.auto=false; seqStopAutoTimer(); timerResetAll();
   if(from<=0) SEQ.shown=0;   // from blank
   else if(from>=comps.length) SEQ.shown=comps.length;
   else SEQ.shown=runEnd(from-1);   // smallest whole beat covering `from` — never half a beat
@@ -4978,7 +5064,7 @@ function seqJump(i){
   toastMsg(`⏪ step ${runIndexOf(Math.max(0,SEQ.shown-1))+1}/${runCount()} — furthest visited ${runIndexOf(Math.max(0,SEQ.maxShown-1))+1}/${runCount()}`);
 }
 function seqExit(ended){
-  seqStopAutoTimer();
+  seqStopAutoTimer(); timerResetAll();
   SEQ.active=false; SEQ.auto=false; SEQ.shown=comps.length; SEQ.maxShown=0; SEQ.scene=null;
   statePreview=null;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
@@ -5216,11 +5302,20 @@ function migrateEmptyCanvas(list){
   }
   return list;
 }
+/* textbg gained numeric w/h (E/S handles + inspector) — backfill survivors */
+function backfillComp(o){
+  if(o && o.type==='textbg'){
+    if(!o.props||typeof o.props!=='object') o.props={};
+    if(typeof o.props.w!=='number') o.props.w=0;
+    if(typeof o.props.h!=='number') o.props.h=0;
+  }
+  return o;
+}
 function importProject(d){
   const out={ comps:[], edges:[], note:'' };
   const spread=c=>{ const o=themeize({ scale:1, rot:0, opacity:1, z:10, ...c }); delete o.beat; delete o._stateAt; delete o._played;
     if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
-    if(o.carry && !o.pin){ o.pin=true; } delete o.carry; return o; };
+    if(o.carry && !o.pin){ o.pin=true; } delete o.carry; backfillComp(o); return o; };
   // base canvas comps first (sorted by old beat), then legacy named scenes in order
   const base=(d.comps||[]).map((c,i)=>({ c, i }));
   base.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
@@ -5656,7 +5751,7 @@ async function startRec(autoMode){
   try{
     snap();
     seqStopAutoTimer();
-    SEQ.active=true; SEQ.auto=false; SEQ.shown=0; SEQ.maxShown=0; SEQ.scene=null;
+    SEQ.active=true; SEQ.auto=false; SEQ.shown=0; SEQ.maxShown=0; SEQ.scene=null; timerResetAll();
     REC.autoMode=!!autoMode;
     comps.forEach(c=>{ delete c._played; delete c._stateAt; if(c.props&&c.props.stepped) c.revealed=0; });
     selId=null; statePreview=null;
@@ -5951,7 +6046,7 @@ function autosave(){
            list.sort((a,b)=>((a.c.beat||0)-(b.c.beat||0)) || (a.i-b.i));
            comps=list.map(({c})=>{ const o=themeize({scale:1,rot:0,opacity:1,z:10,...c}); delete o.beat; delete o._stateAt; delete o._played;
              if(o.type===STATE_TYPE){ if(!o.props||typeof o.props!=='object') o.props={}; if(!o.patch||typeof o.patch!=='object') o.patch={}; }
-             if(o.carry && !o.pin) o.pin=true; delete o.carry; return o; });
+             if(o.carry && !o.pin) o.pin=true; delete o.carry; backfillComp(o); return o; });
            edges=Array.isArray(d.edges)?d.edges:[];
            const fl0=flowlinksToEdges(comps);
            comps=fl0.comps; edges=edges.concat(fl0.fresh);
@@ -5970,6 +6065,7 @@ function autosave(){
   }catch{}
 })();
 setInterval(autosave, 2000);
+setInterval(timerTick, 1000);   // TK · timer comps tick live (builder + popout documents alike)
 SEQ.active=false; SEQ.shown=0;
 ensureDefaultScene();
 migrateEmptyCanvas(comps);

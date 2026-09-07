@@ -2249,3 +2249,16 @@
 .code-body .cl-num { flex: none; text-align: right; user-select: none; color: var(--text-dim); opacity: .5; }
 .code-body .cl-src { flex: 1; min-width: 0; white-space: pre-wrap; }
 .code-body .cl.cl-off { opacity: .26; }
+
+/* ===== TK · timer (structure: layout + metrics, colours only as var(--*)) ===== */
+.tk-timer { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tk-timer-label { font-size: calc(20px*var(--fscale,1)); letter-spacing: .18em; }
+.tk-timer-digits { font-size: calc(84px*var(--fscale,1)); line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* ===== TK · probability bars (structure: layout + metrics, colours only as var(--*)) ===== */
+.tk-probars { width: var(--w,760px); max-width: 1500px; display: flex; flex-direction: column; gap: 12px; }
+.pbar-row { display: flex; align-items: center; gap: 16px; }
+.pbar-word { flex: none; width: 110px; text-align: right; font-size: calc(24px*var(--fscale,1)); font-weight: 700; }
+.pbar-track { flex: 1; min-width: 0; height: calc(38px*var(--fscale,1)); border-radius: 999px; }
+.pbar-fill { display: flex; align-items: center; justify-content: flex-end; height: 100%; min-width: 10px; border-radius: 999px; }
+.pbar-pct { font-size: calc(20px*var(--fscale,1)); font-weight: 700; white-space: nowrap; padding-right: 10px; }
