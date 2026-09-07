@@ -1020,7 +1020,7 @@ function edgeColor(e){
   if(p&&p.color) return p.color;
   return e.accent||themeHex('--phos-green','#39FF7A');
 }
-function edgeLabel(e){ return (e.label||'').trim()||(EDGE_PRESETS[e.preset||'none']||{}).label||''; }
+function edgeWireText(e){ return (e.caption||'').trim()||(EDGE_PRESETS[e.preset||'none']||{}).label||''; }
 function edgeEndpoints(e){
   const A=comps.find(x=>x.id===e.from), B=comps.find(x=>x.id===e.to);
   if(!A||!B||A.id===B.id||A.parked||B.parked) return null;
@@ -1119,16 +1119,16 @@ function edgeBuild(e,ov){
       if(GB) for(let i=0;i<n;i++) dot(GB.d,dur,+(-(i*dur/n)).toFixed(2),4.5); }
   }
   if(animOn&&style==='pulse') dot(G.d,+(3.4/speed).toFixed(2),0,6);
-  const lbl=edgeLabel(e);
-  if(lbl||e.caption){
+  const lbl=edgeWireText(e);
+  if(lbl||e.label){
     // pure-SVG label chip (no foreignObject: robust across browsers + exports).
     // all paint is attributes so it renders even with stale CSS. post-pass centers it.
     g.dataset.lbl='1';
     const t=document.createElementNS(NS,'g');
     t.setAttribute('class','elab');
-    const cap=String(e.caption||'');
-    // gravel-style: protocol label as bare small-caps text on the wire (haloed for
-    // legibility), caption as a dark pill riding below — no boxes around protocols
+    const cap=String(e.label||'');
+    // gravel-style: caption as bare small-caps text on the wire (haloed for
+    // legibility), label as a dark pill riding below — no boxes around protocols
     if(lbl){ const tx=document.createElementNS(NS,'text');
       tx.setAttribute('y',-7); tx.setAttribute('text-anchor','middle');
       tx.setAttribute('dominant-baseline','auto');
@@ -1138,17 +1138,18 @@ function edgeBuild(e,ov){
       tx.setAttribute('stroke','#0B100C');
       tx.textContent=lbl.toUpperCase(); t.appendChild(tx); }
     if(cap){
-      const w=Math.round(cap.length*7.3+20);
+      const fs=Math.max(8,Math.min(40,+e.labSize||12)), u=fs/12;
+      const w=Math.round(cap.length*7.3*u+20*u), h=Math.round(22*u);
       const r=document.createElementNS(NS,'rect');
-      r.setAttribute('x',-w/2); r.setAttribute('y',8); r.setAttribute('width',w); r.setAttribute('height',22);
-      r.setAttribute('rx',7); r.setAttribute('fill','#0B100C'); r.setAttribute('fill-opacity','0.96');
+      r.setAttribute('x',-w/2); r.setAttribute('y',8); r.setAttribute('width',w); r.setAttribute('height',h);
+      r.setAttribute('rx',Math.round(7*u)); r.setAttribute('fill','#0B100C'); r.setAttribute('fill-opacity','0.96');
       r.setAttribute('stroke',col); r.setAttribute('stroke-opacity','0.45'); r.setAttribute('stroke-width',1.5);
       t.appendChild(r);
       const cx=document.createElementNS(NS,'text');
-      cx.setAttribute('y',19); cx.setAttribute('text-anchor','middle');
+      cx.setAttribute('y',8+h/2); cx.setAttribute('text-anchor','middle');
       cx.setAttribute('dominant-baseline','middle');
-      cx.setAttribute('font-family',"'JetBrains Mono',monospace"); cx.setAttribute('font-size',12);
-      cx.setAttribute('fill',themeHex('--text-dim','#5C8A66')); cx.textContent=cap; t.appendChild(cx); }
+      cx.setAttribute('font-family',"'JetBrains Mono',monospace"); cx.setAttribute('font-size',fs);
+      cx.setAttribute('fill',e.labColor||themeHex('--text-dim','#5C8A66')); cx.textContent=cap; t.appendChild(cx); }
     g.appendChild(t);
     g._track=track; g._label=t;
   }
@@ -1167,13 +1168,22 @@ function renderEdges(){
     if(!compVisible(A)||!compVisible(B)) return;
     edgeBuild(effEdge(e),ov);
   });
-  // label placement post-pass: midpoint of the laid-out path
+  // label placement post-pass: along-wire position + optional wire-following angle
   ov.querySelectorAll('g.edge[data-lbl="1"]').forEach(g=>{
     try{
+      const e=edges.find(x=>x.id===g.dataset.id);
+      const frac=e&&e.labPos==='start'?0.15:e&&e.labPos==='end'?0.85:0.5;
       const path=g._track||g.querySelector('path.track');
-      const len=path.getTotalLength(), pt=path.getPointAtLength(len/2);
+      const len=path.getTotalLength(), pt=path.getPointAtLength(len*frac);
+      let rot='';
+      if(e&&e.labRot==='follow'){
+        const pa=path.getPointAtLength(Math.max(0,len*frac-4)), pb=path.getPointAtLength(Math.min(len,len*frac+4));
+        let a=Math.atan2(pb.y-pa.y,pb.x-pa.x)*180/Math.PI;
+        if(a>90) a-=180; if(a<-90) a+=180;
+        rot=` rotate(${Math.round(a)})`;
+      }
       const t=g._label||g.querySelector('g.elab');
-      if(t) t.setAttribute('transform',`translate(${Math.round(pt.x)},${Math.round(pt.y)})`);
+      if(t) t.setAttribute('transform',`translate(${Math.round(pt.x)},${Math.round(pt.y)})${rot}`);
     }catch(_){}
   });
 }
@@ -3320,6 +3330,8 @@ const EDGE_PATCH_FIELDS=[
   ['routing','select',['smooth','step','straight','curved']],
   ['dir','select',['fwd','both','bwd']],
   ['label','text',null],['caption','text',null],
+  ['labSize','number',null],['labColor','text',null],
+  ['labPos','select',['start','mid','end']],['labRot','select',['flat','follow']],
   ['weight','number',null],['speed','number',null],['animate','check',null],['accent','accent',null],
 ];
 function stateBeforeAt(s, field){
@@ -3478,12 +3490,15 @@ function renderStateInspector(wrap, s){
   const del=wrap.querySelector('#st-del');
   if(del) del.onclick=()=>{ snap(); const dead=s.id; comps=comps.filter(x=>x.id!==dead); if(selId===dead)selId=null; if(statePreview===dead)statePreview=null; render(); renderStrip(); };
 }
+/* edge label-pill color options — same 9-swatch theme set as the component tint row */
+const EDGE_THEME=[['#39FF7A','phos-green'],['#FFB000','amber'],['#FF5555','alert-red'],['#D3FFDE','mint'],
+  ['#57C7C0','cyan-dim'],['#5C8A66','text-dim'],['#1E2A1E','line-dim'],['#101710','panel'],['#0A0F0A','bg-deep']];
 function renderEdgeInspector(wrap,empty){
   const e=edges.find(x=>x.id===selEdge);
   if(!e){ selEdge=null; wrap.style.display='none'; empty.style.display='block'; return; }
   wrap.style.display='block'; empty.style.display='none';
   const cur={preset:e.preset||'none', routing:e.routing||'smooth', branch:e.branch||'none',
-             dir:e.dir||'fwd', style:e.style||'dots'};
+             dir:e.dir||'fwd', style:e.style||'dots', labPos:e.labPos||'mid', labRot:e.labRot||'flat'};
   const seg=(key,opts,labels)=>{
     return `<span data-eseg="${key}" style="display:flex;gap:4px;flex:1;flex-wrap:wrap">`+opts.map(o=>{
       const on=cur[key]===o, lab=(labels&&labels[o])||o;
@@ -3495,9 +3510,14 @@ function renderEdgeInspector(wrap,empty){
     return `<button data-v="${p}" style="font-family:var(--ch-font);font-size:11px;padding:4px 10px;cursor:pointer;border-radius:99px;border:1px solid ${on?col:'var(--ch-line)'};background:${on?'var(--ch-bg3)':'var(--ch-bg3)'};color:${on?col:'var(--ch-dim)'}">${p==='none'?'none':EDGE_PRESETS[p].label}</button>`; }).join('');
   wrap.innerHTML=
     `<p style="font-size:11px;color:var(--ch-dim);margin:0 0 10px">EDGE · ${edgeShort(e.from)} → ${edgeShort(e.to)}</p>`
-    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">label</label><textarea id="ee-label" rows="1" placeholder="optional" style="flex:1;resize:vertical;min-height:26px;font-size:12px;padding:4px 7px;">${(e.label||'').replace(/</g,'&lt;')}</textarea></div>`
+    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">label</label><textarea id="ee-label" rows="1" placeholder="pill below the wire" style="flex:1;resize:vertical;min-height:26px;font-size:12px;padding:4px 7px;">${(e.label||'').replace(/</g,'&lt;')}</textarea></div>`
     +`<div class="row"><label>quick</label><span id="ee-quick" style="flex:1;display:flex;gap:4px;flex-wrap:wrap">${['request','response','data','packets','event','error'].map(q=>`<button data-q="${q}" style="font-family:var(--ch-font);font-size:11px;padding:3px 10px;cursor:pointer;border-radius:99px;border:1px solid var(--ch-line);background:var(--ch-bg3);color:var(--ch-dim)">${q}</button>`).join('')}</span></div>`
-    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">caption</label><textarea id="ee-cap" rows="1" placeholder="optional 2nd line" style="flex:1;resize:vertical;min-height:26px;font-size:12px;padding:4px 7px;">${(e.caption||'').replace(/</g,'&lt;')}</textarea></div>`
+    +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">caption</label><textarea id="ee-cap" rows="1" placeholder="small text on the wire" style="flex:1;resize:vertical;min-height:26px;font-size:12px;padding:4px 7px;">${(e.caption||'').replace(/</g,'&lt;')}</textarea></div>`
+    +`<div class="row"><label>pill size</label><input type="range" id="ee-ls" min="8" max="40" step="1" value="${+e.labSize||11}" style="flex:2;accent-color:var(--ch-focus)"><input type="number" id="ee-lsn" min="8" max="40" step="1" value="${+e.labSize||11}" style="width:56px;flex:none"></div>`
+    +`<div class="row" style="flex-wrap:wrap"><label>pill color</label><span id="ee-lcsw" style="display:flex;gap:4px;flex-wrap:wrap">${EDGE_THEME.map(([hex,n])=>`<button data-hex="${hex}" title="${n}" style="width:20px;height:20px;border-radius:4px;border:2px solid ${(e.labColor||'')===hex?'#fff':'transparent'};background:${hex};cursor:pointer"></button>`).join('')}</span></div>`
+    +`<div class="row"><label>pill hex</label><input type="color" id="ee-lcpick" value="${(e.labColor&&e.labColor.startsWith('#'))?e.labColor:themeHex('--text-dim','#5C8A66')}" style="width:40px;flex:none;height:26px;padding:0;border:1px solid var(--ch-line);background:none"><input type="text" id="ee-lc" value="${(e.labColor||'').replace(/"/g,'&quot;')}" placeholder="default dim — empty" style="flex:1;min-width:0"></div>`
+    +`<div class="row"><label>label place</label>${seg('labPos',['start','mid','end'],{start:'Start',mid:'Middle',end:'End'})}</div>`
+    +`<div class="row"><label>label angle</label>${seg('labRot',['flat','follow'],{flat:'― Flat',follow:'⤢ Follow wire'})}</div>`
     +`<div class="row" style="align-items:flex-start"><label style="padding-top:5px">preset</label><span data-eseg="preset" style="flex:1;display:flex;gap:4px;flex-wrap:wrap">${presetChips}</span></div>`
     +`<div class="row"><label>routing</label>${seg('routing',['smooth','step','straight','curved'],{smooth:'Smooth',step:'Step',straight:'Straight',curved:'Curved'})}</div>`
     +`<div class="row"><label>branch</label>${seg('branch',['none','success','error'],{none:'None',success:'Success',error:'Error'})}</div>`
@@ -3512,6 +3532,13 @@ function renderEdgeInspector(wrap,empty){
   const lab=wrap.querySelector('#ee-label'), cap=wrap.querySelector('#ee-cap');
   if(lab) lab.oninput=()=>{ e.label=lab.value; rerender(); };
   if(cap) cap.oninput=()=>{ e.caption=cap.value; rerender(); };
+  const lS=wrap.querySelector('#ee-ls'), lN=wrap.querySelector('#ee-lsn');
+  if(lS){ const setL=v=>{ e.labSize=Math.max(8,Math.min(40,parseInt(v)||11)); lS.value=e.labSize; lN.value=e.labSize; rerender(); };
+    lS.oninput=()=>setL(lS.value); lN.onchange=()=>setL(lN.value); }
+  const lC=wrap.querySelector('#ee-lc'), lP=wrap.querySelector('#ee-lcpick'), lSW=wrap.querySelector('#ee-lcsw');
+  if(lSW) lSW.querySelectorAll('button').forEach(b=>{ b.onclick=()=>{ e.labColor=b.dataset.hex; render(); autosave(); }; });
+  if(lP) lP.oninput=()=>{ e.labColor=lP.value; if(lC) lC.value=lP.value; rerender(); };
+  if(lC) lC.oninput=()=>{ e.labColor=lC.value.trim(); rerender(); };
   const quick=wrap.querySelector('#ee-quick');
   if(quick) quick.querySelectorAll('button').forEach(b=>{
     b.onclick=()=>{ e.label=b.dataset.q; render(); autosave(); };
@@ -6601,7 +6628,7 @@ function dslFromScene(){
   edges.forEach(e=>{
     const A=real.find(c=>c.id===e.from), B=real.find(c=>c.id===e.to);
     if(!A||!B) return;
-    const lb=(e.preset&&e.preset!=='none')?e.preset:(e.label||'');
+    const lb=(e.caption||'')||((e.preset&&e.preset!=='none')?e.preset:'');
     out.push(`${nameFor(A)} ${lb?`-[${lb}]->`:'->'} ${nameFor(B)}`);
   });
   const dropped=comps.length-real.length;
