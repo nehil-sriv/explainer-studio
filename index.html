@@ -1328,11 +1328,11 @@ const REGISTRY = {
 
   textbg:   { name:'Text with background',
     group:'basics',
-    help:'centered text on a soft accent wash — no border · w/h = box size via the E/S handles or inspector (0 = auto-fit the text)',
-    props:{text:'the cache is a lie we all agree on', accent:'var(--phos-green)', w:0, h:0},
-    fields:['text','accent','w','h'], fieldTypes:{text:'textarea', w:'number', h:'number'},
+    help:'centered text on a soft accent wash — no border · w/h = box size via the E/S handles or inspector (0 = auto-fit the text) · untick fill for bare text, tick border for an outline box',
+    props:{text:'the cache is a lie we all agree on', accent:'var(--phos-green)', w:0, h:0, fill:true, border:false},
+    fields:['text','accent','w','h','fill','border'], fieldTypes:{text:'textarea', w:'number', h:'number', fill:'check', border:'check'},
     markup:p=>{const w=Math.max(0,+p.w||0), h=Math.max(0,+p.h||0);
-      return `<div style="background:color-mix(in srgb, ${p.accent} 16%, transparent);border-radius:14px;padding:22px 38px;${w>0?`width:${w}px;`:''}${h>0?`min-height:${h}px;display:flex;flex-direction:column;align-items:center;justify-content:center;`:''}font-size:calc(30px*var(--fscale,1));color:var(--ct,var(--text-primary));text-align:center">${rich(p.text)}</div>`} },
+      return `<div style="${p.fill?`background:color-mix(in srgb, ${p.accent} 16%, transparent);`:'background:none;'}${p.border?`border:3px solid ${p.accent};`:''}border-radius:14px;padding:22px 38px;${w>0?`width:${w}px;`:''}${h>0?`min-height:${h}px;display:flex;flex-direction:column;align-items:center;justify-content:center;`:''}font-size:calc(30px*var(--fscale,1));color:var(--ct,var(--text-primary));text-align:center">${rich(p.text)}</div>`} },
 
   lower3rd: { name:'Lower third',
     group:'meta',
@@ -1585,19 +1585,19 @@ const REGISTRY = {
 
   rect:     { name:'Shape · rectangle',
     group:'shapes',
-    help:'border-only or filled — radius 0 = sharp corners · drag the E/S edges on canvas to resize',
-    props:{w:400, h:260, r:12, fill:false, accent:'var(--phos-green)'},
-    fields:['w','h','r','fill','accent'], fieldTypes:{w:'number',h:'number',r:'number',fill:'check'},
+    help:'fill / border toggles compose freely (both off = invisible spacer) — radius 0 = sharp corners · drag the E/S edges on canvas to resize',
+    props:{w:400, h:260, r:12, fill:false, border:true, accent:'var(--phos-green)'},
+    fields:['w','h','r','fill','border','accent'], fieldTypes:{w:'number',h:'number',r:'number',fill:'check',border:'check'},
     markup:p=>{ const w=Math.max(20,+p.w||400), h=Math.max(20,+p.h||260), r=Math.max(0,+p.r||0);
-      return `<div style="width:${w}px;height:${h}px;border:3px solid ${p.accent};border-radius:${r}px;${p.fill?`background:color-mix(in srgb, ${p.accent} 14%, transparent);`:''}"></div>`; } },
+      return `<div style="width:${w}px;height:${h}px;${p.border!==false?`border:3px solid ${p.accent};`:''}border-radius:${r}px;${p.fill?`background:color-mix(in srgb, ${p.accent} 14%, transparent);`:''}"></div>`; } },
 
   ellipse:  { name:'Shape · ellipse',
     group:'shapes',
-    help:'border-only or filled — equal w/h makes a circle · drag the E/S edges on canvas to resize',
-    props:{w:320, h:200, fill:false, accent:'var(--phos-green)'},
-    fields:['w','h','fill','accent'], fieldTypes:{w:'number',h:'number',fill:'check'},
+    help:'fill / border toggles compose freely (both off = invisible spacer) — equal w/h makes a circle · drag the E/S edges on canvas to resize',
+    props:{w:320, h:200, fill:false, border:true, accent:'var(--phos-green)'},
+    fields:['w','h','fill','border','accent'], fieldTypes:{w:'number',h:'number',fill:'check',border:'check'},
     markup:p=>{ const w=Math.max(20,+p.w||320), h=Math.max(20,+p.h||200);
-      return `<div style="width:${w}px;height:${h}px;border:3px solid ${p.accent};border-radius:50%;${p.fill?`background:color-mix(in srgb, ${p.accent} 14%, transparent);`:''}"></div>`; } },
+      return `<div style="width:${w}px;height:${h}px;${p.border!==false?`border:3px solid ${p.accent};`:''}border-radius:50%;${p.fill?`background:color-mix(in srgb, ${p.accent} 14%, transparent);`:''}"></div>`; } },
 
   /* ====== tech-diagram kit · batch 1 (strategy/TECH-ELEMENTS.md) ====== */
 
@@ -5308,6 +5308,12 @@ function backfillComp(o){
     if(!o.props||typeof o.props!=='object') o.props={};
     if(typeof o.props.w!=='number') o.props.w=0;
     if(typeof o.props.h!=='number') o.props.h=0;
+    if(typeof o.props.fill!=='boolean') o.props.fill=true;
+    if(typeof o.props.border!=='boolean') o.props.border=false;
+  }
+  if(o && (o.type==='rect'||o.type==='ellipse')){
+    if(!o.props||typeof o.props!=='object') o.props={};
+    if(typeof o.props.border!=='boolean') o.props.border=true;
   }
   return o;
 }
