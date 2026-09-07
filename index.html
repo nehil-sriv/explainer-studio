@@ -5417,25 +5417,26 @@ function renderStrip(){
   const tHold=document.getElementById('t-hold');
   if(tHold && document.activeElement!==tHold) tHold.value=SEQ.holdDefault;
   // sequence dots — click jumps to that step (a scene take shows its own block).
-  // pills stretch ∝ beat seconds; drag across them to scrub (edit: preview anchor, take: jump)
-  let scrubbing=false, lastScrub=null;
+  // pills stretch ∝ beat seconds; drag across them to scrub (edit: preview anchor, take: jump).
+  // guard state lives on the strip element — renderStrip rebuilds pills (fresh closures)
+  // on every select, so closure locals would reset mid-drag
   const scrubTo=(c,i)=>{
     if(!c) return;
     if(!SEQ.active) select(c.id,{seq:true});
     else seqJump(i);
   };
-  strip.onmousedown=()=>{ scrubbing=false; lastScrub=null; };
+  strip.onmousedown=()=>{ strip._scrubbing=false; strip._lastScrub=null; };
   strip.onmousemove=e=>{
     if(e.buttons!==1) return;
     const pill=e.target.closest&&e.target.closest('.sqpill');
     if(!pill||pill._si==null) return;
-    if(pill._si===lastScrub) return;   // one render per pill crossed, not per pixel
-    lastScrub=pill._si;
-    scrubbing=true;
+    if(pill._si===strip._lastScrub) return;   // one render per pill crossed, not per pixel
+    strip._lastScrub=pill._si;
+    strip._scrubbing=true;
     const c=comps[pill._si];
     scrubTo(c,pill._si);
   };
-  strip.onmouseup=()=>{ if(scrubbing){ strip._scrubbed=true; scrubbing=false; } };
+  strip.onmouseup=()=>{ if(strip._scrubbing){ strip._scrubbed=true; strip._scrubbing=false; } };
   comps.forEach((c,i)=>{
     if(SEQ.scene&&c.sceneId!==SEQ.scene) return;
     const shown=SEQ.active ? compVisible(c) : true;
