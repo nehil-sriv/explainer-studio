@@ -4602,7 +4602,6 @@ function connectStart(e,c,pid){
     cancelConnect();
     if(t && t.id!==c.id){
       snap();
-      if(SEQ.active) seqExit();
       edges.push({id:uidEdge(), from:c.id, fromPort:pid, to:t.id, toPort:(np?np.id:'auto'),
         preset:'none', label:'', caption:'', routing:'smooth', branch:'none',
         weight:2, dir:'fwd', style:'dots', speed:1, animate:true});
@@ -4929,9 +4928,8 @@ function compVisible(c){
       let k=-1;
       if(selIds.size===1 && previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
       else if(selIds.size===0 || (selIds.size===1 && !previewAnchor)){
-        if(selEdge){
-          if(previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
-        } else {
+        if(previewAnchor) k=comps.findIndex(x=>x.id===previewAnchor);
+        else {
           const sc=(typeof activeSceneId==='function')?activeSceneId():null;
           const r=sc?sceneRange(sc):null;
           k=r?r.end-1:comps.length-1;
