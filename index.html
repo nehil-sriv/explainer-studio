@@ -584,7 +584,8 @@ document.addEventListener('click', e=>{
 });
 /* start with the working set open — palette, saved library, kits, story canvas, inspector */
 document.querySelectorAll('aside section').forEach(s=>{
-  const open=['sec-palette','sec-saved','sec-complib','inspector'].includes(s.id);
+  if(!s.querySelector(':scope > h2')) return;   // no header — never collapse what can't expand
+  const open=['sec-palette','sec-saved','sec-complib','sec-icons','inspector'].includes(s.id);
   s.classList.toggle('collapsed', !open);
 });
 </script>
