@@ -3069,6 +3069,20 @@ function duplicateSelection(){
   render(); renderStrip();
   return copies;
 }
+/* duplicate the set AND group the pasted copies — one move, one undo step */
+function duplicateGroup(){
+  const team=selList().filter(c=>!isState(c));
+  if(team.length<2) return duplicateSelection();
+  const copies=duplicateSelection();
+  if(!copies||!copies.length) return copies;
+  const movable=copies.filter(c=>!c.locked&&!c.parked);
+  if(movable.length<2){ toastMsg('duplicated (copies locked/parked — left ungrouped)'); return copies; }
+  const g='g'+uid();
+  movable.forEach(c=>c.groupId=g);
+  render(); renderStrip();
+  toastMsg(`duplicated + grouped ${movable.length} — click selects the set · Alt+click picks one`);
+  return copies;
+}
 /* ============ align + distribute (multi-select set ops) ============
    how: left | right | cx | top | bottom | cy | dh | dv. */
 function alignSel(how){
@@ -5143,7 +5157,7 @@ addEventListener('keydown',e=>{
   }
   const c=comps.find(x=>x.id===selId);
   if(!c || typing) return;
-  if((e.key==='d'||e.key==='D')&&(e.ctrlKey||e.metaKey)){ duplicateSelection(); e.preventDefault(); return; }
+  if((e.key==='d'||e.key==='D')&&(e.ctrlKey||e.metaKey)){ if(e.shiftKey){ duplicateGroup(); } else { duplicateSelection(); } e.preventDefault(); return; }
   if(e.altKey&&(e.key==='ArrowUp'||e.key==='ArrowDown')){
     seqMoveSel(e.key==='ArrowUp'?-1:1); e.preventDefault(); return;
   }
