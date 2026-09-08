@@ -2321,6 +2321,10 @@
 .tk-steps .stp-n { width: 38px; height: 38px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
 .tk-steps .stp-link { width: 60px; height: 2px; margin: 0 14px; flex: none; }
 
+/* ===== TK · icon (structure) ===== */
+.tk-icon { display: inline-flex; }
+.tk-icon svg { display: block; }
+
 /* ===== AI batch · agent / attention / tokenizer / chat / vector (structure) ===== */
 .tk-agent { display: flex; flex-direction: column; gap: 10px; border-radius: 16px; border-width: 1.5px; border-style: solid; padding: 20px 24px; min-width: 320px; }
 .ag-name { font-size: calc(26px*var(--fscale,1)); font-weight: 700; }
