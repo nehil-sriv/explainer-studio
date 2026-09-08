@@ -309,7 +309,7 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><select id="sel-scene" title="move selection to another scene" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><button data-t="del" title="delete (+ attached edges)">🗑</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><select id="sel-scene" title="move selection to another scene" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><select id="sel-exit" title="whole selection exits when this step appears" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
     <div id="marquee" style="display:none"></div>
     <div id="multi-box" style="display:none"><div id="multi-size" title="drag to scale the set"></div></div>
@@ -319,7 +319,7 @@ body {
 
   <aside id="rail-left">
     <div id="comp-tabs">
-      <button id="ctabbtn-avail" class="on">Library</button><button id="ctabbtn-saved">Saved</button><button id="ctabbtn-kits">Kits</button><button id="ctabbtn-icons">Icons ●</button>
+      <button id="ctabbtn-avail" class="on">Library</button><button id="ctabbtn-saved">Saved</button><button id="ctabbtn-kits">Kits</button><button id="ctabbtn-icons">Icons</button>
     </div>
     <div class="tabpane" id="ctabpane-avail">
     <section id="sec-palette">
@@ -3530,6 +3530,7 @@ function renderSelTools(){
     const sp=bar.querySelector('[data-t="split"]');
     if(sp) sp.style.display=selList().some(m=>m.stepId)?'':'none';
     syncSelScene();
+    syncSelExit();
     return;
   }
   if(boxEl) boxEl.style.display='none';
@@ -3552,6 +3553,7 @@ function renderSelTools(){
   bar.style.top=(below?c.y+h+8/s:c.y-8/s-bh/s)+'px';
   const pin=bar.querySelector('[data-t="pin"]'); if(pin) pin.classList.toggle('on',!!c.pin);
   syncSelScene();
+  syncSelExit();
 }
 /* scene-move dropdown in the selection toast — multi (or single) → pick target scene */
 function syncSelScene(){
@@ -3560,6 +3562,17 @@ function syncSelScene(){
   sel.innerHTML=`<option value="">move → scene…</option>`+SCENES.map(s=>`<option value="${s.id}">${String(s.name).replace(/</g,'&lt;')} (${sceneComps(s.id).filter(c=>!c.parked).length})</option>`).join('');
   sel.value=[...sel.options].some(o=>o.value===cur)?cur:'';
   sel.style.display='';
+}
+/* exit-when dropdown in the selection toast — whole set retires at one trigger */
+function syncSelExit(){
+  const sel=document.getElementById('sel-exit'); if(!sel) return;
+  const team=selList().filter(c=>!isState(c));
+  const latest=team.reduce((m,c)=>Math.max(m,comps.indexOf(c)),-1);
+  sel.innerHTML=`<option value="">exit when…</option><option value="__clear__">stays till cleared</option>`+comps
+    .map((x,j)=>({x,j})).filter(o=>!isState(o.x)&&o.j>latest)
+    .map(o=>{const lab=compLabel(o.x);return `<option value="${o.x.id}">${o.j+1}. ${o.x.clearBefore?'🧹 ':''}${o.x.type}${lab?' · '+lab.slice(0,14):''}</option>`;}).join('');
+  sel.value='';
+  sel.style.display=team.length?'':'none';
 }
 document.querySelectorAll('#sel-tools button').forEach(b=>{
   b.onclick=e=>{ e.stopPropagation();
@@ -3584,6 +3597,15 @@ document.querySelectorAll('#sel-tools button').forEach(b=>{
 document.getElementById('sel-scene').addEventListener('change',e=>{
   const sid=e.target.value; if(!sid) return;
   assignSelectionToScene(sid);
+});
+document.getElementById('sel-exit').addEventListener('change',e=>{
+  const v=e.target.value;
+  const team=selList().filter(c=>!isState(c)&&comps.includes(c));
+  if(!v||!team.length) return;
+  snap();
+  team.forEach(c=>{ if(v==='__clear__') delete c.hideWhen; else c.hideWhen=v; });
+  render(); renderStrip();
+  toastMsg(v==='__clear__'?`exit cleared on ${team.length}`:`${team.length} exit together at step ${comps.findIndex(x=>x.id===v)+1}`);
 });
 document.getElementById('multi-size').addEventListener('mousedown',e=>startMultiResize(e));
 /* right-rail tabs: Edit vs Sequence */
