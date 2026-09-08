@@ -2270,6 +2270,14 @@
 .pbar-fill { display: flex; align-items: center; justify-content: flex-end; height: 100%; min-width: 10px; border-radius: 999px; }
 .pbar-pct { font-size: calc(20px*var(--fscale,1)); font-weight: 700; white-space: nowrap; padding-right: 10px; }
 
+/* ===== TK · metric tile (structure: layout + metrics, colours only as var(--*)) ===== */
+.tk-metric { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; border-radius: 16px; border-width: 1.5px; border-style: solid; padding: 20px 24px; }
+.m-head { display: flex; align-items: baseline; gap: 10px; font-size: calc(20px*var(--fscale,1)); }
+.m-code { font-weight: 700; }
+.m-val { font-size: calc(52px*var(--fscale,1)); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.m-chip { font-size: calc(18px*var(--fscale,1)); font-weight: 700; padding: 3px 14px; border-radius: 999px; }
+.m-desc { font-size: calc(19px*var(--fscale,1)); line-height: 1.45; }
+
 /* ===== Duo · side-by-side cards (structure) ===== */
 .tk-duo { width: 1240px; max-width: 1500px; display: flex; gap: 28px; align-items: stretch; }
 .duo-card { flex: 1; min-width: 0; border-radius: 22px; padding: 30px 36px; display: flex; flex-direction: column; gap: 14px; }
@@ -2287,3 +2295,28 @@
 .pipe-flange { stroke-width: 3; }
 .pipe-flow { stroke-linecap: round; stroke-dasharray: 12 12; }
 .pipe-flow.go { animation: flowdash .8s linear infinite; }
+
+/* ===== UI kit · website / dashboard / CRM atoms (structure) ===== */
+.tk-avatar { position: relative; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 700; flex: none; }
+.av-dot { position: absolute; right: 1px; bottom: 1px; width: 24%; height: 24%; border-radius: 50%; border: 2px solid var(--panel); }
+.tk-btn { display: inline-block; padding: 12px 28px; border-radius: 12px; font-size: calc(22px*var(--fscale,1)); font-weight: 700; }
+.tk-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; padding: 0 10px; border-radius: 999px; font-size: calc(20px*var(--fscale,1)); font-weight: 700; }
+.tk-tabs { display: flex; gap: 6px; border-radius: 12px; padding: 6px; }
+.tk-tabs .tab { padding: 8px 20px; border-radius: 8px; font-size: calc(20px*var(--fscale,1)); white-space: nowrap; }
+.tk-input { display: flex; flex-direction: column; gap: 8px; }
+.tk-input .in-label { font-size: calc(17px*var(--fscale,1)); }
+.tk-input .in-box { border-radius: 10px; padding: 12px 16px; font-size: calc(21px*var(--fscale,1)); min-height: 1.6em; }
+.tk-toggle { display: flex; align-items: center; gap: 14px; font-size: calc(21px*var(--fscale,1)); }
+.tg-track { width: 64px; height: 34px; border-radius: 999px; position: relative; flex: none; }
+.tg-knob { position: absolute; top: 4px; left: 4px; width: 26px; height: 26px; border-radius: 50%; transition: left .18s; }
+.tk-toggle.on .tg-knob { left: 34px; }
+.tk-nav { display: flex; flex-direction: column; gap: 4px; min-width: 260px; border-radius: 14px; padding: 10px; }
+.tk-nav .nv { padding: 10px 16px; border-radius: 9px; font-size: calc(21px*var(--fscale,1)); display: flex; gap: 10px; align-items: center; }
+.tk-search { display: flex; align-items: center; gap: 12px; border-radius: 999px; padding: 12px 22px; font-size: calc(21px*var(--fscale,1)); }
+.tk-card { border-radius: 16px; border-width: 1.5px; border-style: solid; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; }
+.tk-card .c-title { font-size: calc(26px*var(--fscale,1)); font-weight: 700; }
+.tk-card .c-body { font-size: calc(21px*var(--fscale,1)); line-height: 1.5; }
+.tk-steps { display: flex; align-items: center; }
+.tk-steps .stp { display: flex; align-items: center; gap: 10px; font-size: calc(20px*var(--fscale,1)); white-space: nowrap; }
+.tk-steps .stp-n { width: 38px; height: 38px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
+.tk-steps .stp-link { width: 60px; height: 2px; margin: 0 14px; flex: none; }

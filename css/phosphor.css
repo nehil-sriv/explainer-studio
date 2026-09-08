@@ -476,6 +476,14 @@
 .pbar-fill.pf-r { background: var(--alert-red); }
 .pbar-pct { font-family: var(--font-body); color: #fff; }
 
+/* ===== TK · metric tile (skin: colours/fonts only) ===== */
+.tk-metric { font-family: var(--font-body); background: color-mix(in srgb, var(--text-primary) 5%, transparent); border-color: var(--line-dim); }
+.m-code { color: var(--stroke,var(--phos-green)); }
+.m-name { color: var(--text-dim); }
+.m-val { font-family: var(--font-body); color: var(--stroke,var(--phos-green)); }
+.m-chip { font-family: var(--font-body); color: var(--stroke,var(--phos-green)); background: color-mix(in srgb, var(--stroke,var(--phos-green)) 18%, transparent); }
+.m-desc { color: var(--text-dim); }
+
 /* ===== Duo · side-by-side cards (skin) ===== */
 .tk-duo { font-family: var(--font-body); }
 .duo-card { background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
@@ -492,3 +500,38 @@
 .pipe-body { stroke: var(--text-dim); fill: color-mix(in srgb, var(--text-primary) 6%, transparent); }
 .pipe-flange { stroke: var(--text-dim); }
 .pipe-flow { stroke: var(--stroke,var(--phos-green)); }
+
+/* ===== UI kit · website / dashboard / CRM atoms (skin) ===== */
+.tk-avatar, .tk-btn, .tk-badge, .tk-tabs, .tk-input, .tk-toggle, .tk-nav, .tk-search, .tk-card, .tk-steps { font-family: var(--font-body); }
+.tk-avatar { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 22%, transparent); color: var(--stroke,var(--phos-green)); }
+.av-dot.st-online { background: var(--phos-green); }
+.av-dot.st-idle { background: var(--amber); }
+.av-dot.st-off { background: var(--text-dim); }
+.tk-btn.k-primary { background: var(--stroke,var(--phos-green)); color: var(--bg-deep); }
+.tk-btn.k-ghost { border: 2px solid var(--stroke,var(--phos-green)); color: var(--stroke,var(--phos-green)); }
+.tk-btn.k-danger { background: var(--alert-red); color: #fff; }
+.tk-badge { background: var(--stroke,var(--alert-red)); color: #fff; }
+.tk-tabs { background: color-mix(in srgb, var(--text-primary) 6%, transparent); }
+.tk-tabs .tab { color: var(--text-dim); }
+.tk-tabs .tab.on { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 16%, transparent); color: var(--text-primary); font-weight: 700; }
+.tk-input .in-label { color: var(--text-dim); }
+.tk-input .in-box { border: 1.5px solid var(--line-dim); color: var(--text-primary); background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
+.tg-track { background: color-mix(in srgb, var(--text-primary) 14%, transparent); }
+.tk-toggle.on .tg-track { background: var(--stroke,var(--phos-green)); }
+.tg-knob { background: #fff; }
+.tk-toggle .tg-label { color: var(--text-primary); }
+.tk-nav { background: color-mix(in srgb, var(--text-primary) 5%, transparent); }
+.tk-nav .nv { color: var(--text-dim); }
+.tk-nav .nv.on { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 14%, transparent); color: var(--text-primary); font-weight: 700; }
+.tk-search { border: 1.5px solid var(--line-dim); color: var(--text-dim); }
+.tk-search .s-ico { color: var(--stroke,var(--phos-green)); font-weight: 700; }
+.tk-card { background: color-mix(in srgb, var(--text-primary) 5%, transparent); border-color: var(--line-dim); }
+.tk-card .c-title { color: var(--text-primary); }
+.tk-card .c-body { color: var(--text-dim); }
+.tk-steps .stp { color: var(--text-dim); }
+.tk-steps .stp-n { border: 2px solid var(--text-dim); }
+.tk-steps .stp.done { color: var(--text-primary); }
+.tk-steps .stp.done .stp-n { background: var(--stroke,var(--phos-green)); border-color: var(--stroke,var(--phos-green)); color: var(--bg-deep); }
+.tk-steps .stp.now .stp-n { border-color: var(--stroke,var(--phos-green)); color: var(--stroke,var(--phos-green)); }
+.tk-steps .stp-link { background: var(--line-dim); }
+.tk-steps .stp-link.full { background: var(--stroke,var(--phos-green)); }
