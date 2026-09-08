@@ -535,3 +535,24 @@
 .tk-steps .stp.now .stp-n { border-color: var(--stroke,var(--phos-green)); color: var(--stroke,var(--phos-green)); }
 .tk-steps .stp-link { background: var(--line-dim); }
 .tk-steps .stp-link.full { background: var(--stroke,var(--phos-green)); }
+
+/* ===== AI batch · agent / attention / tokenizer / chat / vector (skin) ===== */
+.tk-agent, .tk-attn, .tk-tok, .tk-chatmsg, .tk-vector { font-family: var(--font-body); }
+.tk-agent { background: color-mix(in srgb, var(--text-primary) 5%, transparent); border-color: var(--line-dim); }
+.ag-name { color: var(--stroke,var(--phos-green)); }
+.ag-goal { color: var(--text-primary); }
+.ag-tools span { border-color: var(--stroke,var(--phos-green)); color: var(--stroke,var(--phos-green)); }
+.ag-iters i { background: var(--line-dim); }
+.ag-iters i.on { background: var(--stroke,var(--phos-green)); }
+.at-words { color: var(--text-dim); }
+.tk-chip2 { border-color: var(--stroke,var(--amber)); color: var(--text-primary); background: color-mix(in srgb, var(--stroke,var(--amber)) 8%, transparent); }
+.tk-chip2 i { background: var(--stroke,var(--amber)); color: var(--bg-deep); }
+.cm-role { color: var(--text-dim); }
+.tk-chatmsg .cm-body { background: color-mix(in srgb, var(--text-primary) 7%, transparent); color: var(--text-primary); border: 1.5px solid var(--line-dim); }
+.tk-chatmsg.r-user .cm-body { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 20%, transparent); border-color: var(--stroke,var(--phos-green)); }
+.tk-chatmsg.r-system .cm-body { background: none; border-style: dashed; color: var(--text-dim); font-size: calc(19px*var(--fscale,1)); }
+.vx-label { color: var(--text-primary); }
+.vx-row { color: var(--text-dim); }
+.vx-track { background: color-mix(in srgb, var(--text-primary) 10%, transparent); }
+.vx-fill { background: var(--stroke,var(--phos-green)); }
+.vx-fill.neg { background: var(--amber); }

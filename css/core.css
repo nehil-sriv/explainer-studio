@@ -2320,3 +2320,33 @@
 .tk-steps .stp { display: flex; align-items: center; gap: 10px; font-size: calc(20px*var(--fscale,1)); white-space: nowrap; }
 .tk-steps .stp-n { width: 38px; height: 38px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
 .tk-steps .stp-link { width: 60px; height: 2px; margin: 0 14px; flex: none; }
+
+/* ===== AI batch · agent / attention / tokenizer / chat / vector (structure) ===== */
+.tk-agent { display: flex; flex-direction: column; gap: 10px; border-radius: 16px; border-width: 1.5px; border-style: solid; padding: 20px 24px; min-width: 320px; }
+.ag-name { font-size: calc(26px*var(--fscale,1)); font-weight: 700; }
+.ag-goal { font-size: calc(20px*var(--fscale,1)); }
+.ag-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.ag-tools span { padding: 4px 14px; border-radius: 999px; border-width: 1.5px; border-style: solid; font-size: calc(18px*var(--fscale,1)); }
+.ag-iters { display: flex; gap: 8px; }
+.ag-iters i { width: 14px; height: 14px; border-radius: 50%; }
+.tk-attn { display: flex; flex-direction: column; gap: 10px; }
+.at-words { display: grid; grid-template-columns: repeat(var(--n,3), 1fr); gap: 8px; font-size: calc(18px*var(--fscale,1)); text-align: center; }
+.at-grid { display: grid; grid-template-columns: repeat(var(--n,3), 1fr); gap: 8px; }
+.at-cell { aspect-ratio: 1; border-radius: 8px; min-width: 44px; }
+.tk-tok { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 900px; }
+.tk-chip2 { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 10px; border-width: 1.5px; border-style: solid; font-size: calc(21px*var(--fscale,1)); }
+.tk-chip2 i { font-style: normal; font-size: calc(15px*var(--fscale,1)); border-radius: 6px; padding: 1px 7px; }
+.tk-sp { width: 10px; }
+.tk-chatmsg { display: flex; gap: 12px; align-items: flex-start; max-width: 860px; }
+.tk-chatmsg.r-user { justify-content: flex-end; }
+.tk-chatmsg.r-system { justify-content: center; }
+.cm-role { font-size: calc(16px*var(--fscale,1)); font-weight: 700; letter-spacing: 1px; flex: none; padding-top: 14px; }
+.cm-body { border-radius: 14px; padding: 14px 20px; font-size: calc(22px*var(--fscale,1)); line-height: 1.5; max-width: 640px; }
+.tk-vector { display: flex; flex-direction: column; gap: 7px; }
+.vx-label { font-size: calc(22px*var(--fscale,1)); font-weight: 700; margin-bottom: 4px; }
+.vx-row { display: flex; align-items: center; gap: 10px; font-size: calc(16px*var(--fscale,1)); }
+.vx-row i { font-style: normal; width: 26px; text-align: right; flex: none; }
+.vx-track { flex: none; width: 220px; height: 16px; border-radius: 8px; display: flex; }
+.vx-fill { height: 100%; border-radius: 8px; min-width: 3px; }
+.vx-fill.neg { margin-left: auto; }
+.vx-v { width: 56px; flex: none; }

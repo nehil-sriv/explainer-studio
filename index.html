@@ -2506,6 +2506,57 @@ const REGISTRY = {
         <span style="color:var(--text-dim);font-size:26px">⟶</span>
         <div class="chunks" style="--stroke:${p.accent}">${ch.map((c,i)=>`<span class="chk" style="animation-delay:${(i*0.18).toFixed(2)}s">${rich(c)}</span>`).join('')}</div></div>`; } },
 
+  agent:    { name:'AI · agent card',
+    group:'ai',
+    help:'goal + tool chips + iteration dots — who acts in the loop',
+    props:{name:'researcher', goal:'find competitor pricing', tools:'search|browser|pdf', iters:3, accent:'var(--phos-green)'},
+    fields:['name','goal','tools','iters','accent'], fieldTypes:{goal:'textarea', tools:'textarea', iters:'number'},
+    markup:p=>{ const tools=String(p.tools||'').split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean);
+      const n=Math.max(1,Math.min(8,Math.round(+p.iters||3)));
+      return `<div class="tk-agent" style="--stroke:${p.accent}"><div class="ag-name">${rich(p.name)}</div><div class="ag-goal">◎ ${rich(p.goal)}</div><div class="ag-tools">${tools.map(t=>`<span>${rich(t)}</span>`).join('')}</div><div class="ag-iters">${Array.from({length:n},(_,i)=>`<i class="${i===0?'on':''}"></i>`).join('')}</div></div>`} },
+
+  attention:{ name:'AI · attention map',
+    group:'ai',
+    help:'word × word heat grid — vals are 0-9 per cell, row-major, accent intensity',
+    props:{words:'the|cat|sat', vals:'9,1,2,3,8,4,2,5,7', accent:'var(--cyan-dim)'},
+    fields:['words','vals','accent'], fieldTypes:{words:'textarea'},
+    markup:p=>{ const words=String(p.words||'').split('\n').flatMap(l=>l.split('|')).map(s=>s.trim()).filter(Boolean);
+      const n=Math.max(2,Math.min(6,words.length));
+      const vals=String(p.vals||'').split(',').map(v=>Math.max(0,Math.min(9,parseFloat(v)||0)));
+      let cells='';
+      for(let r=0;r<n;r++) for(let c=0;c<n;c++){ const v=vals[r*n+c]||0;
+        cells+=`<span class="at-cell" style="background:color-mix(in srgb, var(--stroke) ${Math.round(v/9*85+10)}%, transparent)" title="${words[r]} → ${words[c]}: ${v}"></span>`; }
+      return `<div class="tk-attn" style="--stroke:${p.accent};--n:${n}"><div class="at-words">${words.slice(0,n).map(w=>`<span>${rich(w)}</span>`).join('')}</div><div class="at-grid">${cells}</div></div>`} },
+
+  tokenizer:{ name:'AI · tokenizer',
+    group:'ai',
+    help:'text split into numbered token chips',
+    props:{text:'tokenize me please', accent:'var(--amber)'},
+    fields:['text','accent'], fieldTypes:{text:'textarea'},
+    markup:p=>{ const toks=String(p.text||'').split(/(\s+)/).filter(s=>s.length);
+      return `<div class="tk-tok" style="--stroke:${p.accent}">${toks.map((t,i)=>/^\s+$/.test(t)?'<span class="tk-sp"></span>':`<span class="tk-chip2"><i>${i+1}</i>${rich(t)}</span>`).join('')}</div>`} },
+
+  chatmsg:  { name:'AI · chat message',
+    group:'ai',
+    help:'user (right) / assistant (left) / system (center) bubble',
+    props:{role:'assistant', text:'Here are your three options…', accent:'var(--phos-green)'},
+    fields:['role','text','accent'], fieldTypes:{role:'select', text:'textarea'}, options:{role:['user','assistant','system']},
+    markup:p=>{ const r=p.role||'assistant';
+      return `<div class="tk-chatmsg r-${r}" style="--stroke:${p.accent}"><span class="cm-role">${r}</span><span class="cm-body">${rich(p.text)}</span></div>`} },
+
+  vector:   { name:'AI · embedding vector',
+    group:'ai',
+    help:'label hashed into dim diverging bars — same label, same bars',
+    props:{label:'"king" − "man"', dims:12, accent:'var(--phos-green)'},
+    fields:['label','dims','accent'], fieldTypes:{dims:'number'},
+    markup:p=>{ const d=Math.max(4,Math.min(24,Math.round(+p.dims||12)));
+      let h=0; const str=String(p.label||'');
+      const rnd=()=>{ h=(h*31+str.length*7+13)>>>0; for(const ch of str) h=(h*31+ch.charCodeAt(0))>>>0; h=(h*1103515245+12345)>>>0; return ((h>>>8)%2000/1000)-1; };
+      let bars='';
+      for(let i=0;i<d;i++){ const v=rnd(), w=Math.round(Math.abs(v)*100);
+        bars+=`<span class="vx-row"><i>${i}</i><span class="vx-track"><span class="vx-fill ${v<0?'neg':''}" style="width:${w}%"></span></span><span class="vx-v">${v.toFixed(2)}</span></span>`; }
+      return `<div class="tk-vector" style="--stroke:${p.accent}"><div class="vx-label">${rich(p.label)}</div>${bars}</div>`} },
+
   agentloop:{ name:'AI · agent loop',
     group:'ai',
     help:'reason → act → observe cycle — the planner that calls tools',
