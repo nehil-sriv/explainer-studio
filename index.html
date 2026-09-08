@@ -238,12 +238,12 @@ body {
   /* 🔗 connection ports — dots on the selected component; drag one to any component to link */
   .comp .portdot { position:absolute; width:14px; height:14px; border-radius:50%;
     background:var(--bg-deep); border:2px solid var(--phos-green); z-index:90; cursor:crosshair;
-    transform:translate(-50%,-50%); }
+    transform:translate(-50%,-50%) scale(var(--is,1)); }
   .comp .portdot:hover { background:var(--phos-green); box-shadow:0 0 12px rgba(57,255,122,.8); }
   /* resize handle — SE corner of the selected component; drag scales it uniformly */
   .comp .sizedot { position:absolute; width:14px; height:14px; border-radius:3px;
     background:var(--bg-deep); border:2px solid var(--amber); z-index:91; cursor:nwse-resize;
-    transform:translate(-50%,-50%); }
+    transform:translate(-50%,-50%) scale(var(--is,1)); }
   .comp .sizedot:hover { background:var(--amber); box-shadow:0 0 12px rgba(255,176,0,.8); }
   /* edge handles — E/S sides of freeResize shapes; drag sets w/h props */
   .comp .sizedot.wsize { cursor:ew-resize; }
@@ -450,6 +450,8 @@ body {
     <p class="hint">captures <b>only the canvas</b> (auto-cropped) — browser title, URL and editor UI never appear. Keep this tab visible during the take.</p>
     <div class="rec-row"><label>max s</label><input type="number" id="rec-dur" value="" min="1" max="7200" step="0.5" placeholder="∞ until ⏹"><span class="hint" style="margin:0">blank = run till you stop</span></div>
     <div class="rec-row"><label>hold (s)</label><input type="number" id="rec-hold" value="1.6" min="0" max="10" step="0.1"><span class="hint" style="margin:0">auto mode pause / comp</span></div>
+    <div class="rec-row"><label>mic</label><select id="rec-mic" style="flex:1;min-width:0"><option value="">🎙 off</option></select></div>
+    <div class="rec-row"><label>level</label><div id="rec-meter" title="live mic level" style="flex:1;height:10px;background:var(--bg-deep);border:1px solid var(--line-dim);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;width:0;background:var(--phos-green)"></i></div></div>
     <div id="rec-status"></div>
     <div class="rec-btns" style="flex-wrap:wrap">
       <button class="mini primary" id="rec-step">⏺ step · Space</button>
@@ -3174,6 +3176,7 @@ function renderCanvas(){
     el.style.cssText=`left:${c.x}px;top:${c.y}px;z-index:${c.z};transform:scale(${c.scale}) rotate(${c.rot}deg);opacity:${c.opacity};`;
     el.style.setProperty('--ks', c.scale||1);   // entrance keyframes carry these — transform survives the flight
     el.style.setProperty('--kr', (c.rot||0)+'deg');
+    el.style.setProperty('--is', 1/(c.scale||1));   // handles/ports counter-scale — dots stay constant size
     if(c.wpx) el.style.width=c.wpx+'px';
     if(c.hpx) el.style.height=c.hpx+'px';
     if(P&&P.color){ el.style.setProperty('--ca', P.color); el.style.setProperty('--cc', P.color); el.style.setProperty('--ct', P.color); }
@@ -6099,9 +6102,11 @@ const REC={ active:false, liveSync:false, autoMode:false, autoTimer:null, stream
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function setLiveSync(v){ REC.liveSync=v; document.body.classList.toggle('live', v); }
 
-function pickRecMime(){
+function pickRecMime(needsAudio){
   if(!window.MediaRecorder) return '';
-  for(const m of ['video/mp4;codecs=avc1.42001f','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']){
+  const withAudio=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4;codecs=avc1.42001f,mp4a.40.2','video/mp4'];
+  const videoOnly=['video/mp4;codecs=avc1.42001f','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  for(const m of (needsAudio?withAudio.concat(videoOnly):videoOnly)){
     try{ if(MediaRecorder.isTypeSupported(m)) return m; }catch(_){}
   }
   return '';
@@ -6164,6 +6169,7 @@ function cleanupRec(){
   clearInterval(REC.timer);
   if(REC.autoTimer){ clearTimeout(REC.autoTimer); REC.autoTimer=null; }
   if(REC.stream){ REC.stream.getTracks().forEach(t=>t.stop()); REC.stream=null; }
+  micLevelStop();
   exitRecCrop();
 }
 REC.stop=()=>{
@@ -6180,7 +6186,91 @@ document.getElementById('btn-record').onclick=()=>{
   if(REC.active){ REC.stop(); return; }
   const p=document.getElementById('rec-pop');
   p.style.display = p.style.display==='block' ? 'none' : 'block';
+  if(p.style.display==='block') refreshMicList();
 };
+/* ============ voiceover mic: device select, persisted, video-safe ============ */
+function pickVoiceMime(){
+  if(!window.MediaRecorder) return '';
+  for(const m of ['audio/webm;codecs=opus','audio/webm','audio/mp4']){
+    try{ if(MediaRecorder.isTypeSupported(m)) return m; }catch(_){}
+  }
+  return '';
+}
+function micErrorMsg(err){
+  const n=(err&&err.name)||'';
+  const msg=n==='NotAllowedError'?'mic blocked — allow microphone in the address bar, then try again'
+    :n==='NotFoundError'?'no microphone found on this machine'
+    :n==='OverconstrainedError'?'mic rejected those settings — retrying with defaults'
+    :'mic error ('+((err&&err.message)||n||'unknown')+')';
+  const st=document.getElementById('rec-status'); if(st) st.textContent='⚠ '+msg;
+  toastMsg('⚠ '+msg);
+}
+/* live mic level meter — proves the mic is reaching the page before you roll */
+let micMon=null;
+function micLevelStop(){
+  if(!micMon) return;
+  try{ cancelAnimationFrame(micMon.raf); }catch(_){}
+  try{ micMon.src.disconnect(); }catch(_){}
+  try{ micMon.ctx.close(); }catch(_){}
+  micMon=null;
+  const bar=document.querySelector('#rec-meter i'); if(bar) bar.style.width='0';
+}
+function micLevelStart(track){
+  micLevelStop();
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const src=ctx.createMediaStreamSource(new MediaStream([track]));
+    const an=ctx.createAnalyser(); an.fftSize=512;
+    src.connect(an);
+    const data=new Uint8Array(an.fftSize);
+    const bar=document.querySelector('#rec-meter i');
+    const loop=()=>{
+      if(!micMon) return;
+      an.getByteTimeDomainData(data);
+      let peak=0;
+      for(let i=0;i<data.length;i++){ const v=Math.abs(data[i]-128)/128; if(v>peak) peak=v; }
+      if(bar) bar.style.width=Math.min(100,Math.round(peak*160))+'%';
+      micMon.raf=requestAnimationFrame(loop);
+    };
+    micMon={ctx,src,raf:0,an};
+    if(ctx.state==='suspended'){ ctx.resume().catch(()=>{}); }
+    micMon.raf=requestAnimationFrame(loop);
+  }catch(_){}
+}
+async function refreshMicList(){
+  const sel=document.getElementById('rec-mic');
+  if(!sel||!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices) return;
+  let prev=''; try{ prev=sel.value||localStorage.getItem('explainer-mic')||''; }catch(_){}
+  let devs=[];
+  try{ devs=await navigator.mediaDevices.enumerateDevices(); }catch(_){}
+  const mics=devs.filter(d=>d.kind==='audioinput');
+  const labeled=mics.some(d=>d.label);
+  sel.innerHTML=`<option value="">🎙 off</option>`
+    +(labeled?'':`<option value="__enable__">🎙 allow mic access…</option>`)
+    +mics.map((d,i)=>`<option value="${String(d.deviceId).replace(/"/g,'&quot;')}">${((d.label||'Microphone '+(i+1))).replace(/</g,'&lt;')}</option>`).join('');
+  if(prev&&[...sel.options].some(o=>o.value===prev)) sel.value=prev;
+  if(!mics.length&&devs.length&&!refreshMicList._warned){
+    refreshMicList._warned=true;
+    toastMsg('⚠ mic permission is on but no microphones visible — check OS privacy settings for this browser');
+  }
+}
+document.getElementById('rec-mic').addEventListener('change',async e=>{
+  const sel=e.target;
+  if(sel.value==='__enable__'){
+    try{
+      const t=await navigator.mediaDevices.getUserMedia({audio:true});
+      t.getTracks().forEach(x=>x.stop());
+    }catch(err){ micErrorMsg(err); }
+    await refreshMicList();
+    const sel2=document.getElementById('rec-mic');
+    if(sel2&&!sel2.value){
+      const first=[...sel2.options].find(o=>o.value&&o.value!=='__enable__');
+      if(first){ sel2.value=first.value; try{ localStorage.setItem('explainer-mic', first.value); }catch(_){} }
+    }
+  } else {
+    try{ localStorage.setItem('explainer-mic', sel.value); }catch(_){}
+  }
+});
 document.getElementById('rec-close').onclick=()=>{ document.getElementById('rec-pop').style.display='none'; };
 document.getElementById('rec-step').onclick=()=>{
   if(REC.active){ REC.stop(); return; }
@@ -6225,7 +6315,7 @@ async function startRec(autoMode){
     selId=null; statePreview=null;
     render(); renderStrip(); showRailTab('seq');
   }catch(err){ console.warn('rewind:',err); toastMsg('⚠ rewind failed: '+err.message); }
-  const mime=pickRecMime();
+  let mime=pickRecMime();
   if(!mime){ alert('MediaRecorder is not available in this browser'); return; }
 
   /* Capture strategy: cropped tab capture of the builder canvas.
@@ -6300,27 +6390,82 @@ async function startRec(autoMode){
     const rec=new MediaRecorder(stream,{ mimeType:mime, videoBitsPerSecond:bitrate });
     REC.recorder=rec;
     rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
-    rec.onstop=()=>{
+    rec.onstop=async ()=>{
       clearInterval(REC.timer);
       if(REC.autoTimer){ clearTimeout(REC.autoTimer); REC.autoTimer=null; }
       stream.getTracks().forEach(t=>t.stop());
+      micLevelStop();
       REC.active=false; REC.autoMode=false; REC.recorder=null; REC.stream=null;
       setRecBtn(false); setLiveSync(false);
       exitRecCrop();
       seqExit();
+      let voiceUrl=null; const vext=voiceMime.includes('mp4')?'m4a':'webm';
+      if(voiceRec){
+        try{
+          const vdone=new Promise(res=>{ voiceRec.onstop=res; setTimeout(res,1500); });
+          if(voiceRec.state!=='inactive') voiceRec.stop();
+          await vdone;
+        }catch(_){}
+        if(voiceChunks.length) voiceUrl=URL.createObjectURL(new Blob(voiceChunks,{type:voiceMime.split(';')[0]}));
+        voiceRec=null;
+      }
       const ext=mime.includes('mp4')?'mp4':'webm';
       const blob=new Blob(chunks,{type:mime.split(';')[0]});
       const safe=(currentSceneName||'clip').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'')||'clip';
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a'); a.href=url; a.download=`llmao-${safe}.${ext}`; a.click();
       setTimeout(()=>URL.revokeObjectURL(url),5000);
+      if(voiceUrl){
+        const va=document.createElement('a'); va.href=voiceUrl; va.download=`llmao-${safe}-voice.${vext}`; va.click();
+        setTimeout(()=>URL.revokeObjectURL(voiceUrl),5000);
+      }
       const secs=t0?((performance.now()-t0)/1000).toFixed(1):'0';
-      toastMsg(`✔ clip saved · ${secs}s · ${W}×${H} · ${ext}`);
+      toastMsg(`✔ clip saved · ${secs}s · ${W}×${H} · ${ext}${voiceUrl?' + voice':''}`);
       status.textContent = ext==='webm'
         ? "webm container — Resolve won't import directly.\nrename .webm→.mp4 (VP9) or remux with LosslessCut."
         : '';
     };
     if(usePopup && (!popup || popup.closed)){ status.textContent='popout closed'; return; }
+
+    /* voiceover: mono 48kHz ideal, baked into the clip + separate file, same start call.
+       Any mic failure lands here and the take rolls video-only — never a cancel. */
+    let voiceRec=null; const voiceChunks=[]; let voiceMime=''; let atrack=null;
+    const micSel=document.getElementById('rec-mic');
+    const micId=micSel?micSel.value:'';
+    if(micId==='__enable__') toastMsg('mic not enabled — pick a device or off, rolling video-only');
+    if(micId && micId!=='__enable__'){
+      try{ localStorage.setItem('explainer-mic', micId); }catch(_){}
+      const full={deviceId:{exact:micId}, channelCount:{ideal:1}, sampleRate:{ideal:48000}, echoCancellation:true, noiseSuppression:true};
+      try{
+        atrack=(await navigator.mediaDevices.getUserMedia({audio:full})).getAudioTracks()[0]||null;
+      }catch(err){
+        if(err&&err.name==='OverconstrainedError'){
+          micErrorMsg(err);
+          try{ atrack=(await navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:micId}, echoCancellation:true}})).getAudioTracks()[0]||null; }
+          catch(err2){ micErrorMsg(err2); }
+        } else if(err&&err.name==='NotFoundError'){
+          micErrorMsg(err);
+          try{ atrack=(await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true}})).getAudioTracks()[0]||null; }
+          catch(err2){ micErrorMsg(err2); }
+        } else micErrorMsg(err);
+      }
+      if(atrack){
+        try{ stream.addTrack(atrack); }catch(_){}
+        atrack.onended=()=>{ toastMsg('⚠ mic disconnected — video keeps rolling'); };
+        try{ const aset=atrack.getSettings?atrack.getSettings():{};
+          toastMsg(`🎙 mic live · ${(aset.label||'mic').slice(0,32)} · ${(aset.sampleRate||'?')}Hz · ${(aset.channelCount||'?')}ch`);
+        }catch(_){}
+        micLevelStart(atrack);
+        voiceMime=pickVoiceMime();
+        if(voiceMime){
+          try{
+            voiceRec=new MediaRecorder(new MediaStream([atrack]),{mimeType:voiceMime});
+            voiceRec.ondataavailable=e=>{ if(e.data&&e.data.size) voiceChunks.push(e.data); };
+          }catch(err){ voiceRec=null; }
+        }
+      }
+    }
+    if(atrack) mime=pickRecMime(true)||mime;   // container must carry audio — avc1-only mp4 silently drops the mic
 
     /* countdown lives in the dialog — cropped out of the clip, never inside the captured canvas */
     for(let n=3;n>=1;n--){
@@ -6351,6 +6496,7 @@ async function startRec(autoMode){
     if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();   // focus guard: Space must step, not type into rec-dur/rec-hold
     setLiveSync(true);             // Space advances the sequence live — crop follows the canvas
     rec.start(250);
+    if(voiceRec&&voiceRec.state==='inactive'){ try{ voiceRec.start(250); }catch(_){ voiceRec=null; } }   // same clock tick as video
     t0=performance.now();
     const tcEl=document.getElementById('transport-tc');
     const fmtT=s=>{ const m=Math.floor(s/60), ss=(s%60).toFixed(1).padStart(4,'0'); return `${String(m).padStart(2,'0')}:${ss}`; };
@@ -6358,8 +6504,8 @@ async function startRec(autoMode){
       const e=(performance.now()-t0)/1000;
       if(tcEl) tcEl.textContent=`● ${fmtT(e)}`;
       status.textContent= REC.autoMode
-        ? `● AUTO ${e.toFixed(1)}s${isFinite(durS)?'/'+durS+'s':''} · ${SEQ.shown}/${comps.length}`
-        : `● STEP ${e.toFixed(1)}s · ${SEQ.shown}/${comps.length} · space`;
+        ? `● AUTO ${e.toFixed(1)}s${isFinite(durS)?'/'+durS+'s':''} · ${SEQ.shown}/${comps.length}${voiceRec?' 🎙':''}`
+        : `● STEP ${e.toFixed(1)}s · ${SEQ.shown}/${comps.length} · space${voiceRec?' 🎙':''}`;
     },100);
     if(REC.autoMode) recAutoDrive();
     if(isFinite(durS)){
