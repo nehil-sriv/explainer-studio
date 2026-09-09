@@ -309,7 +309,7 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><select id="sel-scene" title="move selection to another scene" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><select id="sel-exit" title="whole selection exits when this step appears" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><button data-t="del" title="delete (+ attached edges)">🗑</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="shot" title="download this component as PNG">📷</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><select id="sel-scene" title="move selection to another scene" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><select id="sel-exit" title="whole selection exits when this step appears" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
     <div id="marquee" style="display:none"></div>
     <div id="multi-box" style="display:none"><div id="multi-size" title="drag to scale the set"></div></div>
@@ -3606,6 +3606,7 @@ document.querySelectorAll('#sel-tools button').forEach(b=>{
     if(k==='edit'){ const c=comps.find(x=>x.id===selId); if(!c) return; showRailTab('edit');
       const f=document.querySelector('#fields textarea,#fields input,#fields select'); if(f) f.focus(); }
     else if(k==='dup'){ duplicateSelection(); }
+    else if(k==='shot'){ shotSelection(); }
     else if(k==='pin'){ const team=selIds.size>1?selList():[comps.find(x=>x.id===selId)].filter(Boolean);
       if(!team.length) return; snap();
       const on=!team.every(m=>m.pin);
@@ -5892,6 +5893,132 @@ document.getElementById('btn-shot').onclick=async ()=>{
 function hideChrome(on){
   document.getElementById('gv').style.display=on?'none':'';
   document.getElementById('gh').style.display=on?'none':'';
+}
+
+/* ============ 🧩 PNG per component — one transparent image each ============
+   Renders every canvas component in isolation (offscreen, inside a duplicate
+   #scene so theme selectors match), then downloads them one by one.
+   Selection wins: if comps are selected only those export, else all.
+   Wires live on the canvas-level edges layer, so they are excluded by design. */
+function compPngName(c,i){
+  const lbl=(typeof compLabel==='function'?compLabel(c):(c.props&&c.props.text)||'')||'';
+  const slug=String(lbl).replace(/\[[^\]]*\]/g,'').trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
+  return `${String(i+1).padStart(2,'0')}-${c.type}${slug?'-'+slug:''}.png`;
+}
+async function rasterOneComp(c){
+  const reg=REGISTRY[c.type];
+  if(!reg) throw new Error('unknown type '+c.type);
+  const P=(typeof effProps==='function')?effProps(c):(c.props||{});
+  const sceneEl=document.getElementById('scene');
+  // offscreen themed stage: duplicate id="scene" so `#scene[data-theme] …`
+  // selectors hit; inline transparent wins over the theme background.
+  const stage=document.createElement('div');
+  stage.id='scene';
+  if(sceneEl&&sceneEl.dataset&&sceneEl.dataset.theme) stage.dataset.theme=sceneEl.dataset.theme;
+  stage.style.cssText='position:fixed;left:-10000px;top:0;width:max-content;height:max-content;'
+    +'padding:0;margin:0;overflow:visible;background:transparent;background-color:transparent;border:none;box-shadow:none;';
+  // padded wrapper: glows/shadows bleed outside the box — raster this, not the comp,
+  // so html-to-image doesn't clip them. Rotation corners need the same headroom.
+  const pad=document.createElement('div');
+  pad.style.cssText='background:transparent;padding:64px;width:max-content;height:max-content;';
+  const el=document.createElement('div');
+  el.className='comp';
+  el.style.cssText=`position:relative;transform:scale(${c.scale||1}) rotate(${c.rot||0}deg);`
+    +`opacity:${c.opacity==null?1:c.opacity};animation:none;`;
+  if(c.wpx) el.style.width=c.wpx+'px';
+  if(c.hpx) el.style.height=c.hpx+'px';
+  if(P&&P.color){ el.style.setProperty('--ca',P.color); el.style.setProperty('--cc',P.color); el.style.setProperty('--ct',P.color); }
+  if(P&&P.bg) el.style.setProperty('--cbg',P.bg);
+  el.style.setProperty('--fscale',c.fscale||1);
+  el.innerHTML=reg.markup(P);
+  if(c.wpx || c.hpx){
+    const both=c.wpx && c.hpx;
+    el.querySelectorAll('svg').forEach(v=>{
+      v.style.width=(both||c.wpx)?'100%':'auto';
+      v.style.height=c.hpx?'100%':'auto';
+    });
+    el.querySelectorAll('.annot').forEach(an=>{ an.style.width='100%'; an.style.height='100%'; });
+  }
+  // settled state: all stepped lines + typewriter chars visible, no mid-flight motion
+  el.querySelectorAll('.tline,.cline').forEach(ln=>{ ln.style.visibility='visible'; });
+  el.querySelectorAll('.pa-char').forEach(s=>s.classList.add('on'));
+  el.classList.remove('anim-typing');
+  el.querySelectorAll('*').forEach(n=>{ n.style.animation='none'; });
+  pad.appendChild(el); stage.appendChild(pad); document.body.appendChild(stage);
+  await new Promise(r=>setTimeout(r,40));   // one tick for layout/fonts before raster
+  // un-crop: the canvas paints overflow visibly, but html-to-image clips to the
+  // rastered box — so grow the padding to cover everything actually painted
+  // (row labels spilling past a narrowed box, halos, rotated corners…).
+  // Each rect is clipped against its overflow-hidden ancestors first, so
+  // scrolled-out / intentionally-truncated content can't inflate the shot —
+  // the export matches the canvas pixel for pixel, just uncropped.
+  try{
+    const clipTo=(r,a)=>{
+      let cs; try{ cs=getComputedStyle(a); }catch(_){ return r; }
+      const ar=a.getBoundingClientRect();
+      const bl=parseFloat(cs.borderLeftWidth)||0, br=parseFloat(cs.borderRightWidth)||0,
+            bt=parseFloat(cs.borderTopWidth)||0, bb=parseFloat(cs.borderBottomWidth)||0;
+      return {l:Math.max(r.l,ar.left+bl), t:Math.max(r.t,ar.top+bt),
+              r:Math.min(r.r,ar.right-br), b:Math.min(r.b,ar.bottom-bb)};
+    };
+    const union={l:Infinity,t:Infinity,r:-Infinity,b:-Infinity};
+    const eat=x=>{ if(x.r>x.l&&x.b>x.t){
+      union.l=Math.min(union.l,x.l); union.t=Math.min(union.t,x.t);
+      union.r=Math.max(union.r,x.r); union.b=Math.max(union.b,x.b); } };
+    [el,...el.querySelectorAll('*')].forEach(n=>{
+      let r; try{ r=n.getBoundingClientRect(); }catch(_){ return; }
+      if(!r.width&&!r.height) return;
+      let cur={l:r.left,t:r.top,r:r.right,b:r.bottom}, a=n.parentElement, guard=0;
+      while(a&&guard++<60){
+        let cs; try{ cs=getComputedStyle(a); }catch(_){ break; }
+        if(cs.overflowX!=='visible'||cs.overflowY!=='visible') cur=clipTo(cur,a);
+        if(cur.r<=cur.l||cur.b<=cur.t) return;   // fully clipped — paints nothing
+        if(a===el) break;
+        a=a.parentElement;
+      }
+      eat(cur);
+    });
+    if(union.l<Infinity){
+      const pr=pad.getBoundingClientRect(), M=8;
+      const needL=Math.max(0,pr.left-union.l), needT=Math.max(0,pr.top-union.t),
+            needR=Math.max(0,union.r-pr.right), needB=Math.max(0,union.b-pr.bottom);
+      if(needL||needT||needR||needB){
+        const cs=getComputedStyle(pad);
+        pad.style.paddingLeft=(parseFloat(cs.paddingLeft)+needL+M)+'px';
+        pad.style.paddingTop=(parseFloat(cs.paddingTop)+needT+M)+'px';
+        pad.style.paddingRight=(parseFloat(cs.paddingRight)+needR+M)+'px';
+        pad.style.paddingBottom=(parseFloat(cs.paddingBottom)+needB+M)+'px';
+        await new Promise(r=>setTimeout(r,30));
+      }
+    }
+  }catch(_){}   // measuring must never block the export
+  try{
+    return await htmlToImage.toPng(pad,{pixelRatio:2, backgroundColor:'rgba(0,0,0,0)'});
+  }finally{ stage.remove(); }
+}
+/* selection-toolbar 📷: capture the selected component(s) — single downloads
+   just that one, a multi-selection downloads each member (isolated raster:
+   active theme, transparent bg). */
+async function shotSelection(){
+  if(typeof htmlToImage==='undefined'){ alert('snapshot library not loaded (offline?) — use DevTools node screenshot instead'); return; }
+  const team=(typeof selList==='function'?selList():[]).filter(c=>c&&!isState(c)&&REGISTRY[c.type]);
+  if(!team.length){ toastMsg('select a component first'); return; }
+  let ok=0;
+  for(const c of team){
+    try{
+      toastMsg(team.length>1?`PNG ${ok+1}/${team.length} · ${c.type}…`:`capturing ${c.type}…`);
+      const dataUrl=await rasterOneComp(c);
+      const a=document.createElement('a');
+      a.href=dataUrl; a.download=compPngName(c,Math.max(0,comps.indexOf(c)));
+      document.body.appendChild(a); a.click(); a.remove();
+      ok++;
+      if(team.length>1) await new Promise(r=>setTimeout(r,350));   // gap so the browser keeps multi-downloads
+    }catch(err){ console.warn('comp PNG failed:',c&&c.id,err); }
+  }
+  if(team.length===1) toastMsg(ok?'✔ component PNG saved':'⚠ capture failed (see console)');
+  else toastMsg(ok===team.length?`✔ saved ${ok} component PNGs`
+    :`saved ${ok}/${team.length} PNGs — ${team.length-ok} failed (see console)`);
 }
 
 /* ============ 🎞 one-click export: SVG still · GIF · WebM (no screen capture) ============
