@@ -22,3 +22,4 @@
   --crash-ink: #FF5B04;
   --decor-ghosts: none;
 }
+#scene[data-theme="ember"] .bg-logo { color: var(--text-primary); }
