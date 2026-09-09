@@ -242,7 +242,10 @@ header#transport #btn-record.rec-live {
 /* floating selection toolbar (outside #scene: un-recordable) */
 body #sel-tools {
   position: absolute; z-index: 9999; display: none; gap: 3px; align-items: center;
-  background: rgba(255,255,255,.10); border-radius: 16px; padding: 5px; white-space: nowrap;
+  background: linear-gradient(rgba(46,46,53,.97), rgba(30,30,36,.97)); border: 1px solid var(--ch-line); border-radius: 16px; padding: 5px; white-space: nowrap;
+}
+html[data-chrome="light"] body #sel-tools {
+  background: linear-gradient(rgba(255,255,255,.97), rgba(245,246,250,.97));
 }
 body #sel-tools button {
   font-family: var(--ch-font); font-size: 15px; font-weight: 500; line-height: 1;

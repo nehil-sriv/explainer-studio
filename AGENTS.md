@@ -99,10 +99,10 @@ _archive/old-builder/   ← previous builder copies (do not edit)
   Transform = x/y/scale/rot plus `sx`/`sy` axis stretches (legacy E/S handles; current UI
   is uniform-scale only via the SE handle). Ports/edges/drop math all flow through
   `visualBox`, which composes them.
-- **Accent convention (theme-following):** default `accent:'var(--phos-green)'` (= theme primary,
-  resolves live in CSS via `var(--stroke, var(--phos-green))`, in SVG attrs via `liveHex()` —
-  SVG attributes can't use `var()`). Only use a hex default for SEMANTIC hues
-  (amber=warn, red=error, cyan=data). Same for `color`/`docAccent`.
+- **Accent convention (theme-following):** every registry `accent`/`color`/`fill`/`stroke`
+  default is a `var(--*)` role — never a hex (not even semantic hues; roles resolve
+  per theme, e.g. amber→Sand on Ember). User-typed hex stays literal by design.
+  Old files are migrated on load by `themeize()` (exact-hue map, lossless on phosphor).
   NEVER emit an empty custom property (`--stroke:` poisons `var()` fallbacks — Chrome
   renders garbage instead of the fallback; leave the property out or store the var()).
   Old files unfreeze exact `#39FF7A` to `var(--phos-green)` on load (`themeize()`);

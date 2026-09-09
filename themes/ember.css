@@ -1,0 +1,24 @@
+/* Ember · ivory light — canvas theme (picker).
+   Every value is one of the six palette codes (alpha-suffixed for tints):
+   Orange #FF5B04 · Midnight #075056 · Gunmetal #233038 ·
+   Ivory #FDF6E3 · Sand #F4D47C · Silver #D3DBDD. Scoped override. */
+#scene[data-theme="ember"] {
+  --bg-deep: #FDF6E3;
+  --panel: #D3DBDD;
+  --line-dim: #23303847;
+  --text-primary: #233038;
+  --text-dim: #075056;
+  --phos-green: #FF5B04;
+  --amber: #F4D47C;
+  --alert-red: #FF5B04;
+  --cyan-dim: #075056;
+  --fill-green: #FF5B042E;
+  --fill-amber: #F4D47C2E;
+  --fill-red: #FF5B042E;
+  --ghost-fill: #D3DBDD;
+  --ghost-stroke: #233038;
+  --shadow: #2330382E;
+  --glow: #FF5B0440;
+  --crash-ink: #FF5B04;
+  --decor-ghosts: none;
+}

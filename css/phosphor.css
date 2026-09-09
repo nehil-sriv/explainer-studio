@@ -474,7 +474,7 @@
 .pbar-fill.pf-b { background: var(--cyan-dim); }
 .pbar-fill.pf-a { background: var(--amber); }
 .pbar-fill.pf-r { background: var(--alert-red); }
-.pbar-pct { font-family: var(--font-body); color: #fff; }
+.pbar-pct { font-family: var(--font-body); color: var(--bg-deep); }
 
 /* ===== TK · metric tile (skin: colours/fonts only) ===== */
 .tk-metric { font-family: var(--font-body); background: color-mix(in srgb, var(--text-primary) 5%, transparent); border-color: var(--line-dim); }
