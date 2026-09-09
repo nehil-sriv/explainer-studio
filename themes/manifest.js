@@ -15,6 +15,7 @@ window.CANVAS_THEMES = [
   { key: 'ink-grid',         label: 'Ink Grid · signal red on warm white',    dark: false },
   { key: 'editorial',        label: 'Editorial · cream on near-black, one ochre', dark: true },
   { key: 'neon',             label: 'Neon · magenta/cyan',                    dark: true },
+  { key: 'ember',            label: 'Ember · ivory light',                        dark: false },
   { key: 'insta',            label: 'Insta · funky gradient pop',             dark: true },
   /* ---- hidden (kept working, out of the picker) ---- */
   { key: 'phosphor',         label: 'Phosphor · green CRT (house theme)',     dark: true },
