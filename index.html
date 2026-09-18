@@ -309,7 +309,7 @@ body {
       <div class="crt"></div>
     </div>
     <div id="sel-tools" style="display:none">
-      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="shot" title="download this component as PNG">📷</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><select id="sel-scene" title="move selection to another scene" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><select id="sel-exit" title="whole selection exits when this step appears" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><button data-t="del" title="delete (+ attached edges)">🗑</button>
+      <button data-t="edit" title="edit in panel">✎</button><button data-t="dup" title="duplicate (Ctrl+D)">⧉</button><button data-t="shot" title="download this component as PNG">📷</button><button data-t="rec" title="record this component on its own (solo)">⏺</button><button data-t="pin" title="pin: survives clears">📌</button><button data-t="group" title="group selection (Ctrl+G)">▣</button><button data-t="ungroup" title="ungroup (Ctrl+Shift+G)">▢</button><span class="al-sep"></span><button class="al" data-t="al-left" title="align left edges">←</button><button class="al" data-t="al-cx" title="align centres horizontally">↔</button><button class="al" data-t="al-right" title="align right edges">→</button><button class="al" data-t="al-top" title="align top edges">↑</button><button class="al" data-t="al-cy" title="align middles vertically">↕</button><button class="al" data-t="al-bottom" title="align bottom edges">↓</button><button class="al" data-t="al-dh" title="even horizontal gaps (3+)">⇄</button><button class="al" data-t="al-dv" title="even vertical gaps (3+)">⇅</button><button data-t="merge" title="merge selection into one step (M)">⊞</button><button data-t="split" title="split merged step (U)">⊟</button><button data-t="savecomp" title="save selection as a kit">📚</button><select id="sel-scene" title="move selection to another scene" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><select id="sel-exit" title="whole selection exits when this step appears" style="display:none;font-family:var(--ch-font);font-size:11px;background:var(--ch-bg3);border:1px solid var(--ch-line);border-radius:8px;color:var(--ch-dim);padding:6px 4px;cursor:pointer;max-width:130px"></select><button data-t="del" title="delete (+ attached edges)">🗑</button>
     </div>
     <div id="marquee" style="display:none"></div>
     <div id="multi-box" style="display:none"><div id="multi-size" title="drag to scale the set"></div></div>
@@ -452,6 +452,7 @@ body {
     <div class="rec-row"><label>hold (s)</label><input type="number" id="rec-hold" value="1.6" min="0" max="10" step="0.1"><span class="hint" style="margin:0">auto mode pause / comp</span></div>
     <div class="rec-row"><label>mic</label><select id="rec-mic" style="flex:1;min-width:0"><option value="">🎙 off</option></select></div>
     <div class="rec-row"><label>level</label><div id="rec-meter" title="live mic level" style="flex:1;height:10px;background:var(--bg-deep);border:1px solid var(--line-dim);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;width:0;background:var(--phos-green)"></i></div></div>
+    <div class="rec-row" id="rec-solo-row" style="display:none"><label>solo</label><span id="rec-solo-label" title="REC isolates this component — everything else hides, background stays" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><button class="mini" id="rec-solo-clear" title="clear solo — REC captures the full canvas">✕</button></div>
     <div id="rec-status"></div>
     <div class="rec-btns" style="flex-wrap:wrap">
       <button class="mini primary" id="rec-step">⏺ step · Space</button>
@@ -3607,6 +3608,7 @@ document.querySelectorAll('#sel-tools button').forEach(b=>{
       const f=document.querySelector('#fields textarea,#fields input,#fields select'); if(f) f.focus(); }
     else if(k==='dup'){ duplicateSelection(); }
     else if(k==='shot'){ shotSelection(); }
+    else if(k==='rec'){ armSoloRec(); }
     else if(k==='pin'){ const team=selIds.size>1?selList():[comps.find(x=>x.id===selId)].filter(Boolean);
       if(!team.length) return; snap();
       const on=!team.every(m=>m.pin);
@@ -5222,6 +5224,8 @@ let beatLabels=[];    // legacy — kept for old project files
 const beatFresh={};    // legacy — unused
 function seqIndex(c){ return comps.indexOf(c); }
 function compVisible(c){
+  // ⏺ solo recording: everything except the soloed component(s) hides (background stays)
+  if(REC.active&&REC.solo&&REC.solo.length&&!REC.solo.includes(c.id)) return false;
   if(c.parked) return false;                           // 🅿 out of the story — hidden but kept
   if(SEQ.scene && c.sceneId!==SEQ.scene) return false;   // scene take — only this scene plays
   if(!SEQ.active){
@@ -5491,6 +5495,12 @@ function seqNext(){
     const cur=(typeof last.revealed==='number')?last.revealed:total;
     if(cur<total){ last.revealed=cur+1; renderCanvas(); renderInspector(); renderList(); renderStrip(); return; }
   }
+  // ⏺ solo take ends itself once the solo content is fully revealed —
+  // later steps are solo-hidden, so stepping through them would roll dead air
+  if(REC.active&&REC.solo&&REC.solo.length){
+    const need=Math.max(...REC.solo.map(id=>comps.findIndex(x=>x.id===id)));
+    if(need>=0&&SEQ.shown>need){ seqExit(true); return; }
+  }
   if(SEQ.shown < seqEndIndex()){
     const from=SEQ.shown, to=Math.min(runEnd(from),seqEndIndex());
     for(let k=from;k<to;k++){   // one member re-armed = the rest never animate
@@ -5537,8 +5547,11 @@ function seqExit(ended){
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
   render(); renderStrip();
   showRailTab('seq');   // Edit is opt-in (tab click or toolbar ✎) — takes land on Sequence
-  toastMsg(ended?'✔ take ended — all components visible · drag rows to reorder'
-                :'edit mode — all components visible · drag list rows to reorder');
+  const soloLive=REC.active&&REC.solo&&REC.solo.length;
+  toastMsg(soloLive?(ended?'✔ take ended — solo element held · ⏹/Esc stops the recording'
+                          :'edit mode — solo element held · ⏹/Esc stops the recording')
+    :(ended?'✔ take ended — all components visible · drag rows to reorder'
+           :'edit mode — all components visible · drag list rows to reorder'));
 }
 function seqStopAutoTimer(){ if(SEQ.autoTimer){ clearTimeout(SEQ.autoTimer); SEQ.autoTimer=null; } }
 function seqAutoStep(done){
@@ -5906,10 +5919,12 @@ function compPngName(c,i){
     .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
   return `${String(i+1).padStart(2,'0')}-${c.type}${slug?'-'+slug:''}.png`;
 }
-async function rasterOneComp(c){
+/* offscreen themed clone of one component: duplicate id="scene" so
+   `#scene[data-theme] …` selectors hit; inline transparent wins over the
+   theme background. Entrance armed as-authored (takes skip the delay). */
+function mountCompClone(c,P){
   const reg=REGISTRY[c.type];
   if(!reg) throw new Error('unknown type '+c.type);
-  const P=(typeof effProps==='function')?effProps(c):(c.props||{});
   const sceneEl=document.getElementById('scene');
   // offscreen themed stage: duplicate id="scene" so `#scene[data-theme] …`
   // selectors hit; inline transparent wins over the theme background.
@@ -5925,12 +5940,20 @@ async function rasterOneComp(c){
   const el=document.createElement('div');
   el.className='comp';
   el.style.cssText=`position:relative;transform:scale(${c.scale||1}) rotate(${c.rot||0}deg);`
-    +`opacity:${c.opacity==null?1:c.opacity};animation:none;`;
+    +`opacity:${c.opacity==null?1:c.opacity};`;
   if(c.wpx) el.style.width=c.wpx+'px';
   if(c.hpx) el.style.height=c.hpx+'px';
   if(P&&P.color){ el.style.setProperty('--ca',P.color); el.style.setProperty('--cc',P.color); el.style.setProperty('--ct',P.color); }
   if(P&&P.bg) el.style.setProperty('--cbg',P.bg);
   el.style.setProperty('--fscale',c.fscale||1);
+  el.style.setProperty('--ks',c.scale||1);   // entrance keyframes end here — sampled frames land on your transform
+  el.style.setProperty('--kr',(c.rot||0)+'deg');
+  // arm the entrance as-authored (delay skipped, like takes); the settled
+  // PNG path clears it via settleClone below, the sequence path seeks it
+  const _anim=(c.anim===undefined&&typeof TK_DEFAULT_ANIM!=='undefined')?(TK_DEFAULT_ANIM[c.type]||'none'):c.anim;
+  if(_anim&&_anim!=='none'&&_anim!=='type'){
+    el.style.animation=`${_anim} ${(+c.animDur||0.6)}s cubic-bezier(.2,.7,.3,1) 0s backwards`;
+  }
   el.innerHTML=reg.markup(P);
   if(c.wpx || c.hpx){
     const both=c.wpx && c.hpx;
@@ -5940,13 +5963,19 @@ async function rasterOneComp(c){
     });
     el.querySelectorAll('.annot').forEach(an=>{ an.style.width='100%'; an.style.height='100%'; });
   }
-  // settled state: all stepped lines + typewriter chars visible, no mid-flight motion
+  pad.appendChild(el); stage.appendChild(pad); document.body.appendChild(stage);
+  return {stage,pad,el};
+}
+/* settled snapshot state: all stepped lines + typewriter chars visible, no motion */
+function settleClone(el){
+  el.style.animation='none';
   el.querySelectorAll('.tline,.cline').forEach(ln=>{ ln.style.visibility='visible'; });
   el.querySelectorAll('.pa-char').forEach(s=>s.classList.add('on'));
   el.classList.remove('anim-typing');
   el.querySelectorAll('*').forEach(n=>{ n.style.animation='none'; });
-  pad.appendChild(el); stage.appendChild(pad); document.body.appendChild(stage);
-  await new Promise(r=>setTimeout(r,40));   // one tick for layout/fonts before raster
+}
+/* grow the capture box to everything the clone actually paints */
+async function fitPadToPaint(pad,el){
   // un-crop: the canvas paints overflow visibly, but html-to-image clips to the
   // rastered box — so grow the padding to cover everything actually painted
   // (row labels spilling past a narrowed box, halos, rotated corners…).
@@ -5993,6 +6022,13 @@ async function rasterOneComp(c){
       }
     }
   }catch(_){}   // measuring must never block the export
+}
+async function rasterOneComp(c){
+  const P=(typeof effProps==='function')?effProps(c):(c.props||{});
+  const {stage,pad,el}=mountCompClone(c,P);
+  await new Promise(r=>setTimeout(r,40));   // one tick for layout/fonts before raster
+  settleClone(el);
+  await fitPadToPaint(pad,el);
   try{
     return await htmlToImage.toPng(pad,{pixelRatio:2, backgroundColor:'rgba(0,0,0,0)'});
   }finally{ stage.remove(); }
@@ -6276,7 +6312,7 @@ function mirrorCompToPopup(c){
 }
 
 /* ============ ⏺ REC — realtime capture of the popout window ============ */
-const REC={ active:false, liveSync:false, autoMode:false, autoTimer:null, stream:null, recorder:null, timer:null };
+const REC={ active:false, liveSync:false, autoMode:false, autoTimer:null, stream:null, recorder:null, timer:null, solo:null };
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function setLiveSync(v){ REC.liveSync=v; document.body.classList.toggle('live', v); }
 
@@ -6357,14 +6393,14 @@ REC.stop=()=>{
   const r=REC.recorder; REC.recorder=null;   // claim it — prevents double-stop races
   let stopping=false;
   if(r && r.state!=='inactive'){ try{ r.stop(); stopping=true; }catch(err){ console.warn('recorder stop failed:',err); } }
-  if(!stopping){ cleanupRec(); REC.active=false; REC.autoMode=false; setRecBtn(false); seqExit(); }
+  if(!stopping){ cleanupRec(); REC.active=false; REC.autoMode=false; REC.solo=null; try{ renderSoloRow(); }catch(_){} setRecBtn(false); seqExit(); }
 };
 
 document.getElementById('btn-record').onclick=()=>{
   if(REC.active){ REC.stop(); return; }
   const p=document.getElementById('rec-pop');
   p.style.display = p.style.display==='block' ? 'none' : 'block';
-  if(p.style.display==='block') refreshMicList();
+  if(p.style.display==='block'){ renderSoloRow(); refreshMicList(); }
 };
 /* ============ voiceover mic: device select, persisted, video-safe ============ */
 function pickVoiceMime(){
@@ -6450,6 +6486,40 @@ document.getElementById('rec-mic').addEventListener('change',async e=>{
   }
 });
 document.getElementById('rec-close').onclick=()=>{ document.getElementById('rec-pop').style.display='none'; };
+/* ⏺ solo record — one component (or set) gets its own take: everything else
+   hides, the canvas background stays, the take rewinds to it and ends itself
+   after its reveals (no dead air through hidden steps). */
+function renderSoloRow(){
+  const row=document.getElementById('rec-solo-row'), lab=document.getElementById('rec-solo-label');
+  if(!row||!lab) return;
+  const ids=(REC.solo&&REC.solo.length)?REC.solo.filter(id=>comps.some(c=>c.id===id)):null;
+  if(!ids||!ids.length){ row.style.display='none'; lab.textContent=''; return; }
+  lab.textContent='◉ '+ids.map(id=>{
+    const c=comps.find(x=>x.id===id);
+    return c?(c.type+' '+compLabel(c)).slice(0,26):'?';
+  }).join(' + ');
+  row.style.display='';
+}
+function armSoloRec(){
+  if(REC.active){ toastMsg('stop the recording first — then solo a component'); return; }
+  const team=(typeof selList==='function'?selList():[]).filter(c=>c&&!isState(c)&&REGISTRY[c.type]&&!c.parked);
+  if(!team.length){ toastMsg('select a component first — ⏺ records the selection alone'); return; }
+  const ids=team.map(c=>c.id);
+  if(REC.solo&&REC.solo.length===ids.length&&REC.solo.every(id=>ids.includes(id))){
+    REC.solo=null; renderSoloRow();
+    toastMsg('solo cleared — REC captures the full canvas');
+    return;
+  }
+  REC.solo=ids; renderSoloRow();
+  toastMsg(ids.length===1?`solo: ${team[0].type} — step/auto records it alone on the canvas bg`
+                         :`solo: ${ids.length} comps — step/auto records them alone on the canvas bg`);
+  document.getElementById('rec-pop').style.display='block';
+  refreshMicList();
+}
+document.getElementById('rec-solo-clear').onclick=()=>{
+  REC.solo=null; renderSoloRow();
+  toastMsg('solo cleared — REC captures the full canvas');
+};
 document.getElementById('rec-step').onclick=()=>{
   if(REC.active){ REC.stop(); return; }
   startRec(false);
@@ -6480,6 +6550,12 @@ async function startRec(autoMode){
   const durS=durRaw===''?Infinity:Math.min(7200, Math.max(1, parseFloat(durRaw)||5));   // blank → run until ⏹/Esc
   // a story must exist — REC always walks it from the top
   if(!comps.length){ alert('nothing to record — add components from the palette first'); return; }
+  // ⏺ solo: drop ids that no longer exist (deleted since arming) — the take
+  // below then rewinds to the solo run and hides everything else (bg stays)
+  if(REC.solo&&REC.solo.length){
+    REC.solo=REC.solo.filter(id=>comps.some(c=>c.id===id));
+    if(!REC.solo.length) REC.solo=null;
+  }
   const holdInput=parseFloat((document.getElementById('rec-hold')||{}).value);
   if(isFinite(holdInput) && holdInput>=0) SEQ.holdDefault=holdInput;
   /* ⏺ REC always starts from blank — wherever you were editing,
@@ -6487,7 +6563,12 @@ async function startRec(autoMode){
   try{
     snap();
     seqStopAutoTimer();
-    SEQ.active=true; SEQ.auto=false; SEQ.shown=0; SEQ.maxShown=0; SEQ.scene=null; timerResetAll();
+    SEQ.active=true; SEQ.auto=false; SEQ.scene=null; timerResetAll();
+    if(REC.solo&&REC.solo.length){
+      // solo take rewinds to the solo run — first Space reveals it, not step 1
+      const first=Math.min(...REC.solo.map(id=>comps.findIndex(c=>c.id===id)).filter(i=>i>=0));
+      SEQ.shown=runStart(Math.max(0,first)); SEQ.maxShown=SEQ.shown;
+    } else { SEQ.shown=0; SEQ.maxShown=0; }
     REC.autoMode=!!autoMode;
     comps.forEach(c=>{ delete c._played; delete c._stateAt; if(c.props&&c.props.stepped) c.revealed=0; });
     selId=null; statePreview=null;
@@ -6573,7 +6654,9 @@ async function startRec(autoMode){
       if(REC.autoTimer){ clearTimeout(REC.autoTimer); REC.autoTimer=null; }
       stream.getTracks().forEach(t=>t.stop());
       micLevelStop();
-      REC.active=false; REC.autoMode=false; REC.recorder=null; REC.stream=null;
+      const wasSolo=(REC.solo&&REC.solo.length)?REC.solo.slice():null;   // filename below
+      REC.active=false; REC.autoMode=false; REC.recorder=null; REC.stream=null; REC.solo=null;
+      try{ renderSoloRow(); }catch(_){}
       setRecBtn(false); setLiveSync(false);
       exitRecCrop();
       seqExit();
@@ -6589,7 +6672,15 @@ async function startRec(autoMode){
       }
       const ext=mime.includes('mp4')?'mp4':'webm';
       const blob=new Blob(chunks,{type:mime.split(';')[0]});
-      const safe=(currentSceneName||'clip').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'')||'clip';
+      let safe=(currentSceneName||'clip').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'')||'clip';
+      if(wasSolo&&wasSolo.length===1){
+        const sc=comps.find(c=>c.id===wasSolo[0]);
+        if(sc){
+          const sl=String(compLabel(sc)).replace(/\[[^\]]*\]/g,'').trim().toLowerCase()
+            .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,30);
+          safe=`solo-${sc.type}${sl?'-'+sl:''}`;
+        }
+      }
       const url=URL.createObjectURL(blob);
       const a=document.createElement('a'); a.href=url; a.download=`llmao-${safe}.${ext}`; a.click();
       setTimeout(()=>URL.revokeObjectURL(url),5000);
@@ -6657,9 +6748,12 @@ async function startRec(autoMode){
     }
     const cdDone=document.getElementById('rec-count'); if(cdDone) cdDone.style.display='none';
 
+    const soloTag=(REC.solo&&REC.solo.length)
+      ? (REC.solo.length===1?((comps.find(c=>c.id===REC.solo[0])||{}).type||'element')+' only':REC.solo.length+' comps')
+      : '';
     status.textContent= REC.autoMode
-      ? `● recording (AUTO) — playing all ${comps.length} in order · ⏹/Esc stops`
-      : `● recording (STEP) — Space brings next component in · ⏹/Esc stops`;
+      ? (soloTag?`● recording SOLO (AUTO) — ${soloTag} · ⏹/Esc stops`:`● recording (AUTO) — playing all ${comps.length} in order · ⏹/Esc stops`)
+      : (soloTag?`● recording SOLO (STEP) — Space walks ${soloTag}'s reveals · ⏹/Esc stops`:`● recording (STEP) — Space brings next component in · ⏹/Esc stops`);
     if(usePopup){
       try{ await popup.document.fonts.ready; }catch(_){}   // settle glyph metrics before framing
       popup.document.getElementById('scene').innerHTML=sceneHtmlForRecord();
