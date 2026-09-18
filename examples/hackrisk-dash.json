@@ -1,0 +1,614 @@
+{
+ "version": 1,
+ "scene": {
+  "w": 1920,
+  "h": 1080
+ },
+ "comps": [
+  {
+   "id": "k1",
+   "type": "kicker",
+   "x": 60,
+   "y": 30,
+   "scale": 1,
+   "rot": 0,
+   "z": 10,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-left",
+   "animDur": 0.6,
+   "animDelay": 0,
+   "props": {
+    "text": "HACKRISK.IO"
+   }
+  },
+  {
+   "id": "ch1",
+   "type": "chip",
+   "x": 1330,
+   "y": 30,
+   "scale": 1,
+   "rot": 0,
+   "z": 11,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.1,
+   "props": {
+    "text": "ENTERPRISE VIEW",
+    "color": "#57C7C0"
+   }
+  },
+  {
+   "id": "ch2",
+   "type": "chip",
+   "x": 1600,
+   "y": 30,
+   "scale": 1,
+   "rot": 0,
+   "z": 12,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.2,
+   "props": {
+    "text": "\u25cf LIVE TODAY",
+    "color": "#FFB000"
+   }
+  },
+  {
+   "id": "t1",
+   "type": "title",
+   "x": 390,
+   "y": 95,
+   "scale": 1,
+   "rot": 0,
+   "z": 13,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-zoom",
+   "animDur": 0.6,
+   "animDelay": 0.2,
+   "props": {
+    "text": "The Threat Impact Simulator is [c]live[/c].",
+    "glitch": "",
+    "size": 76
+   }
+  },
+  {
+   "id": "sub1",
+   "type": "textbg",
+   "x": 340,
+   "y": 195,
+   "scale": 1,
+   "rot": 0,
+   "z": 14,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.3,
+   "props": {
+    "text": "Your most probable and most damaging threat scenarios, each with an empirical, data driven economic loss estimate.",
+    "accent": "var(--phos-green)",
+    "w": 1240,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  },
+  {
+   "id": "sL",
+   "type": "textbg",
+   "x": 60,
+   "y": 285,
+   "scale": 1,
+   "rot": 0,
+   "z": 15,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.4,
+   "props": {
+    "text": "[c]MOST TYPICAL OBSERVED THREAT[/c]\nTypical: [b]Manufacture electronic and optical products[/b] in [b]United States[/b] \u2014 [b]Cybercrime \u2192 Ransomware[/b].",
+    "accent": "#57C7C0",
+    "w": 880,
+    "h": 0,
+    "fill": true,
+    "border": false
+   }
+  },
+  {
+   "id": "sR",
+   "type": "textbg",
+   "x": 980,
+   "y": 285,
+   "scale": 1,
+   "rot": 0,
+   "z": 16,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.5,
+   "props": {
+    "text": "[a]MOST DAMAGING OBSERVED THREAT[/a]\nDamaging: [b]Manufacture electronic and optical products[/b] in [b]United States[/b] \u2014 [b]Cybercrime \u2192 0-day[/b].",
+    "accent": "#FFB000",
+    "w": 880,
+    "h": 0,
+    "fill": true,
+    "border": false
+   }
+  },
+  {
+   "id": "rL",
+   "type": "rect",
+   "x": 60,
+   "y": 430,
+   "scale": 1,
+   "rot": 0,
+   "z": 17,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.5,
+   "props": {
+    "w": 880,
+    "h": 620,
+    "r": 16,
+    "fill": false,
+    "border": true,
+    "accent": "#57C7C0"
+   }
+  },
+  {
+   "id": "hL",
+   "type": "caption",
+   "x": 100,
+   "y": 450,
+   "scale": 1,
+   "rot": 0,
+   "z": 18,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.6,
+   "props": {
+    "text": "[c]MOST PROBABLE SCENARIO[/c]"
+   }
+  },
+  {
+   "id": "chipL",
+   "type": "chip",
+   "x": 740,
+   "y": 445,
+   "scale": 1,
+   "rot": 0,
+   "z": 19,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.6,
+   "props": {
+    "text": "DATA-BREACH",
+    "color": "#7aa2f7"
+   }
+  },
+  {
+   "id": "rowsL",
+   "type": "caption",
+   "x": 100,
+   "y": 495,
+   "scale": 1,
+   "rot": 0,
+   "z": 20,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.7,
+   "props": {
+    "text": "[d]ATTACKER CLASS[/d]\n[b]Cybercrime[/b]\n[d]ATTACKER TYPE[/d]\n[b]Organized Cybercrime Group[/b]\n[d]THREAT TYPE[/d]\n[b]Ransomware[/b]"
+   }
+  },
+  {
+   "id": "gL",
+   "type": "gauge",
+   "x": 100,
+   "y": 670,
+   "scale": 1,
+   "rot": 0,
+   "z": 21,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.8,
+   "props": {
+    "label": "AVERAGE ESIX SCORE \u00b7 5.30 / 10 \u00b7 HIGH",
+    "pct": 53,
+    "over": false,
+    "w": 700,
+    "accent": "#57C7C0"
+   }
+  },
+  {
+   "id": "lossL",
+   "type": "title",
+   "x": 100,
+   "y": 725,
+   "scale": 1,
+   "rot": 0,
+   "z": 22,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-zoom",
+   "animDur": 0.6,
+   "animDelay": 0.9,
+   "props": {
+    "text": "$28.0M \u2013 $28.6M",
+    "glitch": "",
+    "size": 52
+   }
+  },
+  {
+   "id": "pL0",
+   "type": "plate",
+   "x": 100,
+   "y": 795,
+   "scale": 1,
+   "rot": 0,
+   "z": 23,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.0,
+   "props": {
+    "title": "MILD",
+    "sub": "$28.0M",
+    "accent": "#57C7C0"
+   }
+  },
+  {
+   "id": "pL1",
+   "type": "plate",
+   "x": 330,
+   "y": 795,
+   "scale": 1,
+   "rot": 0,
+   "z": 24,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.0,
+   "props": {
+    "title": "TYPICAL",
+    "sub": "$28.3M",
+    "accent": "#57C7C0"
+   }
+  },
+  {
+   "id": "pL2",
+   "type": "plate",
+   "x": 560,
+   "y": 795,
+   "scale": 1,
+   "rot": 0,
+   "z": 25,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.0,
+   "props": {
+    "title": "HEAVY",
+    "sub": "$28.6M",
+    "accent": "#57C7C0"
+   }
+  },
+  {
+   "id": "qL",
+   "type": "metric",
+   "x": 100,
+   "y": 860,
+   "scale": 1,
+   "rot": 0,
+   "z": 26,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.1,
+   "props": {
+    "code": "QSI",
+    "name": "Quiet Shift Index",
+    "value": "99",
+    "chip": "Skewed low",
+    "desc": "Below 100: below-proportional damage relative to frequency.",
+    "w": 360,
+    "accent": "#57C7C0"
+   }
+  },
+  {
+   "id": "imL",
+   "type": "metric",
+   "x": 480,
+   "y": 860,
+   "scale": 1,
+   "rot": 0,
+   "z": 27,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.2,
+   "props": {
+    "code": "IM - 30MO",
+    "name": "Impact Momentum",
+    "value": "+20%",
+    "chip": "Rising",
+    "desc": "Severity intensified 20% over the past 30 months.",
+    "w": 360,
+    "accent": "#FF5555"
+   }
+  },
+  {
+   "id": "rR",
+   "type": "rect",
+   "x": 980,
+   "y": 430,
+   "scale": 1,
+   "rot": 0,
+   "z": 28,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.5,
+   "props": {
+    "w": 880,
+    "h": 620,
+    "r": 16,
+    "fill": false,
+    "border": true,
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "id": "hR",
+   "type": "caption",
+   "x": 1020,
+   "y": 450,
+   "scale": 1,
+   "rot": 0,
+   "z": 29,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.6,
+   "props": {
+    "text": "[a]WORST CASE SCENARIO[/a]"
+   }
+  },
+  {
+   "id": "chipR",
+   "type": "chip",
+   "x": 1660,
+   "y": 445,
+   "scale": 1,
+   "rot": 0,
+   "z": 30,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.6,
+   "props": {
+    "text": "DATA-BREACH",
+    "color": "#7aa2f7"
+   }
+  },
+  {
+   "id": "rowsR",
+   "type": "caption",
+   "x": 1020,
+   "y": 495,
+   "scale": 1,
+   "rot": 0,
+   "z": 31,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.7,
+   "props": {
+    "text": "[d]ATTACKER CLASS[/d]\n[b]Cybercrime[/b]\n[d]ATTACKER TYPE[/d]\n[b]Organized Cybercrime Group[/b]\n[d]THREAT TYPE[/d]\n[b]0-day[/b]"
+   }
+  },
+  {
+   "id": "gR",
+   "type": "gauge",
+   "x": 1020,
+   "y": 670,
+   "scale": 1,
+   "rot": 0,
+   "z": 32,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.8,
+   "props": {
+    "label": "AVERAGE ESIX SCORE \u00b7 5.82 / 10 \u00b7 CRITICAL",
+    "pct": 58,
+    "over": false,
+    "w": 700,
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "id": "lossR",
+   "type": "title",
+   "x": 1020,
+   "y": 725,
+   "scale": 1,
+   "rot": 0,
+   "z": 33,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-zoom",
+   "animDur": 0.6,
+   "animDelay": 0.9,
+   "props": {
+    "text": "$29.1M \u2013 $32.9M",
+    "glitch": "",
+    "size": 52
+   }
+  },
+  {
+   "id": "pR0",
+   "type": "plate",
+   "x": 1020,
+   "y": 795,
+   "scale": 1,
+   "rot": 0,
+   "z": 34,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.0,
+   "props": {
+    "title": "MILD",
+    "sub": "$29.1M",
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "id": "pR1",
+   "type": "plate",
+   "x": 1250,
+   "y": 795,
+   "scale": 1,
+   "rot": 0,
+   "z": 35,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.0,
+   "props": {
+    "title": "TYPICAL",
+    "sub": "$31.0M",
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "id": "pR2",
+   "type": "plate",
+   "x": 1480,
+   "y": 795,
+   "scale": 1,
+   "rot": 0,
+   "z": 36,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.0,
+   "props": {
+    "title": "HEAVY",
+    "sub": "$32.9M",
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "id": "qR",
+   "type": "metric",
+   "x": 1020,
+   "y": 860,
+   "scale": 1,
+   "rot": 0,
+   "z": 37,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.1,
+   "props": {
+    "code": "QSI",
+    "name": "Quiet Shift Index",
+    "value": "123",
+    "chip": "Skewed high",
+    "desc": "Above 110: disproportionate damage relative to frequency.",
+    "w": 360,
+    "accent": "#FF5555"
+   }
+  },
+  {
+   "id": "imR",
+   "type": "metric",
+   "x": 1400,
+   "y": 860,
+   "scale": 1,
+   "rot": 0,
+   "z": 38,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 1.2,
+   "props": {
+    "code": "IM - 30MO",
+    "name": "Impact Momentum",
+    "value": "+3%",
+    "chip": "Stable",
+    "desc": "No material change in severity over the past 30 months.",
+    "w": 360,
+    "accent": "#FFB000"
+   }
+  }
+ ],
+ "saved": [],
+ "scenes": {},
+ "currentSceneName": null,
+ "edges": []
+}

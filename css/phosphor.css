@@ -20,10 +20,10 @@
 
 /* ---------- 4 · Terminal window (D1) — the workhorse ---------- */
 .term-title {
-  font-family: var(--font-body);
+  font-family: var(--font-data);
 }
 .term-body {
-  font-family: var(--font-body);
+  font-family: var(--font-data);
 }
 
 /* ---------- 6 · Progress bar (E2) ---------- */
@@ -36,22 +36,22 @@
   font-family: var(--font-display);
 }
 .hot-take-text {
-  font-family: var(--font-body);
+  font-family: var(--font-hand);
 }
 
 /* ---------- 8 · Error toast (C2) ---------- */
 .toast-error {
-  font-family: var(--font-body);
+  font-family: var(--font-data);
 }
 
 /* ---------- 9 · git blame tag (C3) ---------- */
 .blame {
-  font-family: var(--font-body);
+  font-family: var(--font-data);
 }
 
 /* ---------- 10 · Code-comment bar (C4) ---------- */
 .code-comment {
-  font-family: var(--font-body);
+  font-family: var(--font-data);
 }
 
 /* ---------- 11 · Stamp (C5) ---------- */
@@ -135,7 +135,7 @@
 
 /* ---------- 25 · Callout chip w/ leader line (I26) ---------- */
 .callout-chip {
-  font-family: var(--font-body);
+  font-family: var(--font-hand);
 }
 
 /* ---------- 26 · Title card pieces (B2) ---------- */
@@ -436,7 +436,7 @@
 .tk-tline .tlnode.done s { color: var(--stroke,var(--phos-green)); }
 
 /* ===== TK · table (skin) ===== */
-.tk-tbl { font-family: var(--font-body); }
+.tk-tbl { font-family: var(--font-data); }
 .tk-tbl .tltitle { font-family: var(--font-display); color: var(--text-primary); }
 .tk-tbl th, .tk-tbl td { border-bottom-color: var(--line-dim); }
 .tk-tbl th { color: var(--stroke,var(--phos-green)); }
@@ -445,13 +445,84 @@
 
 /* ===== TK · bullet points (skin) ===== */
 .tk-bullets { font-family: var(--font-body); color: var(--text-primary); }
-.tk-bullets .cline::marker { color: var(--stroke,var(--phos-green)); content: '▪ '; }
+.tk-bullets.mk-dot.lk-list .cline::marker { color: var(--stroke,var(--phos-green)); content: '▪ '; }
 .tk-bullets.mk-num .cline::before { content: counter(tkb) '. '; color: var(--stroke,var(--phos-green)); font-weight: 700; }
 .tk-bullets.mk-alpha .cline::before { content: counter(tkb,upper-alpha) '. '; color: var(--stroke,var(--phos-green)); font-weight: 700; }
 
+/* look variants (skin only — list skin above untouched) */
+.tk-bullets.lk-cards .cline { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 9%, transparent); border-color: color-mix(in srgb, var(--stroke,var(--phos-green)) 38%, transparent); box-shadow: 0 18px 50px var(--shadow); }
+.tk-bullets.lk-ribbon .cline { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 14%, transparent); border-color: color-mix(in srgb, var(--stroke,var(--phos-green)) 40%, transparent); border-left-color: var(--stroke,var(--phos-green)); }
+.tk-bullets.lk-tabs .cline { background: transparent; border-bottom-color: var(--line-dim); border-left-color: var(--stroke,var(--phos-green)); }
+.tk-bullets.lk-pills .cline { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 12%, transparent); border-color: color-mix(in srgb, var(--stroke,var(--phos-green)) 45%, transparent); }
+.tk-bullets.lk-timeline .cline { background: transparent; }
+.tk-bullets.lk-timeline .cline::after { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 35%, transparent); }
+.tk-bullets.lk-dividers .cline { background: transparent; border-bottom-color: var(--line-dim); }
+.tk-bullets.lk-hero .cline { background: color-mix(in srgb, var(--stroke,var(--phos-green)) 9%, transparent); border-color: color-mix(in srgb, var(--stroke,var(--phos-green)) 38%, transparent); box-shadow: 0 18px 50px var(--shadow); }
+/* inline marker chips keep the dot/num/alpha marker inside the box */
+.tk-bullets.lk-cards.mk-num .cline::before, .tk-bullets.lk-pills.mk-num .cline::before, .tk-bullets.lk-ribbon.mk-num .cline::before, .tk-bullets.lk-tabs.mk-num .cline::before, .tk-bullets.lk-timeline.mk-num .cline::before, .tk-bullets.lk-dividers.mk-num .cline::before, .tk-bullets.lk-hero.mk-num .cline::before {
+  content: counter(tkb,decimal-leading-zero);
+  color: var(--stroke,var(--phos-green));
+  background: color-mix(in srgb, var(--stroke,var(--phos-green)) 16%, transparent);
+  border-color: color-mix(in srgb, var(--stroke,var(--phos-green)) 50%, transparent);
+}
+.tk-bullets.lk-cards.mk-alpha .cline::before, .tk-bullets.lk-pills.mk-alpha .cline::before, .tk-bullets.lk-ribbon.mk-alpha .cline::before, .tk-bullets.lk-tabs.mk-alpha .cline::before, .tk-bullets.lk-timeline.mk-alpha .cline::before, .tk-bullets.lk-dividers.mk-alpha .cline::before, .tk-bullets.lk-hero.mk-alpha .cline::before {
+  content: counter(tkb,upper-alpha);
+  color: var(--stroke,var(--phos-green));
+  background: color-mix(in srgb, var(--stroke,var(--phos-green)) 16%, transparent);
+  border-color: color-mix(in srgb, var(--stroke,var(--phos-green)) 50%, transparent);
+}
+.tk-bullets.lk-cards.mk-dot .cline::before, .tk-bullets.lk-pills.mk-dot .cline::before, .tk-bullets.lk-ribbon.mk-dot .cline::before, .tk-bullets.lk-tabs.mk-dot .cline::before, .tk-bullets.lk-timeline.mk-dot .cline::before, .tk-bullets.lk-dividers.mk-dot .cline::before, .tk-bullets.lk-hero.mk-dot .cline::before {
+  content: '';
+  background: var(--stroke,var(--phos-green));
+  border-color: transparent;
+  box-shadow: 0 0 10px var(--stroke,var(--phos-green));
+}
+.tk-bullets.lk-cards.mk-none .cline::before, .tk-bullets.lk-pills.mk-none .cline::before, .tk-bullets.lk-ribbon.mk-none .cline::before, .tk-bullets.lk-tabs.mk-none .cline::before, .tk-bullets.lk-timeline.mk-none .cline::before, .tk-bullets.lk-dividers.mk-none .cline::before, .tk-bullets.lk-hero.mk-none .cline::before { content: none; }
+
+/* ===== FIN · markets (skin: colours/fonts only) ===== */
+.tk-candles, .tk-quote, .tk-ticker, .tk-waterfall, .tk-alloc, .tk-sip, .tk-dial, .tk-disc, .tk-earn, .tk-heat, .tk-emi { font-family: var(--font-body); color: var(--text-primary); }
+.tk-candles .clbl, .tk-waterfall .clbl, .tk-sip .clbl, .tk-dial .clbl, .tk-heat .clbl, .tk-emi .clbl, .tk-alloc .clbl { font-family: var(--font-body); color: var(--text-primary); }
+.tk-candles text, .tk-waterfall text, .tk-dial text { font-family: var(--font-body); fill: var(--text-dim); }
+.tk-quote { background: color-mix(in srgb, var(--side,var(--phos-green)) 7%, transparent); border-color: color-mix(in srgb, var(--side,var(--phos-green)) 38%, transparent); box-shadow: 0 18px 50px var(--shadow); }
+.q-sym { color: var(--side,var(--phos-green)); }
+.q-name { color: var(--text-dim); }
+.q-price { font-family: var(--font-display); color: var(--side,var(--phos-green)); }
+.q-chg { color: var(--side,var(--phos-green)); background: color-mix(in srgb, var(--side,var(--phos-green)) 14%, transparent); border-color: color-mix(in srgb, var(--side,var(--phos-green)) 50%, transparent); }
+.tk-ticker { border-color: var(--line-dim); background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
+.tk-tick b { color: var(--side,var(--phos-green)); }
+.tk-tick i { color: var(--side,var(--phos-green)); }
+.tk-sep { color: var(--text-dim); }
+.al-center { font-family: var(--font-display); color: var(--text-primary); }
+.al-lab { color: var(--text-primary); }
+.al-pct { color: var(--text-dim); }
+.sw-inv { background: var(--cyan-dim); }
+.sw-g { background: var(--stroke,var(--phos-green)); }
+.sip-i { background: var(--cyan-dim); }
+.sip-g { background: var(--stroke,var(--phos-green)); }
+.sip-sum span { color: var(--text-dim); }
+.sip-sum b { font-family: var(--font-display); color: var(--text-primary); }
+.dial-val { font-family: var(--font-display); color: var(--text-primary); }
+.tk-disc { background: color-mix(in srgb, var(--stroke,var(--amber)) 10%, transparent); border-color: color-mix(in srgb, var(--stroke,var(--amber)) 40%, transparent); border-left-color: var(--stroke,var(--amber)); }
+.d-ico { color: var(--stroke,var(--amber)); }
+.d-txt { color: var(--text-primary); }
+.tk-earn .tltitle { font-family: var(--font-display); color: var(--text-primary); }
+.er-row { background: color-mix(in srgb, var(--text-primary) 4%, transparent); border-color: var(--line-dim); }
+.er-date { color: var(--stroke,var(--amber)); background: color-mix(in srgb, var(--stroke,var(--amber)) 14%, transparent); border-color: color-mix(in srgb, var(--stroke,var(--amber)) 50%, transparent); }
+.er-sym { color: var(--text-primary); }
+.er-ev { color: var(--text-dim); }
+.er-note { color: var(--text-primary); }
+.heat-tile { border-color: color-mix(in srgb, var(--side,var(--phos-green)) 45%, transparent); }
+.heat-tile b { color: var(--side,var(--phos-green)); }
+.heat-tile i { color: var(--side,var(--phos-green)); }
+.emi-ring::before { background: var(--bg-deep); }
+.emi-center b { font-family: var(--font-display); color: var(--text-primary); }
+.emi-center i { color: var(--text-dim); }
+.emi-nums span { color: var(--text-dim); }
+.emi-nums b { font-family: var(--font-display); color: var(--text-primary); }
+
 /* ===== Code block (skin: colours/fonts only — the 6 canvas themes retint it) ===== */
-.code-body { font-family: var(--font-body); }
-.code-body .cl-num { font-family: var(--font-body); }
+.code-body { font-family: var(--font-data); }
+.code-body .cl-num { font-family: var(--font-data); }
 .code-body .py-kw { color: var(--amber); font-weight: 700; }
 .code-body .py-str { color: var(--phos-green); }
 .code-body .py-cmt { color: var(--text-dim); font-style: italic; }
@@ -462,19 +533,19 @@
 .code-body .py-dec { color: var(--alert-red); }
 
 /* ===== TK · timer (skin: colours/fonts only) ===== */
-.tk-timer-label { font-family: var(--font-body); color: var(--text-dim); }
-.tk-timer-digits { font-family: var(--font-body); color: var(--stroke,var(--phos-green)); text-shadow: 0 0 24px var(--stroke,var(--phos-green)); }
+.tk-timer-label { font-family: var(--font-data); color: var(--text-dim); }
+.tk-timer-digits { font-family: var(--font-display); color: var(--stroke,var(--phos-green)); text-shadow: 0 0 24px var(--stroke,var(--phos-green)); }
 .tk-timer.done .tk-timer-digits { color: var(--alert-red); text-shadow: 0 0 24px var(--alert-red); }
 
 /* ===== TK · probability bars (skin: colours/fonts only) ===== */
-.tk-probars { font-family: var(--font-body); }
+.tk-probars { font-family: var(--font-data); }
 .pbar-word { color: var(--text-primary); }
 .pbar-track { background: color-mix(in srgb, var(--text-primary) 12%, transparent); }
 .pbar-fill.pf-g { background: var(--phos-green); }
 .pbar-fill.pf-b { background: var(--cyan-dim); }
 .pbar-fill.pf-a { background: var(--amber); }
 .pbar-fill.pf-r { background: var(--alert-red); }
-.pbar-pct { font-family: var(--font-body); color: var(--bg-deep); }
+.pbar-pct { font-family: var(--font-data); color: var(--bg-deep); }
 
 /* ===== TK · metric tile (skin: colours/fonts only) ===== */
 .tk-metric { font-family: var(--font-body); background: color-mix(in srgb, var(--text-primary) 5%, transparent); border-color: var(--line-dim); }
@@ -493,7 +564,7 @@
 .duo-body { color: var(--text-primary); }
 
 /* ===== Thumbnail title (skin: colours/fonts only) ===== */
-.thumb-title { font-family: var(--font-body); color: var(--tfill,#FFB000); -webkit-text-stroke: 3px var(--tstroke,#0A0F0A); paint-order: stroke fill; text-shadow: 0 6px 0 var(--tstroke,#0A0F0A), 0 0 34px var(--glow); }
+.thumb-title { font-family: var(--font-display); color: var(--tfill,#FFB000); -webkit-text-stroke: 3px var(--tstroke,#0A0F0A); paint-order: stroke fill; text-shadow: 0 6px 0 var(--tstroke,#0A0F0A), 0 0 34px var(--glow); }
 
 /* ===== TK · bandwidth pipe (skin: colours/fonts only) ===== */
 .tk-pipe { font-family: var(--font-body); color: var(--text-primary); }

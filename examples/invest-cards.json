@@ -1,0 +1,322 @@
+{
+ "version": 1,
+ "scene": {
+  "w": 1920,
+  "h": 1080
+ },
+ "comps": [
+  {
+   "id": "r0",
+   "type": "rect",
+   "x": 90,
+   "y": 110,
+   "scale": 1,
+   "rot": 0,
+   "z": 10,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.0,
+   "props": {
+    "w": 540,
+    "h": 770,
+    "r": 24,
+    "fill": false,
+    "border": true,
+    "accent": "#2E4A38"
+   }
+  },
+  {
+   "id": "n0",
+   "type": "textbg",
+   "x": 210,
+   "y": 150,
+   "scale": 1,
+   "rot": 0,
+   "z": 11,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 3,
+   "anim": "pa-zoom",
+   "animDur": 0.6,
+   "animDelay": 0.1,
+   "props": {
+    "text": "[g]01[/g]",
+    "accent": "var(--phos-green)",
+    "w": 300,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  },
+  {
+   "id": "t0",
+   "type": "textbg",
+   "x": 150,
+   "y": 310,
+   "scale": 1,
+   "rot": 0,
+   "z": 12,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 2,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.2,
+   "props": {
+    "text": "Where to\nInvest",
+    "accent": "var(--phos-green)",
+    "w": 420,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  },
+  {
+   "id": "i00",
+   "type": "icon",
+   "x": 250,
+   "y": 560,
+   "scale": 1,
+   "rot": 0,
+   "z": 13,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.3,
+   "props": {
+    "icon": "coins",
+    "size": 220,
+    "accent": "var(--phos-green)"
+   }
+  },
+  {
+   "id": "r1",
+   "type": "rect",
+   "x": 690,
+   "y": 110,
+   "scale": 1,
+   "rot": 0,
+   "z": 14,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.3,
+   "props": {
+    "w": 540,
+    "h": 770,
+    "r": 24,
+    "fill": false,
+    "border": true,
+    "accent": "#2E4A38"
+   }
+  },
+  {
+   "id": "n1",
+   "type": "textbg",
+   "x": 810,
+   "y": 150,
+   "scale": 1,
+   "rot": 0,
+   "z": 15,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 3,
+   "anim": "pa-zoom",
+   "animDur": 0.6,
+   "animDelay": 0.4,
+   "props": {
+    "text": "[g]02[/g]",
+    "accent": "var(--phos-green)",
+    "w": 300,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  },
+  {
+   "id": "t1",
+   "type": "textbg",
+   "x": 750,
+   "y": 310,
+   "scale": 1,
+   "rot": 0,
+   "z": 16,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 2,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.5,
+   "props": {
+    "text": "What Mistakes\nTo Avoid",
+    "accent": "var(--phos-green)",
+    "w": 420,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  },
+  {
+   "id": "w2",
+   "type": "warn",
+   "x": 890,
+   "y": 560,
+   "scale": 4,
+   "rot": 0,
+   "z": 17,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-zoom",
+   "animDur": 0.6,
+   "animDelay": 0.6,
+   "props": {
+    "label": "",
+    "accent": "#FF5555"
+   }
+  },
+  {
+   "id": "r2",
+   "type": "rect",
+   "x": 1290,
+   "y": 110,
+   "scale": 1,
+   "rot": 0,
+   "z": 18,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 0.6,
+   "props": {
+    "w": 540,
+    "h": 770,
+    "r": 24,
+    "fill": false,
+    "border": true,
+    "accent": "#2E4A38"
+   }
+  },
+  {
+   "id": "n2",
+   "type": "textbg",
+   "x": 1410,
+   "y": 150,
+   "scale": 1,
+   "rot": 0,
+   "z": 19,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 3,
+   "anim": "pa-zoom",
+   "animDur": 0.6,
+   "animDelay": 0.7,
+   "props": {
+    "text": "[g]03[/g]",
+    "accent": "var(--phos-green)",
+    "w": 300,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  },
+  {
+   "id": "t2",
+   "type": "textbg",
+   "x": 1350,
+   "y": 310,
+   "scale": 1,
+   "rot": 0,
+   "z": 20,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 2,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.8,
+   "props": {
+    "text": "Plan Your\nTaxes",
+    "accent": "var(--phos-green)",
+    "w": 420,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  },
+  {
+   "id": "i20",
+   "type": "icon",
+   "x": 1450,
+   "y": 560,
+   "scale": 1,
+   "rot": 0,
+   "z": 21,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.8999999999999999,
+   "props": {
+    "icon": "doc",
+    "size": 180,
+    "accent": "#D3FFDE"
+   }
+  },
+  {
+   "id": "i21",
+   "type": "icon",
+   "x": 1600,
+   "y": 560,
+   "scale": 1,
+   "rot": 0,
+   "z": 22,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-up",
+   "animDur": 0.6,
+   "animDelay": 0.8999999999999999,
+   "props": {
+    "icon": "calc",
+    "size": 130,
+    "accent": "#FFB000"
+   }
+  },
+  {
+   "id": "cap",
+   "type": "textbg",
+   "x": 560,
+   "y": 920,
+   "scale": 1,
+   "rot": 0,
+   "z": 23,
+   "opacity": 1,
+   "draft": false,
+   "fscale": 1,
+   "anim": "pa-fade",
+   "animDur": 0.6,
+   "animDelay": 1.0,
+   "props": {
+    "text": "avoid, and how to make sure",
+    "accent": "var(--phos-green)",
+    "w": 800,
+    "h": 0,
+    "fill": false,
+    "border": false
+   }
+  }
+ ],
+ "saved": [],
+ "scenes": {},
+ "currentSceneName": null,
+ "edges": []
+}

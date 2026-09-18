@@ -25,6 +25,8 @@
     ['--phos-green',   'ACCENT (brand voice)'],
     ['--amber',        'WARN / jokes'],
     ['--alert-red',    'ERROR / damage'],
+    ['--mkt-up',       'MARKET up / positive'],
+    ['--mkt-down',     'MARKET down / negative'],
     ['--cyan-dim',     'INFO / links'],
     ['--fill-green',   'Fill tint — green'],
     ['--fill-amber',   'Fill tint — amber'],

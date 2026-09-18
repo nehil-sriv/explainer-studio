@@ -21,5 +21,8 @@
   --glow: #FF5B0440;
   --crash-ink: #FF5B04;
   --decor-ghosts: none;
+  /* market direction holds real hues — this palette has no green/red */
+  --mkt-up: #2E7D32;
+  --mkt-down: #FF5555;
 }
 #scene[data-theme="ember"] .bg-logo { color: var(--text-primary); }

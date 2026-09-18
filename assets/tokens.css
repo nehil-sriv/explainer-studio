@@ -8,6 +8,8 @@
   --phos-green: #39FF7A;
   --amber: #FFB000;
   --alert-red: #FF5555;
+  --mkt-up: #39FF7A;
+  --mkt-down: #FF5555;
   --cyan-dim: #57C7C0;
   --fill-green: #102E19;
   --fill-amber: #2A2409;
@@ -20,8 +22,9 @@
   --glow: rgba(57,255,122,0.3);
   --crash-ink: #FFC9C9;
 
-  --font-display: 'VT323', monospace;
-  --font-body: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
   --font-hand: 'Caveat', cursive;
 }
 

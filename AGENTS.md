@@ -110,6 +110,14 @@ _archive/old-builder/   ← previous builder copies (do not edit)
 - **Styling:** `css/phosphor.css` — one class per component. Use `var(--ca)` / `--ct` / `--cbg` / `--fscale` for color/background/font overrides so the EDIT panel's pickers work.
   Panel naming: `accent` = signature stroke/glow (rendered beside tint), `tint` = global
   `--ca`/`--ct` override (empty = off). Prop keys unchanged — labels only.
+- **Typography — three voices (only these three families; all self-hosted for export safety):**
+  machine `var(--font-body)` = data/labels/code/system (the default everywhere);
+  signal `var(--font-display)` = anything that must read across the room — titles, hero
+  numbers (VT323 is monospace, so figures stay tabular), timer, verdicts/stamps/kickers;
+  human `var(--font-hand)` = spoken or margin voice — Quote text, callouts, hot takes
+  (attributions stay mono for contrast). Printed pull-quotes stay display on purpose
+  (Quote = spoken hand vs Quote card = printed display). Hand runs small — keep it ≥28px,
+  and never on money/symbols (latin-only subset falls back per-glyph).
 - **Rich text:** `rich(text)` in `index.html` handles inline tags: `[g]/[a]/[r]/[c]/[m]/[d]` colors, `[b]` bold, `[i]` italic, `[s1.5]` size, `[#hex]` custom. Extend there.
 - **Persistence:**
   - `localStorage` keys: `phosphor-autosave-v2` (canvas), `phosphor-saved-v1` (components), `phosphor-scenes-v1` (scenes).
@@ -143,7 +151,7 @@ SHOW (video)
 - **Toasts** (`#navtoast`) always dock under the header — the footer strip owns the bottom edge.
 - **Clear / retire:** `🧹` on a step clears the screen and reveals it on the fresh canvas, same beat — in takes and in edit preview alike. `📌` pins survivors through clears; EDIT SELECTED `⊘ hide` retires specific earlier comps when a step appears. `🚪 exit` + `exit when` schedules a comp's own disappearance (fade/rise/fall/zoom, animated on the way out).
 - **Take preview in edit mode (default ON):** the canvas shows the take state — through the last row clicked, else through the active scene's end. Canvas clicks only select and never move the view; deselecting holds it; multi-select shows all; edge inspect holds the cutofff; multi-select and the 👁 toggle show the full canvas.
-- **Take preview in edit mode (default ON):** the canvas shows the take state — through the last row clicked, else through the active scene's end (clear/pin/hide honored). Canvas clicks only select and never move the view; deselecting holds it; multi-select shows all; edge inspect holds the preview cutoff; multi-select and the 👁 toggle show the full canvas. Plain arranging always has an all-visible path.
+- **Take preview in edit mode (default ON):** the canvas shows the take state — through the last row clicked, else through the active scene's end (clear/pin/hide honored). Canvas clicks only select and never move the view; deselecting holds it; multi-select shows all; edge inspect holds the preview cutoff; multi-select and the 👁 toggle show the full canvas. Plain arranging always has an all-visible path. Editing a comp in the inspector anchors the preview through it (single-selection only), so typed edits are never invisible.
 - **State changes (db healthy → connection lost):** EDIT SELECTED `⇄ add state change`
   adds a `state` patch-step at the end of the list — it draws nothing and patches the
   target comp's props (or a wire's settings) from its position onward. Target keeps its
@@ -202,6 +210,12 @@ default 3s, loops forever) — ambient loops play, steps/takes untouched.
 
 - Use `examples/*.json` as template. Each beat is an object with `beat` index; components reference `REGISTRY` keys.
 - Color semantics: green = healthy, amber = warning/cache, red = failure, cyan = data/storage, dim = infra.
+  Finance rule (all FIN comps): up/positive = green family (`upAccent`, default `var(--mkt-up)`),
+  down/negative = red family (`downAccent`, default `var(--mkt-down)`), flat = `var(--text-dim)`.
+  `--mkt-up`/`--mkt-down` live in `:root` (mirrored in `tokens-inline`) and NO canvas theme
+  overrides them, so market direction survives every palette remap (e.g. Ember turns
+  `--phos-green`/`--alert-red` orange). Regions that invert market colors do it by
+  setting those two roles (theme file or `?set=` / theme panel).
 - New tech visuals (boundary/node/pod etc.) are already in `REGISTRY` — prefer them over generic boxes for infra videos.
 
 ---
