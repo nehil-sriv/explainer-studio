@@ -74,6 +74,8 @@ export interface RailSection {
 }
 
 export const RAIL_SECTIONS: RailSection[] = [
+  // Canvas settings come first — this is where every project starts.
+  { key: 'canvas', label: 'Canvas', glyph: '▣' },
   { key: 'components', label: 'Components', glyph: '▦' },
   { key: 'text', label: 'Text', glyph: 'T' },
   { key: 'shapes', label: 'Shapes', glyph: '◫' },

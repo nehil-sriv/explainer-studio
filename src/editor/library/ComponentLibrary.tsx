@@ -11,6 +11,7 @@ import {
   registryKeysForSection,
   sectionGroupTitles,
 } from './catalog.js';
+import { CanvasPane } from './CanvasPane.js';
 
 export const ICON_PICKER_KINDS = [
   'gateway', 'api', 'db', 'cache', 'queue', 'worker',
@@ -194,7 +195,8 @@ export function ComponentLibrary({
   );
 
   let body: React.ReactNode = null;
-  if (section === 'settings') body = <SettingsPane />;
+  if (section === 'canvas') body = <CanvasPane />;
+  else if (section === 'settings') body = <SettingsPane />;
   else if (section === 'uploads') body = <UploadsPane />;
   else if (section === 'icons') body = <IconsPane query={q} />;
   else if (section === 'components' && !showAll) {
@@ -255,13 +257,24 @@ export function ComponentLibrary({
     );
   }
 
+  const heading =
+    section === 'canvas'
+      ? 'Canvas'
+      : section === 'settings'
+        ? 'Settings'
+        : section === 'uploads'
+          ? 'Uploads'
+          : section === 'icons'
+            ? 'Icons'
+            : 'Components';
+
   return (
     <div>
       <div className="es-lib-head">
-        <h2>Components</h2>
+        <h2>{heading}</h2>
         <button className="es-icon-btn" title="collapse panel" onClick={onCollapse}>✕</button>
       </div>
-      {section !== 'settings' && section !== 'uploads' && (
+      {section !== 'settings' && section !== 'uploads' && section !== 'canvas' && (
         <input
           className="es-search"
           placeholder="Search components…"

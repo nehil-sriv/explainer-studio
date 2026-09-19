@@ -170,4 +170,68 @@ describe('revamped chrome (mock parity)', () => {
     expect(insp.textContent).toContain('Appears');
     expect(insp.textContent).toContain('Component image');
   });
+
+  it('style + layout inspector edits repaint the canvas', async () => {
+    loadFixture();
+    act(() => {
+      commands.selectComps(['db']);
+    });
+    const user = userEvent.setup();
+    const { container } = render(<AppShell />);
+    const insp = container.querySelector('.es-insp') as HTMLElement;
+    const canvasComp = () =>
+      container.querySelector('.comp[data-id="db"]') as HTMLElement;
+
+    // Style → alignment flows onto the rendered wrapper
+    await user.click(within(insp).getByText('Style'));
+    await user.click(within(insp).getByLabelText('Align Center'));
+    expect(canvasComp().classList.contains('es-so-align')).toBe(true);
+    expect(canvasComp().style.getPropertyValue('--es-align')).toBe('center');
+
+    // Style → text color drives the tint channels
+    const hex = within(insp).getByLabelText('Text color hex') as HTMLInputElement;
+    fireEvent.change(hex, { target: { value: '#ff0000' } });
+    expect(canvasComp().style.getPropertyValue('--ca')).toBe('#ff0000');
+
+    // Layout → position + size update the rendered box
+    await user.click(within(insp).getByText('Layout'));
+    const x = within(insp).getByLabelText('X') as HTMLInputElement;
+    fireEvent.change(x, { target: { value: '300' } });
+    fireEvent.blur(x);
+    expect(canvasComp().style.left).toBe('300px');
+
+    const w = within(insp).getByLabelText('W') as HTMLInputElement;
+    fireEvent.change(w, { target: { value: '444' } });
+    fireEvent.blur(w);
+    expect(canvasComp().style.width).toBe('444px');
+  });
+
+  it('inspector fields update the canvas live, one undo step per edit', async () => {
+    loadFixture();
+    act(() => {
+      commands.selectComps(['db']);
+    });
+    const user = userEvent.setup();
+    const { container } = render(<AppShell />);
+    const insp = container.querySelector('.es-insp') as HTMLElement;
+    await user.click(within(insp).getByText('Layout'));
+    const canvasComp = () =>
+      container.querySelector('.comp[data-id="db"]') as HTMLElement;
+    const startX = canvasComp().style.left;
+    const pastBefore = editorStore.getState().history.past.length;
+
+    const x = within(insp).getByLabelText('X') as HTMLInputElement;
+    // no blur — the canvas must repaint on the change itself
+    fireEvent.change(x, { target: { value: '321' } });
+    expect(canvasComp().style.left).toBe('321px');
+    // still inside the gesture: no undo entry yet
+    expect(editorStore.getState().history.past.length).toBe(pastBefore);
+
+    fireEvent.blur(x);
+    expect(editorStore.getState().history.past.length).toBe(pastBefore + 1);
+    act(() => {
+      commands.undo();
+    });
+    expect(canvasComp().style.left).toBe(startX);
+  });
 });

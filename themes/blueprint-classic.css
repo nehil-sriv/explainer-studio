@@ -18,4 +18,10 @@
   --shadow: rgba(0,0,0,0.5);
   --glow: rgba(255,255,255,0.22);
   --crash-ink: #FECACA;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'JetBrains Mono', ui-monospace, monospace;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
 }

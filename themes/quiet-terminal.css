@@ -18,8 +18,12 @@
   --shadow: rgba(0,0,0,0.6);
   --glow: rgba(131,201,150,0.25);
   --crash-ink: #D99898;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
   --font-display: 'JetBrains Mono', ui-monospace, monospace;
   --font-body: 'JetBrains Mono', ui-monospace, monospace;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
   --canvas-texture: linear-gradient(rgba(220,232,223,0.04) 1px, transparent 1px);
   --canvas-texture-size: 100% 64px;
   --decor-ghosts: none;

@@ -1,23 +1,41 @@
-/* Editor DARK theme — navy workbench per the approved mock.
+/* Editor DARK theme — "control room".
+ *
+ * The desk at night: near-black base surfaces, one elevated layer for the
+ * panels, and a lit stage. Text is softened off pure white (Apple's dark-mode
+ * guidance) so it doesn't halate against the dark chrome.
+ *
  * Overrides --ed-* only. Canvas untouched.
  * Activate: <html data-editor-theme="dark">. Persist in localStorage under
  * an EDITOR-ONLY key (never inside project JSON / scene storage).
+ *
+ * Contrast (computed, WCAG 2.1):
+ *   body #e6edf7 on panel #141b2b ....... 14.6:1
+ *   muted #8b98ad on panel #141b2b ...... 5.9:1
+ *   accent #3dd6f5 on base #0e1420 ...... 10.7:1
+ *   accent-ink #04212b on accent ........ 9.7:1
+ *   cue #f5b544 / ready #3ddc84 / tally #ff7a7a on base ... 10.2 / 10.3 / 7.3:1
  */
 [data-editor-theme="dark"] {
-  --ed-app-bg: #070d1d;
-  --ed-panel-bg: #0d1730;
-  --ed-panel-bg-2: #111f3a;
-  --ed-canvas-well: #060b18;
-  --ed-border: rgba(148, 163, 184, 0.16);
-  --ed-border-strong: rgba(148, 163, 184, 0.32);
-  --ed-text: #e8edf7;
-  --ed-text-muted: #93a0b8;
-  --ed-text-faint: #5d6b87;
-  --ed-accent: #2f7bff;
-  --ed-accent-ink: #ffffff;
-  --ed-accent-soft: rgba(47, 123, 255, 0.2);
-  --ed-tile-bg: #14213d;
-  --ed-tile-border: rgba(148, 163, 184, 0.18);
-  --ed-tile-ink: #7aa8ff;
+  --ed-app-bg: #0e1420;
+  --ed-panel-bg: #141b2b;
+  --ed-panel-bg-2: #1b2436;
+  --ed-canvas-well: #080c14;
+  --ed-border: rgba(230, 237, 247, 0.09);
+  --ed-border-strong: rgba(230, 237, 247, 0.18);
+  --ed-text: #e6edf7;
+  --ed-text-muted: #8b98ad;
+  --ed-text-faint: #5f6d84;
+  --ed-accent: #3dd6f5;
+  --ed-accent-ink: #04212b;
+  --ed-accent-soft: rgba(61, 214, 245, 0.16);
+  --ed-danger: #ff7a7a;
+  --ed-warning: #f5b544;
+  --ed-success: #3ddc84;
+  --ed-tile-bg: #1b2436;
+  --ed-tile-border: rgba(230, 237, 247, 0.08);
+  --ed-tile-ink: #3dd6f5;
+  --ed-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --ed-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --ed-shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.65);
   color-scheme: dark;
 }

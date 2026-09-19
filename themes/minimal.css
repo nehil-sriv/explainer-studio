@@ -18,6 +18,12 @@
   --shadow: rgba(0,0,0,0.7);
   --glow: rgba(255,255,255,0.10);
   --crash-ink: #FCA5A5;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Inter', system-ui, sans-serif;
   --decor-ghosts: none;
   --decor-corners: none;
   --decor-logo: none;

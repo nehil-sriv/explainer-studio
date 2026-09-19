@@ -18,8 +18,12 @@
   --shadow: rgba(0,0,0,0.7);
   --glow: rgba(115,151,255,0.3);
   --crash-ink: #F0A0A0;
-  --font-display: Inter, system-ui, sans-serif;
-  --font-body: 'SF Pro Text', system-ui, sans-serif;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Inter', system-ui, sans-serif;
   --decor-ghosts: none;
   --decor-corners: none;
   --decor-logo: none;

@@ -5,6 +5,7 @@ import {
   type ExportStatus,
 } from './editorStore.js';
 import type { Edge } from '../domain/edge.js';
+import type { Background } from '../domain/background.js';
 import type { SceneComponent } from '../domain/component.js';
 
 /**
@@ -45,6 +46,8 @@ type Store = Pick<
   | 'renameScene'
   | 'setCompsScene'
   | 'setCanvasSize'
+  | 'setCanvasTheme'
+  | 'setCanvasBackground'
   | 'setHoldDefault'
   | 'selectComps'
   | 'selectEdge'
@@ -123,6 +126,9 @@ export const commands = {
   setCompsScene: (ids: string[], sceneId: string): void =>
     api().setCompsScene(ids, sceneId),
   setCanvasSize: (w: number, h: number): void => api().setCanvasSize(w, h),
+  setCanvasTheme: (key: string): void => api().setCanvasTheme(key),
+  setCanvasBackground: (bg: Background | null): void =>
+    api().setCanvasBackground(bg),
   // playback
   play: (fromIndex?: number): void => api().play(fromIndex),
   stopPlayback: (): void => api().stopPlayback(),

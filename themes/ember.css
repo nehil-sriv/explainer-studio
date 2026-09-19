@@ -20,6 +20,12 @@
   --shadow: #2330382E;
   --glow: #FF5B0440;
   --crash-ink: #FF5B04;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
   --decor-ghosts: none;
   /* market direction holds real hues — this palette has no green/red */
   --mkt-up: #2E7D32;

@@ -1,47 +1,70 @@
-/* Editor design tokens — reskinned to the approved mock (dark navy
- * workbench + light paper mode). `--ed-*` paints EDITOR CHROME ONLY;
- * canvas output keeps assets/tokens.css + themes/*.css via
- * #scene[data-theme]. Editor light/dark never changes recorded output.
+/* Editor design tokens — "control room".
+ *
+ * POINT OF VIEW
+ * Explainer Studio is a recording instrument, so the chrome borrows the
+ * vernacular of a broadcast control room: tally lights, cue lights, patch
+ * bays, and instrument readouts. Three rules carry it:
+ *
+ *   1. The chrome speaks the video's color language. Cyan is signal/data,
+ *      amber is a cue, red is a live tally, green is ready — the same roles
+ *      the canvas uses. The tool and its output share one vocabulary.
+ *   2. Numbers are readouts, not prose. Every figure is tabular mono,
+ *      right-aligned, so values sit still while they change.
+ *   3. The stage is lit, the desk is not. The canvas is the only bright
+ *      object; chrome recedes so the recorded frame dominates.
+ *
+ * These are `--ed-*` tokens and paint EDITOR CHROME ONLY. Canvas output
+ * keeps assets/tokens.css + themes/*.css via #scene[data-theme]. Editor
+ * light/dark never changes recorded output.
+ *
+ * Contrast (computed, WCAG 2.1): body 14.6:1, muted 5.9:1, accent 10.7:1,
+ * accent-ink on accent 9.7:1 on dark; body 17.9:1, muted 5.7:1, accent
+ * 5.6:1 on light. All pass 4.5:1 for their size.
  */
 
 :root,
 [data-editor-theme="light"] {
-  /* ---- chrome surfaces ---- */
-  --ed-app-bg: #eef1f6;        /* app background */
-  --ed-panel-bg: #ffffff;      /* library / inspector / topbar */
-  --ed-panel-bg-2: #f3f5fa;    /* wells, search, cards, story strip */
-  --ed-canvas-well: #e2e6ee;   /* canvas viewport surround */
-  --ed-border: #e3e7f0;
-  --ed-border-strong: #c9d1e3;
+  /* ---- chrome surfaces (base recedes, elevated advances) ---- */
+  --ed-app-bg: #eef1f6;        /* app background (base) */
+  --ed-panel-bg: #ffffff;      /* library / inspector / topbar (elevated) */
+  --ed-panel-bg-2: #f4f6fa;    /* wells, search, cards, story strip */
+  --ed-canvas-well: #dfe4ec;   /* stage surround */
+  --ed-border: rgba(15, 23, 42, 0.1);
+  --ed-border-strong: rgba(15, 23, 42, 0.2);
 
   /* ---- text ---- */
-  --ed-text: #131a2b;
-  --ed-text-muted: #68738a;
-  --ed-text-faint: #9aa3b8;
+  --ed-text: #0f172a;
+  --ed-text-muted: #5b6779;
+  --ed-text-faint: #8a94a6;
 
-  /* ---- accent ---- */
-  --ed-accent: #2563eb;
+  /* ---- signal: cyan = data, shared with the canvas ---- */
+  --ed-accent: #0b7285;
   --ed-accent-ink: #ffffff;
-  --ed-accent-soft: #dbeafe;
+  --ed-accent-soft: rgba(11, 114, 133, 0.12);
 
-  /* ---- semantics ---- */
-  --ed-danger: #e11d48;
-  --ed-success: #16a34a;
-  --ed-warning: #d97706;
+  /* ---- tally / cue / ready ---- */
+  --ed-danger: #c0272d;        /* live tally */
+  --ed-warning: #9a5b00;       /* cue light (NEXT) */
+  --ed-success: #0f7a3d;       /* ready */
 
   /* ---- library tiles ---- */
   --ed-tile-bg: #ffffff;
-  --ed-tile-border: #e3e7f0;
-  --ed-tile-ink: #2563eb;
+  --ed-tile-border: rgba(15, 23, 42, 0.1);
+  --ed-tile-ink: #0b7285;
+
+  /* ---- elevation ---- */
+  --ed-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --ed-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --ed-shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.18);
 
   /* ---- metrics ---- */
   --ed-radius: 12px;
   --ed-radius-sm: 8px;
-  --ed-topbar-h: 56px;
-  --ed-rail-w: 76px;
-  --ed-lib-w: 288px;
-  --ed-inspector-w: 320px;
-  --ed-story-h: 264px;
-  --ed-font: 'Inter', system-ui, sans-serif;
-  --ed-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ed-topbar-h: 60px;
+  --ed-rail-w: 84px;
+  --ed-lib-w: 320px;
+  --ed-inspector-w: 356px;
+  --ed-story-h: 288px;
+  --ed-font: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --ed-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 }

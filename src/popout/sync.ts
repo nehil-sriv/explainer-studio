@@ -1,4 +1,5 @@
 import type { Edge } from '../domain/edge.js';
+import type { Background } from '../domain/background.js';
 import type { SceneComponent } from '../domain/component.js';
 
 /**
@@ -17,6 +18,7 @@ export interface PopoutFrameMessage {
   edges: Edge[];
   scene: { w: number; h: number };
   theme: string;
+  background?: Background;
   active: boolean;
   shown: number;
   revealed: Record<string, number>;

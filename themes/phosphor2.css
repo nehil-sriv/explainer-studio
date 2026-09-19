@@ -18,8 +18,12 @@
   --shadow: rgba(0,0,0,0.6);
   --glow: rgba(166,192,138,0.25);
   --crash-ink: #E8A0A0;
-  --font-display: 'SF Pro Display', system-ui, sans-serif;
-  --font-body: 'SF Mono', ui-monospace, monospace;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'JetBrains Mono', ui-monospace, monospace;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
   --canvas-texture: linear-gradient(rgba(228,232,224,0.04) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(228,232,224,0.04) 1.5px, transparent 1.5px);
   --canvas-texture-size: 64px 64px;
   --decor-ghosts: none;

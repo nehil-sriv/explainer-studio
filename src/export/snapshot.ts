@@ -6,14 +6,22 @@ import { effEdge, effProps, isState } from '../renderer/stateChanges.js';
 import { applyLineReveal } from '../renderer/lines.js';
 import { edgeColor, edgeGeom } from '../renderer/geometry.js';
 import { resolveSceneAtStep } from '../renderer/visibility.js';
+import { backgroundCss, type Background } from '../domain/background.js';
 import { canvasCssBundle } from './css.js';
 import { escHtml } from '../renderer/richText.js';
+
+/** Keyframes the shader backdrop animates with (mirrors editor canvas.css). */
+const BG_KEYFRAMES =
+  '@keyframes es-bg-drift{from{background-position:0% 0%}' +
+  'to{background-position:100% 100%}}';
 
 export interface FrameSpec {
   comps: SceneComponent[];
   edges: Edge[];
   scene: { w: number; h: number };
   theme: string;
+  /** recorded backdrop override (absent = follow the theme) */
+  background?: Background;
   /** sequence positions revealed (take) — null = show all (edit) */
   shown: number | null;
   /** per-line counters for stepped comps (absent = fully shown) */
@@ -27,7 +35,11 @@ export interface FrameSpec {
  * applied, edges drawn when both endpoints are visible.
  */
 export function buildFrameHTML(spec: FrameSpec): string {
-  const { comps, edges, scene, theme, shown, revealed = {} } = spec;
+  const { comps, edges, scene, theme, background, shown, revealed = {} } = spec;
+  const bg = backgroundCss(background);
+  const bgStyle = Object.entries(bg)
+    .map(([k, v]) => `${k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}:${v}`)
+    .join(';');
   const frame =
     shown === null ? null : resolveSceneAtStep(comps, edges, shown);
   const visible = frame ? new Set(frame.visibleIds) : null;
@@ -89,9 +101,9 @@ export function buildFrameHTML(spec: FrameSpec): string {
 
   return (
     `<!doctype html><html><head><meta charset="utf-8">` +
-    `<style>${canvasCssBundle(theme)}</style></head><body>` +
+    `<style>${canvasCssBundle(theme)}${BG_KEYFRAMES}</style></head><body>` +
     `<div class="scene" id="scene" data-theme="${escHtml(theme)}" ` +
-    `style="width:${scene.w}px;height:${scene.h}px;position:relative;overflow:hidden">` +
+    `style="width:${scene.w}px;height:${scene.h}px;position:relative;overflow:hidden${bgStyle ? ';' + bgStyle : ''}">` +
     `${compHTML}` +
     `<svg width="${scene.w}" height="${scene.h}" viewBox="0 0 ${scene.w} ${scene.h}" ` +
     `style="position:absolute;inset:0;pointer-events:none">${edgeSVG}</svg>` +

@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import type { Scene } from '../domain/project.js';
+import type { Background } from '../domain/background.js';
 import { STATE_TYPE, type SceneComponent } from '../domain/component.js';
 import type { Edge } from '../domain/edge.js';
 import { runEnd, runMembers, runStart, seqHoldFor } from '../domain/step.js';import { isStepped, stepTotalFor } from '../catalog/lines.js';
@@ -50,6 +51,10 @@ export interface ProjectState {
   comps: SceneComponent[];
   edges: Edge[];
   scenes: Scene[];
+  /** active canvas theme key (themes/manifest.js) */
+  theme?: string;
+  /** recorded backdrop override (domain/background.ts) */
+  background?: Background;
   saved?: unknown[];
   seqHoldDefault?: number;
   script?: string;
@@ -154,6 +159,10 @@ export interface EditorActions {
   renameScene: (id: string, name: string) => void;
   setCompsScene: (ids: string[], sceneId: string) => void;
   setCanvasSize: (w: number, h: number) => void;
+  /** Active canvas theme (recorded output). */
+  setCanvasTheme: (key: string) => void;
+  /** Recorded backdrop override (null = follow the theme). */
+  setCanvasBackground: (bg: Background | null) => void;
   setHoldDefault: (v: number) => void;
   // ---- selection ----
   selectComps: (ids: string | string[], additive?: boolean) => void;
@@ -274,10 +283,13 @@ export function createEditorStore(seed?: Partial<ProjectState>) {
       record = true,
     ): void => {
       const s = get();
+      // Inside an open gesture transaction the pending snapshot already holds
+      // the pre-image — live edits must not spam one undo entry per keystroke.
+      const inTxn = s.history.pending !== null;
       // Snapshot FIRST: mutators may touch shared comp objects (e.g.
       // revalidateExits deletes stranded hideWhen), and the pre-image must
       // predate any of that — same reason legacy snap()s before editing.
-      const pre = record ? snapshotOf(s.project) : null;
+      const pre = record && !inTxn ? snapshotOf(s.project) : null;
       const next = mutate(s.project);
       if (next === s.project) return;
       set({
@@ -326,6 +338,10 @@ export function createEditorStore(seed?: Partial<ProjectState>) {
             comps: (project.comps ?? []) as SceneComponent[],
             edges: (project.edges ?? []) as Edge[],
             scenes,
+            ...(typeof project.theme === 'string' ? { theme: project.theme } : {}),
+            ...(project.background
+              ? { background: project.background as Background }
+              : {}),
             ...(project.saved ? { saved: project.saved } : {}),
             ...(project.seqHoldDefault != null
               ? { seqHoldDefault: project.seqHoldDefault }
@@ -796,7 +812,54 @@ export function createEditorStore(seed?: Partial<ProjectState>) {
       },
 
       setCanvasSize: (w: number, h: number) => {
-        applyProject((p) => ({ ...p, scene: { w, h } }));
+        applyProject((p) => {
+          const dw = w - p.scene.w;
+          const dh = h - p.scene.h;
+          if (!dw && !dh) return { ...p, scene: { w, h } };
+          // Constraints reflow with the frame: Left/Top pin, Center/Middle
+          // follow the centre, Right/Bottom follow the edge, Stretch grows
+          // the explicit box (only when the comp has one).
+          return {
+            ...p,
+            scene: { w, h },
+            comps: p.comps.map((c) => {
+              if (isState(c)) return c;
+              const P = (c.props ?? {}) as Record<string, unknown>;
+              const hc = String(P.hConstraint ?? 'Left');
+              const vc = String(P.vConstraint ?? 'Top');
+              const next = { ...c };
+              if (dw) {
+                if (hc === 'Center') next.x = (c.x ?? 0) + dw / 2;
+                else if (hc === 'Right') next.x = (c.x ?? 0) + dw;
+                else if (hc === 'Stretch' && c.wpx)
+                  next.wpx = Math.max(20, c.wpx + dw);
+              }
+              if (dh) {
+                if (vc === 'Middle') next.y = (c.y ?? 0) + dh / 2;
+                else if (vc === 'Bottom') next.y = (c.y ?? 0) + dh;
+                else if (vc === 'Stretch' && c.hpx)
+                  next.hpx = Math.max(20, c.hpx + dh);
+              }
+              return next;
+            }),
+          };
+        });
+      },
+
+      setCanvasTheme: (key: string) => {
+        applyProject((p) => (p.theme === key ? p : { ...p, theme: key }), false);
+      },
+
+      setCanvasBackground: (bg: Background | null) => {
+        applyProject((p) => {
+          if (!bg) {
+            if (!p.background) return p;
+            const { background: _drop, ...rest } = p;
+            void _drop;
+            return rest;
+          }
+          return { ...p, background: bg };
+        }, false);
       },
 
       setHoldDefault: (v: number) => {

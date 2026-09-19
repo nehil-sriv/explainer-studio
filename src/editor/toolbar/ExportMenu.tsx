@@ -314,13 +314,14 @@ export function ExportMenu({ deps }: { deps?: ExportMenuDeps }) {
           style={{
             position: 'absolute',
             right: 0,
-            top: 'calc(100% + 6px)',
+            top: 'calc(100% + 8px)',
             zIndex: 50,
             background: 'var(--ed-panel-bg)',
             border: '1px solid var(--ed-border)',
-            borderRadius: 10,
-            padding: 10,
-            width: 280,
+            borderRadius: 14,
+            padding: 14,
+            width: 288,
+            boxShadow: 'var(--ed-shadow-lg)',
           }}
         >
           <div className="es-row">

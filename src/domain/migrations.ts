@@ -211,6 +211,10 @@ export function importProjectFile(data: unknown): ImportResult {
     comps,
     edges,
     ...(scenes.length ? { scenes } : {}),
+    ...(typeof d['theme'] === 'string' ? { theme: d['theme'] } : {}),
+    ...(d['background'] && typeof d['background'] === 'object'
+      ? { background: d['background'] as Project['background'] }
+      : {}),
     ...(d['saved'] ? { saved: d['saved'] } : {}),
     ...(seqHoldDefault != null ? { seqHoldDefault } : {}),
     ...(typeof d['script'] === 'string' ? { script: d['script'] } : {}),
@@ -247,6 +251,8 @@ export function serializeProject(p: Project): Record<string, unknown> {
     edges: p.edges ?? [],
   };
   if (p.scenes?.length) out['scenes'] = p.scenes;
+  if (p.theme) out['theme'] = p.theme;
+  if (p.background) out['background'] = p.background;
   if (p.saved) out['saved'] = p.saved;
   if (p.seqHoldDefault != null) out['seqHoldDefault'] = p.seqHoldDefault;
   if (p.script) out['script'] = p.script;

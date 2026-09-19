@@ -1,22 +1,37 @@
-/* Editor LIGHT theme — overrides --ed-* only. Canvas untouched.
- * Load order (Phase 5): editor-tokens.css -> editor-light.css.
+/* Editor LIGHT theme — "control room", daylight desk.
+ *
+ * The same signal vocabulary on paper surfaces: cyan stays data, amber stays
+ * a cue, red stays the tally. Darker, less saturated values so every role
+ * clears 4.5:1 on white (dark-mode hues would fail here).
+ *
+ * Overrides --ed-* only. Canvas untouched.
+ * Load order: editor-tokens.css -> editor-light.css.
  * Activate: <html data-editor-theme="light"> (default).
+ *
+ * Contrast (computed, WCAG 2.1):
+ *   body #0f172a on #ffffff ....... 17.9:1
+ *   muted #5b6779 on #ffffff ......  5.7:1
+ *   accent #0b7285 on #ffffff .....  5.6:1
+ *   cue #9a5b00 / ready #0f7a3d / tally #c0272d on #ffffff ... 5.4 / 5.4 / 5.9:1
  */
 [data-editor-theme="light"] {
-  --ed-app-bg: #f3f4f6;
+  --ed-app-bg: #eef1f6;
   --ed-panel-bg: #ffffff;
-  --ed-panel-bg-2: #f8fafc;
-  --ed-canvas-well: #e9ebef;
-  --ed-border: #e5e7eb;
-  --ed-border-strong: #d1d5db;
-  --ed-text: #111827;
-  --ed-text-muted: #6b7280;
-  --ed-text-faint: #9ca3af;
-  --ed-accent: #2563eb;
+  --ed-panel-bg-2: #f4f6fa;
+  --ed-canvas-well: #dfe4ec;
+  --ed-border: rgba(15, 23, 42, 0.1);
+  --ed-border-strong: rgba(15, 23, 42, 0.2);
+  --ed-text: #0f172a;
+  --ed-text-muted: #5b6779;
+  --ed-text-faint: #8a94a6;
+  --ed-accent: #0b7285;
   --ed-accent-ink: #ffffff;
-  --ed-accent-soft: #dbeafe;
+  --ed-accent-soft: rgba(11, 114, 133, 0.12);
+  --ed-danger: #c0272d;
+  --ed-warning: #9a5b00;
+  --ed-success: #0f7a3d;
   --ed-tile-bg: #ffffff;
-  --ed-tile-border: #e5e7eb;
-  --ed-tile-ink: #2563eb;
+  --ed-tile-border: rgba(15, 23, 42, 0.1);
+  --ed-tile-ink: #0b7285;
   color-scheme: light;
 }

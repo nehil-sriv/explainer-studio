@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import '../../../assets/tokens.css';
 import '../../../css/core.css';
 import '../../../css/phosphor.css';
@@ -21,6 +21,7 @@ import './entrances.css';
 import { REGISTRY } from '../../catalog/registry.js';
 import { commands } from '../../store/commands.js';
 import { editorStore } from '../../store/editorStore.js';
+import { measuredSize, setMeasuredSize } from '../../renderer/measured.js';
 import { takeFrame } from '../../store/selectors.js';
 import { useEditor } from '../storeHooks.js';
 import { CANVAS_THEMES } from '../canvasTheme.js';
@@ -29,7 +30,14 @@ import { toCanvasCoords } from './coords.js';
 import { boxOf, snapMove, unionBox } from './snapping.js';
 import { marqueeSelect, normRect } from './marquee.js';
 import { requestExportCancel } from '../../export/cancel.js';
-import { TransformHandles } from './Handles.js';
+import {
+  PortHandles,
+  TransformHandles,
+  connectPreviewPath,
+  targetAt,
+  type ConnectDrag,
+  type PortId,
+} from './Handles.js';
 import { SceneView } from './SceneView.js';
 import { InlineTextEditor, type EditingSession } from './InlineTextEditor.js';
 import { primaryTextField } from './editableFields.js';
@@ -48,11 +56,16 @@ export function CanvasWorkspace() {
   const wellRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(0.5);
-  const [canvasTheme, setCanvasTheme] = useState('studio-black');
+  // Theme + backdrop live in the project so they persist and record.
+  const canvasTheme = s.project.theme ?? 'studio-black';
+  const canvasBackground = s.project.background;
+  const [, setMeasureTick] = useState(0);
   const [guides, setGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [dropPreview, setDropPreview] = useState<{ x: number; y: number } | null>(null);
   const [editing, setEditing] = useState<EditingSession | null>(null);
+  const [connect, setConnect] = useState<ConnectDrag | null>(null);
+  const connectRef = useRef<ConnectDrag | null>(null);
   const dragRef = useRef<{
     ids: string[];
     orig: Map<string, { x: number; y: number }>;
@@ -65,16 +78,51 @@ export function CanvasWorkspace() {
   const suppressClick = useRef(false);
 
   const { w, h } = s.project.scene;
+  // While recording the chrome is hidden, so the well fills the window and
+  // the canvas scales as large as the display allows (legacy rec-crop fit).
+  const recording = s.exportState.status === 'recording';
   useEffect(() => {
     const el = wellRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => {
+    const margin = recording ? 0 : 48;
+    const measure = () => {
       const r = el.getBoundingClientRect();
-      setFit(Math.min((r.width - 48) / w, (r.height - 48) / h));
-    });
+      // no layout yet (jsdom, pre-mount) — keep the current fit
+      if (r.width <= 0 || r.height <= 0) return;
+      setFit(Math.max(0.05, Math.min((r.width - margin) / w, (r.height - margin) / h, 1)));
+    };
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
+    measure();
     return () => ro.disconnect();
-  }, [w, h]);
+  }, [w, h, recording]);
+
+  // Measure every rendered comp into the runtime size cache (legacy _rw/_rh
+  // parity). Handles, snapping, marquee and edges all read the true box, so
+  // selection dots hug the real component instead of the 220×120 fallback.
+  useLayoutEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const measure = () => {
+      let changed = false;
+      scene.querySelectorAll<HTMLElement>('.comp[data-id]').forEach((el) => {
+        const id = el.dataset.id!;
+        const w = el.offsetWidth;
+        const h = el.offsetHeight;
+        const prev = measuredSize(id);
+        if (!prev || prev.w !== w || prev.h !== h) {
+          setMeasuredSize(id, w, h);
+          changed = true;
+        }
+      });
+      if (changed) setMeasureTick((t) => t + 1);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    scene.querySelectorAll('.comp').forEach((el) => ro.observe(el));
+    return () => ro.disconnect();
+  }, [s.project.comps, fit]);
 
   // popout mirror: push every frame (project + take state + canvas theme)
   useEffect(() => {
@@ -84,7 +132,8 @@ export function CanvasWorkspace() {
         comps: st.project.comps,
         edges: st.project.edges,
         scene: st.project.scene,
-        theme: canvasTheme,
+        theme: st.project.theme ?? 'studio-black',
+        background: st.project.background,
         active: st.playback.active,
         shown: st.playback.shown,
         revealed: st.playback.revealed,
@@ -97,7 +146,7 @@ export function CanvasWorkspace() {
       unsub();
       unhello();
     };
-  }, [canvasTheme]);
+  }, []);
 
   // ---- keyboard: nudge / duplicate / delete / escape ----
   useEffect(() => {
@@ -301,6 +350,76 @@ export function CanvasWorkspace() {
     window.addEventListener('pointerup', up);
   };
 
+  // ---- connect gesture: drag a port dot onto another component ----
+  const startConnect = (e: React.PointerEvent, port: PortId) => {
+    if (!singleSel) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const from = singleSel;
+    const rect0 = sceneRef.current!.getBoundingClientRect();
+    const p0 = toCanvasCoords(e.clientX, e.clientY, rect0, w, h);
+    const initial: ConnectDrag = {
+      from: from.id,
+      fromPort: port,
+      x: p0.x,
+      y: p0.y,
+      targetId: null,
+      targetPort: null,
+    };
+    connectRef.current = initial;
+    setConnect(initial);
+    const move = (ev: PointerEvent) => {
+      const el = sceneRef.current;
+      const cur = connectRef.current;
+      if (!el || !cur) return;
+      const rect = el.getBoundingClientRect();
+      const p = toCanvasCoords(ev.clientX, ev.clientY, rect, w, h);
+      const comps = editorStore.getState().project.comps;
+      const hit = targetAt(comps, p.x, p.y, cur.from);
+      const next: ConnectDrag = {
+        ...cur,
+        x: p.x,
+        y: p.y,
+        targetId: hit ? hit.comp.id : null,
+        targetPort: hit ? hit.port : null,
+      };
+      connectRef.current = next;
+      setConnect(next);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      const cur = connectRef.current;
+      connectRef.current = null;
+      setConnect(null);
+      if (cur?.targetId) {
+        commands.addEdge({
+          from: cur.from,
+          fromPort: cur.fromPort,
+          to: cur.targetId,
+          toPort: cur.targetPort ?? 'auto',
+        });
+        commands.selectEdge(
+          editorStore.getState().project.edges[
+            editorStore.getState().project.edges.length - 1
+          ]?.id ?? null,
+        );
+      }
+      suppressClick.current = true;
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  // ---- edge hit-test: click a wire to select it ----
+  const onEdgePointerDown = (e: React.PointerEvent, id: string) => {
+    if (s.playback.active) return;
+    e.stopPropagation();
+    commands.selectEdge(id);
+    // the follow-up click bubbles to the well and would deselect
+    suppressClick.current = true;
+  };
+
   // ---- library drop ----
   const dropPoint = (e: React.DragEvent) => {
     const r = sceneRef.current!.getBoundingClientRect();
@@ -359,17 +478,10 @@ export function CanvasWorkspace() {
       }}
       data-testid="canvas-well"
     >
-      <select
-        aria-label="canvas theme"
-        value={canvasTheme}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => setCanvasTheme(e.target.value)}
-        style={{ position: 'absolute', top: 8, left: 8, zIndex: 5 }}
-      >
-        {CANVAS_THEMES.map((t) => (
-          <option key={t.key} value={t.key}>{t.label}</option>
-        ))}
-      </select>
+      {/* theme + size + backdrop all live in the Canvas pane */}
+      <span className="es-canvas-badge es-readout" title="active canvas theme">
+        {CANVAS_THEMES.find((t) => t.key === canvasTheme)?.label ?? canvasTheme}
+      </span>
       {/* Measured wrapper: CSS scale doesn't change layout size, so the
           wrapper reserves exactly the scaled footprint for true centering. */}
       <div
@@ -387,6 +499,7 @@ export function CanvasWorkspace() {
         w={w}
         h={h}
         theme={canvasTheme}
+        background={canvasBackground}
         fit={fit}
         active={s.playback.active}
         shown={s.playback.shown}
@@ -394,9 +507,11 @@ export function CanvasWorkspace() {
         visibleIds={visible}
         edgeIds={edgeIds}
         selectedIds={selected}
+        selectedEdgeId={s.selection.edgeId}
         interactive
         onCompPointerDown={onCompPointerDown}
         onCompDoubleClick={onCompDoubleClick}
+        onEdgePointerDown={onEdgePointerDown}
         sceneRef={sceneRef}
         overlay={
           <>
@@ -440,15 +555,48 @@ export function CanvasWorkspace() {
                 }}
               />
             )}
+            {connect && (() => {
+              const fromComp = s.project.comps.find((c) => c.id === connect.from);
+              if (!fromComp) return null;
+              const targetComp = connect.targetId
+                ? s.project.comps.find((c) => c.id === connect.targetId) ?? null
+                : null;
+              const path = connectPreviewPath(
+                fromComp,
+                connect.fromPort,
+                connect.x,
+                connect.y,
+                targetComp,
+                connect.targetPort,
+              );
+              return (
+                <svg
+                  data-connect-wire
+                  data-export-hide
+                  width={w}
+                  height={h}
+                  viewBox={`0 0 ${w} ${h}`}
+                  style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1002 }}
+                >
+                  <path d={path.d} fill="none" stroke="#2f7bff" strokeWidth={3} strokeDasharray="10 8" />
+                  <circle cx={path.ex} cy={path.ey} r={7} fill="none" stroke="#f59e0b" strokeWidth={3} />
+                </svg>
+              );
+            })()}
             {singleSel && !s.playback.active && !editing && (
-              <TransformHandles
-                comp={singleSel}
-                fit={fit}
-                sceneRef={sceneRef}
-                noteGestureEnd={() => {
-                  suppressClick.current = true;
-                }}
-              />
+              <>
+                <TransformHandles
+                  comp={singleSel}
+                  fit={fit}
+                  sceneRef={sceneRef}
+                  noteGestureEnd={() => {
+                    suppressClick.current = true;
+                  }}
+                />
+                {!singleSel.locked && !singleSel.parked && (
+                  <PortHandles comp={singleSel} fit={fit} onStartConnect={startConnect} />
+                )}
+              </>
             )}
             {editingTarget && editing && (
               <InlineTextEditor

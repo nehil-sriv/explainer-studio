@@ -18,8 +18,12 @@
   --shadow: rgba(0,0,0,0.5);
   --glow: rgba(183,221,245,0.3);
   --crash-ink: #F2B0A8;
-  --font-display: Inter, system-ui, sans-serif;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Inter', system-ui, sans-serif;
   --font-body: 'JetBrains Mono', ui-monospace, monospace;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
   --canvas-texture: linear-gradient(rgba(127,178,224,0.055) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(127,178,224,0.055) 1.5px, transparent 1.5px);
   --canvas-texture-size: 60px 60px;
   --decor-ghosts: none;

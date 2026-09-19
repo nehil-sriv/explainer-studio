@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   RecordingSession,
+  mimeExtension,
   pickMimeType,
+  recordingBitrate,
   recordingFilename,
   startRegionCapture,
 } from './session.js';
@@ -67,9 +69,27 @@ describe('recording session', () => {
     expect(pickMimeType((t) => t === 'video/webm')).toBe('video/webm');
     expect(pickMimeType(() => false)).toBe('');
     expect(pickMimeType(undefined)).toBe('');
-    expect(recordingFilename(new Date('2026-01-02T03:04:05Z'))).toBe(
+    const at = new Date('2026-01-02T03:04:05Z');
+    expect(recordingFilename('video/webm;codecs=vp9', at)).toBe(
       'explainer-2026-01-02-03-04-05.webm',
     );
+    // the file takes the container MediaRecorder produced, not a fixed one
+    expect(recordingFilename('video/mp4;codecs=avc1.42001f', at)).toBe(
+      'explainer-2026-01-02-03-04-05.mp4',
+    );
+    expect(mimeExtension('video/mp4')).toBe('mp4');
+    expect(mimeExtension('video/webm')).toBe('webm');
+    expect(mimeExtension(undefined)).toBe('webm');
+  });
+
+  it('tags the blob with the container only (codecs break playback)', async () => {
+    const session = new RecordingSession(fakeStream(), {
+      mimeType: 'video/mp4;codecs=avc1.42001f',
+      recorderFactory: (s, o) => new MockRecorder(s, o),
+    });
+    session.start();
+    const blob = await session.stop();
+    expect(blob.type).toBe('video/mp4');
   });
 
   it('region capture crops when supported, degrades gracefully', async () => {
@@ -89,6 +109,12 @@ describe('recording session', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('clamps the recording bitrate to 8–50 Mbps', () => {
+    expect(recordingBitrate(1920, 1080)).toBe(12_441_600);
+    expect(recordingBitrate(320, 240)).toBe(8_000_000);
+    expect(recordingBitrate(7680, 4320)).toBe(50_000_000);
   });
 
   it('throws a readable error with no capture API', async () => {

@@ -1,5 +1,6 @@
 import type { Edge } from '../domain/edge.js';
 import type { SceneComponent } from '../domain/component.js';
+import { measuredSize } from './measured.js';
 
 /**
  * Canvas geometry — pure extraction of index.html visualBox / rotPt /
@@ -21,9 +22,11 @@ export interface VisualBox {
 export function visualBox(c: Pick<
   SceneComponent,
   'x' | 'y' | 'scale' | 'rot' | 'wpx' | 'hpx'
-> & { _rw?: number; _rh?: number }): VisualBox {
-  const w = c._rw || c.wpx || 220;
-  const h = c._rh || c.hpx || 120;
+> & { id?: string; _rw?: number; _rh?: number }): VisualBox {
+  // measured > runtime cache > explicit box > legacy 220×120 fallback
+  const m = measuredSize(c.id);
+  const w = m?.w || c._rw || c.wpx || 220;
+  const h = m?.h || c._rh || c.hpx || 120;
   const s = c.scale || 1;
   return {
     cx: (c.x ?? 0) + w / 2,

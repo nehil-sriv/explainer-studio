@@ -1,11 +1,6 @@
 import { useRef } from 'react';
 import { commands } from '../../store/commands.js';
-import {
-  RecordingSession,
-  downloadBlob,
-  pickMimeType,
-  startRegionCapture,
-} from '../../recording/session.js';
+import { recorder, useRecorder } from '../../recording/recorder.js';
 import { useEditor, useEditorTheme } from '../storeHooks.js';
 import { ExportMenu } from './ExportMenu.js';
 
@@ -15,10 +10,9 @@ export function TopBar() {
   const playing = useEditor((s) => s.playback.active);
   const shown = useEditor((s) => s.playback.shown);
   const total = useEditor((s) => s.project.comps.length);
-  const recStatus = useEditor((s) => s.exportState.status);
   const [theme, toggleTheme] = useEditorTheme();
+  const { status: recStatus } = useRecorder();
   const fileRef = useRef<HTMLInputElement>(null);
-  const sessionRef = useRef<RecordingSession | null>(null);
 
   const onOpenFile = async (f: File | undefined) => {
     if (!f) return;
@@ -30,36 +24,12 @@ export function TopBar() {
   };
 
   const toggleRecord = async () => {
-    if (recStatus === 'recording') {
-      const session = sessionRef.current;
-      sessionRef.current = null;
-      commands.setExportStatus('idle');
-      commands.stopAuto();
-      commands.stopPlayback();
-      if (session) {
-        try {
-          const blob = await session.stop();
-          downloadBlob(blob, `explainer-${new Date().toISOString().slice(0, 10)}.webm`);
-        } catch {
-          /* download failed — the take state is untouched */
-        }
-      }
+    if (recStatus !== 'idle') {
+      await recorder.stop();
       return;
     }
-    try {
-      const { stream } = await startRegionCapture(document.getElementById('scene'));
-      const session = new RecordingSession(stream, { mimeType: pickMimeType() });
-      session.start();
-      sessionRef.current = session;
-      commands.setExportStatus('recording');
-      commands.startAuto();
-    } catch (err) {
-      commands.setExportStatus('idle');
-      alert(
-        `capture failed (${err instanceof Error ? err.message : err}) — ` +
-          'open the ⧉ Popout and pick its tab instead',
-      );
-    }
+    // full legacy flow: rewind → recording layout → settle → capture → take
+    await recorder.start(document.getElementById('scene'));
   };
 
   return (
@@ -71,7 +41,14 @@ export function TopBar() {
       {playing && (
         <>
           <button className="es-btn" onClick={() => commands.stepBack()} title="back">←</button>
-          <span className="es-crumb" data-testid="take-pos">{shown}/{total}</span>
+          <span
+            className="es-readout es-readout--pill"
+            data-testid="take-pos"
+            data-cap="step"
+            aria-label={`step ${shown} of ${total}`}
+          >
+            {shown}/{total}
+          </span>
           <button className="es-btn" onClick={() => commands.stepNext()} title="next (Space in legacy)">→</button>
         </>
       )}
@@ -82,12 +59,15 @@ export function TopBar() {
       >
         {playing ? '⏹ Stop' : '▶ Preview'}
       </button>
+      {/* the tally lamp: red only while actually rolling */}
       <button
-        className="es-btn"
+        className={'es-btn es-tally' + (recStatus !== 'idle' ? ' is-live' : '')}
         onClick={() => void toggleRecord()}
         title="region-capture the scene while the take auto-plays"
+        aria-pressed={recStatus !== 'idle'}
       >
-        {recStatus === 'recording' ? '⏺ Recording…' : '⏺ Record'}
+        <span className="es-tally-lamp" aria-hidden />
+        {recStatus === 'recording' ? 'Recording' : recStatus === 'arming' ? 'Waiting…' : 'Record'}
       </button>
       <button
         className="es-btn"

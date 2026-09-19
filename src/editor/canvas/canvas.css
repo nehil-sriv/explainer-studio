@@ -3,11 +3,28 @@
    selection chrome is es- scoped and can never leak into recordings. */
 .es-stage {
   position: relative;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--ed-shadow-lg, 0 30px 80px rgba(0, 0, 0, 0.6));
+  border-radius: 4px;
+}
+/* Shader backdrop — a slow drift over the layered gradient. Recorded too,
+   so it must be CSS motion (captures in stills/WebM, never a JS loop). */
+/* One position applies to every layered pool, so the drift works for any
+   number of mesh vertices. */
+@keyframes es-bg-drift {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .es-stage[style*='es-bg-drift'] { animation: none !important; }
 }
 .es-stage .comp { position: absolute; }
-.es-stage .comp.es-sel { outline: 2px solid var(--ed-accent); outline-offset: 3px; }
+.es-stage .comp.es-sel { outline: 2px dashed var(--ed-accent); outline-offset: 3px; }
+/* single selection shows the measured transform frame instead */
+.es-stage .comp.es-sel.es-single { outline: none; }
 .es-edges { position: absolute; inset: 0; pointer-events: none; }
+/* connection ports — the visible dot is a child so the grab area can be bigger */
+.es-stage [data-port] > span { transition: background 120ms ease, border-color 120ms ease; }
+.es-stage [data-port]:hover > span { background: var(--ed-accent); border-color: #fff; }
 .es-takebar {
   position: absolute;
   left: 50%;

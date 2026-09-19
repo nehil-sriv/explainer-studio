@@ -11,12 +11,24 @@ export type EditorTheme = 'light' | 'dark';
 
 const THEME_KEY = 'explainer-editor-theme';
 
+/**
+ * Editor chrome theme. Follows the system appearance until the person makes
+ * an explicit choice, per `dark-mode.md › Best practices` ("Avoid offering an
+ * app-specific appearance setting"). The toggle stays as an override.
+ */
 export function getEditorTheme(): EditorTheme {
   try {
-    return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark';
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
   } catch {
-    return 'dark';
+    /* private mode — fall through to the system preference */
   }
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    return window.matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light'
+      : 'dark';
+  }
+  return 'dark';
 }
 
 export function applyEditorTheme(t: EditorTheme): void {

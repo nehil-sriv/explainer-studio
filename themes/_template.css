@@ -20,8 +20,12 @@
   --shadow: rgba(0,0,0,0.65);
   --glow: rgba(201,154,78,0.25);
   --crash-ink: #D08A80;
-  /* optional: --font-display / --font-body (system stacks only travel
-     off-machine if embedded — exports keep whatever is installed) */
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
   /* optional recorded texture (keep alpha .02-.06 or compression bands it):
      --canvas-texture: linear-gradient(rgba(127,178,224,0.055) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(127,178,224,0.055) 1.5px, transparent 1.5px);
      --canvas-texture-size: 60px 60px; */

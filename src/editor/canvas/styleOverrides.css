@@ -1,0 +1,72 @@
+/* Inspector style bridge — descendant rules for the generic Style/Layout
+   props. Flags come from src/renderer/componentStyle.ts and are only present
+   when the user actually set that field, so untouched components keep their
+   native theme typography.
+   Scoped to #scene: editor canvas, popout mirror and DOM-based exports all
+   carry the same #scene root, so every surface agrees. */
+
+#scene .comp.es-so-font,
+#scene .comp.es-so-font * {
+  font-family: var(--es-font) !important;
+}
+
+#scene .comp.es-so-size,
+#scene .comp.es-so-size * {
+  font-size: var(--es-size) !important;
+}
+
+#scene .comp.es-so-weight,
+#scene .comp.es-so-weight * {
+  font-weight: var(--es-weight) !important;
+}
+
+#scene .comp.es-so-align,
+#scene .comp.es-so-align * {
+  text-align: var(--es-align) !important;
+}
+
+#scene .comp.es-so-lh,
+#scene .comp.es-so-lh * {
+  line-height: var(--es-lh) !important;
+}
+
+#scene .comp.es-so-ls,
+#scene .comp.es-so-ls * {
+  letter-spacing: var(--es-ls) !important;
+}
+
+#scene .comp.es-so-bg {
+  background: var(--es-bg) !important;
+}
+
+#scene .comp.es-so-effects {
+  filter: var(--es-filter) !important;
+}
+
+/* Explicit W/H boxes stretch child SVGs (legacy renderCanvas parity). */
+#scene .comp.es-has-w svg {
+  width: 100%;
+  height: auto;
+}
+
+#scene .comp.es-has-h svg {
+  height: 100%;
+}
+
+#scene .comp.es-has-w.es-has-h svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Explicit W/H: make the component's root fill the box so dragging the
+   resize handles visibly changes the component, not just its frame. */
+#scene .comp.es-has-w > :first-child {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box;
+}
+
+#scene .comp.es-has-h > :first-child {
+  height: 100% !important;
+  box-sizing: border-box;
+}

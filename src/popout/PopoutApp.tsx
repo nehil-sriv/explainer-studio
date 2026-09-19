@@ -73,6 +73,7 @@ export function PopoutApp({ initial }: { initial?: PopoutFrameMessage }) {
         w={msg.scene.w}
         h={msg.scene.h}
         theme={msg.theme}
+        background={msg.background}
         fit={1}
         active={msg.active}
         shown={msg.shown}

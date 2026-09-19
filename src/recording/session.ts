@@ -44,9 +44,18 @@ export function pickMimeType(
   return '';
 }
 
-export function recordingFilename(now = new Date()): string {
+/** Container extension for a MediaRecorder mime (legacy parity: mp4 else webm). */
+export function mimeExtension(mime: string | undefined): 'mp4' | 'webm' {
+  return (mime || '').includes('mp4') ? 'mp4' : 'webm';
+}
+
+/**
+ * Clip filename. The extension follows the container MediaRecorder actually
+ * produced — naming an MP4 ".webm" makes editors refuse it.
+ */
+export function recordingFilename(mime?: string, now = new Date()): string {
   const stamp = now.toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  return `explainer-${stamp}.webm`;
+  return `explainer-${stamp}.${mimeExtension(mime)}`;
 }
 
 export interface RecordingSessionOpts {
@@ -97,7 +106,9 @@ export class RecordingSession {
     this.stopped = true;
     return new Promise((resolve) => {
       const finish = () => {
-        const blob = new Blob(this.chunks, { type: this.opts.mimeType || 'video/webm' });
+        const mime = this.opts.mimeType || 'video/webm';
+        // blob type is the container only — codecs in `type` break playback
+        const blob = new Blob(this.chunks, { type: mime.split(';')[0] });
         for (const track of this.stream.getTracks()) {
           try {
             track.stop();
@@ -105,7 +116,7 @@ export class RecordingSession {
             /* already stopped */
           }
         }
-        this.opts.onBlob?.(blob, recordingFilename());
+        this.opts.onBlob?.(blob, recordingFilename(mime));
         resolve(blob);
       };
       rec.onstop = finish;
@@ -129,13 +140,18 @@ export function downloadBlob(blob: Blob, filename: string): void {
 
 export interface CapturedRegion {
   stream: MediaStream;
+  /** true when the stream was cropped to the scene (Region Capture worked) */
+  cropped: boolean;
   cleanup: () => void;
 }
 
 /**
  * Screen-capture cropped to the scene element (Region Capture).
- * Falls back to a bare capture when crop or surface hints are rejected
- * (Safari) — the caller then directs the user to pick the popout tab.
+ *
+ * Mirrors the legacy constraints (ideal 4K so the crop has headroom, 30fps,
+ * current surface included). Falls back to a bare capture when surface hints
+ * are rejected (Safari) — `cropped` then tells the caller to point people at
+ * the popout tab.
  */
 export async function startRegionCapture(
   sceneEl: Element | null,
@@ -147,14 +163,22 @@ export async function startRegionCapture(
   let stream: MediaStream;
   try {
     stream = await md.getDisplayMedia({
-      video: { preferCurrentTab: true } as MediaTrackConstraints,
+      video: {
+        displaySurface: 'browser',
+        width: { ideal: 3840 },
+        height: { ideal: 3840 },
+        frameRate: { ideal: 30 },
+      } as MediaTrackConstraints,
       audio: false,
-    });
+      preferCurrentTab: true,
+      selfBrowserSurface: 'include',
+    } as DisplayMediaStreamOptions);
   } catch {
     // Safari rejects surface hints — retry bare (tab capture excludes
     // browser chrome; window captures bake the OS title bar in).
     stream = await md.getDisplayMedia({ video: true, audio: false });
   }
+  let cropped = false;
   try {
     const CT = (window as unknown as Record<string, unknown>)['CropTarget'];
     if (CT && sceneEl && typeof (CT as Record<string, unknown>)['fromElement'] === 'function') {
@@ -163,12 +187,14 @@ export async function startRegionCapture(
       ).fromElement(sceneEl);
       const [track] = stream.getVideoTracks();
       await (track as unknown as { cropTo: (t: unknown) => Promise<void> }).cropTo(target);
+      cropped = true;
     }
   } catch {
     /* uncropped capture still records — user picks the popout tab */
   }
   return {
     stream,
+    cropped,
     cleanup: () => {
       for (const track of stream.getTracks()) {
         try {
@@ -179,4 +205,9 @@ export async function startRegionCapture(
       }
     },
   };
+}
+
+/** Bitrate heuristic (legacy parity): ~0.2 bits/pixel/frame, clamped 8–50 Mbps. */
+export function recordingBitrate(w: number, h: number, fps = 30): number {
+  return Math.min(50e6, Math.max(8e6, Math.round(w * h * fps * 0.2)));
 }

@@ -2,6 +2,21 @@ import { z } from 'zod';
 import { SceneComponentSchema } from './component.js';
 import { EdgeSchema } from './edge.js';
 
+/** Canvas background record — see domain/background.ts for the compiler. */
+export const BackgroundSchema = z
+  .object({
+    kind: z.enum(['theme', 'solid', 'gradient', 'mesh', 'shader']),
+    color: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    stops: z.array(z.string()).optional(),
+    angle: z.number().optional(),
+    mesh: z.array(z.string()).optional(),
+    meshBase: z.string().optional(),
+    shader: z.string().optional(),
+  })
+  .catchall(z.unknown());
+
 /**
  * Scene — Sequence → Scene → Components. Ordered SCENES array plus per-comp
  * sceneId (index.html `ensureDefaultScene` / `sceneComps`). The plan's richer
@@ -40,6 +55,10 @@ export const ProjectSchema = z
     comps: z.array(SceneComponentSchema).optional(),
     edges: z.array(EdgeSchema).optional(),
     scenes: z.array(SceneSchema).optional(),
+    /** active canvas theme key (themes/manifest.js) */
+    theme: z.string().optional(),
+    /** recorded backdrop override */
+    background: BackgroundSchema.optional(),
     saved: z.array(z.unknown()).optional(),
     seqHoldDefault: z.number().optional(),
     holdDefault: z.number().optional(),
@@ -49,3 +68,4 @@ export const ProjectSchema = z
   .catchall(z.unknown());
 
 export type Project = z.infer<typeof ProjectSchema>;
+export type { Background } from './background.js';

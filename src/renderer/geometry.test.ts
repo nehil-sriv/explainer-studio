@@ -9,6 +9,7 @@ import {
   portsOf,
   visualBox,
 } from './geometry.js';
+import { clearMeasuredSizes, setMeasuredSize } from './measured.js';
 
 describe('geometry', () => {
   it('measures center-based visual boxes', () => {
@@ -21,6 +22,20 @@ describe('geometry', () => {
       nx: 1,
       ny: 0,
     });
+  });
+
+  it('prefers runtime measured sizes over the 220×120 fallback', () => {
+    clearMeasuredSizes();
+    const before = visualBox({ id: 'mm', x: 0, y: 0, scale: 1, rot: 0 });
+    expect(before.hw).toBe(110);
+    setMeasuredSize('mm', 300, 160);
+    expect(visualBox({ id: 'mm', x: 0, y: 0, scale: 1, rot: 0 })).toMatchObject({
+      cx: 150,
+      cy: 80,
+      hw: 150,
+      hh: 80,
+    });
+    clearMeasuredSizes();
   });
 
   it('routes smooth/step/straight/curved deterministically', () => {

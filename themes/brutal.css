@@ -19,4 +19,10 @@
   --shadow: rgba(26,26,26,0.35);
   --glow: rgba(22,163,74,0.18);
   --crash-ink: #991B1B;
+  /* type: display / body / data / hand — self-hosted families only
+     (export-safe; see src/assets/fonts.css) */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', cursive;
 }
