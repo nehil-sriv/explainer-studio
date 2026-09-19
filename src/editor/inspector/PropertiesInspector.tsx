@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { REGISTRY } from '../../catalog/registry.js';
 import { isState, stateSummary } from '../../renderer/stateChanges.js';
 import { commands } from '../../store/commands.js';
@@ -91,7 +91,7 @@ function glyphFor(type: string): string {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="es-properties_section">
+    <section className="es-properties__section">
       <h3 className="es-properties__section-title">{title}</h3>
       {children}
     </section>
@@ -162,10 +162,11 @@ function AffixField({
   ariaLabel?: string;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const id = `es-affix-${ariaLabel ?? prefix ?? 'v'}-${suffix ?? ''}-${Math.random().toString(36).slice(2, 6)}`;
+  const uid = useId().replace(/\W+/g, '');
+  const id = `es-affix-${ariaLabel ?? prefix ?? 'v'}-${suffix ?? ''}-${uid}`;
   return (
-    <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-      {prefix && <span style={{ color: 'var(--ed-text-muted)', fontSize: 11 }}>{prefix}</span>}
+    <span className="es-affix" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+      {prefix && <span className="es-static">{prefix}</span>}
       <input
         id={id}
         aria-label={ariaLabel ?? prefix ?? 'value'}
@@ -181,7 +182,7 @@ function AffixField({
         }}
         style={{ width: '100%', minWidth: 0 }}
       />
-      {suffix && <span style={{ color: 'var(--ed-text-muted)', fontSize: 11 }}>{suffix}</span>}
+      {suffix && <span className="es-static">{suffix}</span>}
     </span>
   );
 }
@@ -202,8 +203,8 @@ function StoryGroup({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
         <div className="es-row" style={{ marginBottom: 0 }}>
           <span className="es-playicon" aria-hidden>▶</span>
           <span>
-            <div style={{ fontWeight: 700 }}>{shortSceneName(scene?.name) + ' › Step ' + (idx + 1)}</div>
-            <div style={{ fontSize: 11, color: 'var(--ed-text-muted)' }}>
+            <div className="es-properties__story-title">{shortSceneName(scene?.name) + ' › Step ' + (idx + 1)}</div>
+            <div style={{ fontSize: 11, color: 'var(--prop-muted)' }}>
               {compLabel(comp, comps, s.project.edges) || comp.type}
             </div>
           </span>
@@ -293,11 +294,11 @@ function EntranceGroup({ comp }: { comp: SceneComponent }) {
             }
             style={{ width: '100%', minWidth: 0 }}
           />
-          <span style={{ color: 'var(--ed-text-muted)', fontSize: 11 }}>s</span>
+          <span className="es-static">s</span>
         </span>
       </div>
       <details>
-        <summary style={{ cursor: 'pointer', color: 'var(--ed-accent)', fontSize: 12 }}>
+        <summary style={{ cursor: 'pointer', color: 'var(--prop-accent)', fontSize: 12 }}>
           Advanced timing
         </summary>
         <div style={{ marginTop: 8 }}>
@@ -412,7 +413,7 @@ function ContentTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
       <StoryGroup s={s} comp={comp} />
       <EntranceGroup comp={comp} />
       <CopyAsGroup s={s} comp={comp} />
-      <div className="es-row es-properties__actions">
+      <div className="es-properties__actions">
         <button className="es-btn" onClick={() => commands.duplicateSelection()}>
           ⧉ Duplicate
         </button>
@@ -641,18 +642,18 @@ function LayoutTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
     <div>
       <CompHeader comp={comp} />
       <Section title="Position">
-        <div className="es-row">
-          <label>X</label>
+        <div className="es-row es-layout-pair-row">
+          <label className="es-layout-inline-label">X</label>
           <AffixField ariaLabel="X" suffix="px" value={Math.round(comp.x ?? 0)} onCommit={(v) => commands.updateComponent(comp.id, { x: +v || 0 })} />
-          <label style={{ width: 20 }}>Y</label>
+          <label className="es-layout-inline-label">Y</label>
           <AffixField ariaLabel="Y" suffix="px" value={Math.round(comp.y ?? 0)} onCommit={(v) => commands.updateComponent(comp.id, { y: +v || 0 })} />
         </div>
       </Section>
       <Section title="Size">
-        <div className="es-row">
-          <label>W</label>
+        <div className="es-row es-layout-pair-row es-size-row">
+          <label className="es-layout-inline-label">W</label>
           <AffixField ariaLabel="W" suffix="px" value={w} onCommit={(v) => setSize(Math.max(20, +v || 20), undefined)} />
-          <label style={{ width: 20 }}>H</label>
+          <label className="es-layout-inline-label">H</label>
           <AffixField ariaLabel="H" suffix="px" value={h} onCommit={(v) => setSize(undefined, Math.max(20, +v || 20))} />
           <button
             className="es-btn primary"
@@ -672,7 +673,7 @@ function LayoutTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
         </div>
       </Section>
       <Section title="Align to canvas">
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="es-icon-grid">
           {(
             [
               { m: 'left', icon: '⇤', label: 'Align left' },
@@ -690,7 +691,7 @@ function LayoutTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
         </div>
       </Section>
       <Section title="Arrange">
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="es-arrange-grid">
           <button className="es-btn" style={arrangeBtn} onClick={() => commands.bringForward(comp.id)}>
             <span aria-hidden>⤒</span>Bring to front
           </button>
@@ -706,8 +707,8 @@ function LayoutTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
         </div>
       </Section>
       <Section title="Constraints">
-        <div className="es-row">
-          <label>Horizontal</label>
+        <div className="es-row es-layout-pair-row es-constraint-row">
+          <label className="es-layout-inline-label">Horizontal</label>
           <select
             aria-label="Horizontal constraint"
             value={hConstraint}
@@ -717,7 +718,7 @@ function LayoutTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
               <option key={o} value={o}>{o}</option>
             ))}
           </select>
-          <label>Vertical</label>
+          <label className="es-layout-inline-label">Vertical</label>
           <select
             aria-label="Vertical constraint"
             value={vConstraint}
@@ -759,7 +760,7 @@ export function PropertiesInspector() {
         <div className="es-row"><label>Steps</label><span>{s.project.comps.length}</span></div>
         <Field label="W" type="number" value={s.project.scene.w} onCommit={(v) => commands.setCanvasSize(+v || 1920, s.project.scene.h)} />
         <Field label="H" type="number" value={s.project.scene.h} onCommit={(v) => commands.setCanvasSize(s.project.scene.w, +v || 1080)} />
-        <p style={{ color: 'var(--ed-text-muted)', fontSize: 12 }}>
+        <p style={{ color: 'var(--prop-muted)', fontSize: 12 }}>
           Select a component on the canvas or in the Story strip to edit it.
         </p>
       </div>
@@ -800,7 +801,7 @@ export function PropertiesInspector() {
         {(['content', 'style', 'layout'] as const).map((t) => (
           <button
             key={t}
-            className={'es-properties__tab' + (tab === t ? ' is-active on' : '')}
+            className={'es-properties__tab' + (tab === t ? ' is-active' : '')}
             onClick={() => setTab(t)}
           >
             {t.charAt(0).toUpperCase() + t.slice(1)}
