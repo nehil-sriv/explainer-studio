@@ -1,10 +1,11 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { REGISTRY } from '../../catalog/registry.js';
 import { isState, stateSummary } from '../../renderer/stateChanges.js';
 import { commands } from '../../store/commands.js';
 import { selectedComps } from '../../store/selectors.js';
 import type { EditorStore } from '../../store/editorStore.js';
 import type { SceneComponent } from '../../domain/component.js';
+import type { Edge } from '../../domain/edge.js';
 import { useEditor } from '../storeHooks.js';
 import { compLabel } from '../labels.js';
 import { CURATED_CATALOG, categoryFor, shortSceneName } from '../library/catalog.js';
@@ -47,7 +48,39 @@ const ALIGN_OPTIONS = [
   { value: 'right', label: 'Right', glyph: '☰' },
 ];
 
-/** Commit-on-blur text/number field (each commit = one undo entry). */
+/**
+ * Live-edit gesture: opens one undo transaction on the first change and
+ * commits it on blur/unmount, so typing repaints the canvas immediately
+ * while the whole edit collapses into a single undo step.
+ */
+function useLiveGesture() {
+  const dirty = useRef(false);
+  useEffect(
+    () => () => {
+      if (dirty.current) {
+        dirty.current = false;
+        commands.commitTransaction();
+      }
+    },
+    [],
+  );
+  return {
+    begin: () => {
+      if (!dirty.current) {
+        dirty.current = true;
+        commands.beginTransaction();
+      }
+    },
+    end: () => {
+      if (dirty.current) {
+        dirty.current = false;
+        commands.commitTransaction();
+      }
+    },
+  };
+}
+
+/** Live text/number field — commits on every keystroke (one undo step). */
 function Field({
   label,
   value,
@@ -60,6 +93,7 @@ function Field({
   onCommit: (v: string) => void;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const gesture = useLiveGesture();
   const id = `es-f-${label.replace(/\W+/g, '-').toLowerCase()}`;
   return (
     <div className="es-row">
@@ -68,9 +102,13 @@ function Field({
         id={id}
         type={type}
         value={draft ?? String(value ?? '')}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          gesture.begin();
+          setDraft(e.target.value);
+          onCommit(e.target.value);
+        }}
         onBlur={() => {
-          if (draft !== null && draft !== String(value ?? '')) onCommit(draft);
+          gesture.end();
           setDraft(null);
         }}
         onKeyDown={(e) => {
@@ -116,9 +154,8 @@ function CompHeader({ comp }: { comp: SceneComponent }) {
 }
 
 function OpacityRow({ comp }: { comp: SceneComponent }) {
-  const [draft, setDraft] = useState<number | null>(null);
-  const shown = Math.round(((draft ?? comp.opacity ?? 1) as number) * 100);
-  const commit = (v: number) => commands.updateComponent(comp.id, { opacity: v });
+  const gesture = useLiveGesture();
+  const shown = Math.round((comp.opacity ?? 1) * 100);
   return (
     <div className="es-row">
       <input
@@ -128,19 +165,12 @@ function OpacityRow({ comp }: { comp: SceneComponent }) {
         min={0}
         max={100}
         value={shown}
-        onChange={(e) => setDraft(+e.target.value / 100)}
-        onPointerUp={() => {
-          if (draft !== null) {
-            commit(draft);
-            setDraft(null);
-          }
+        onChange={(e) => {
+          gesture.begin();
+          commands.updateComponent(comp.id, { opacity: +e.target.value / 100 });
         }}
-        onBlur={() => {
-          if (draft !== null) {
-            commit(draft);
-            setDraft(null);
-          }
-        }}
+        onPointerUp={gesture.end}
+        onBlur={gesture.end}
       />
       <span style={{ minWidth: 48, textAlign: 'right' }}>{shown}%</span>
     </div>
@@ -162,6 +192,7 @@ function AffixField({
   ariaLabel?: string;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const gesture = useLiveGesture();
   const uid = useId().replace(/\W+/g, '');
   const id = `es-affix-${ariaLabel ?? prefix ?? 'v'}-${suffix ?? ''}-${uid}`;
   return (
@@ -172,9 +203,13 @@ function AffixField({
         aria-label={ariaLabel ?? prefix ?? 'value'}
         type="number"
         value={draft ?? String(value ?? '')}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          gesture.begin();
+          setDraft(e.target.value);
+          onCommit(e.target.value);
+        }}
         onBlur={() => {
-          if (draft !== null && draft !== String(value ?? '')) onCommit(draft);
+          gesture.end();
           setDraft(null);
         }}
         onKeyDown={(e) => {
@@ -269,6 +304,7 @@ function StoryGroup({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
 }
 
 function EntranceGroup({ comp }: { comp: SceneComponent }) {
+  const gesture = useLiveGesture();
   return (
     <Section title="Entrance">
       <div className="es-row">
@@ -289,9 +325,11 @@ function EntranceGroup({ comp }: { comp: SceneComponent }) {
             min={0}
             step={0.1}
             value={comp.animDur ?? 0.4}
-            onChange={(e) =>
-              commands.updateComponent(comp.id, { animDur: Math.max(0, +e.target.value || 0) })
-            }
+            onChange={(e) => {
+              gesture.begin();
+              commands.updateComponent(comp.id, { animDur: Math.max(0, +e.target.value || 0) });
+            }}
+            onBlur={gesture.end}
             style={{ width: '100%', minWidth: 0 }}
           />
           <span className="es-static">s</span>
@@ -432,14 +470,16 @@ function ContentTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
 
 const STYLE_KEYS = [
   'font', 'weight', 'fontSize', 'align', 'lineHeight', 'letterSpacing',
-  'bgEnabled', 'bg', 'shadowEnabled', 'blur',
+  'bgEnabled', 'bg', 'shadowEnabled', 'blur', 'color',
 ] as const;
 
 function StyleTab({ comp }: { comp: SceneComponent }) {
   const def = REGISTRY[comp.type];
   const props = (comp.props ?? {}) as Record<string, unknown>;
-  const accentKey = def && (def.fields ?? []).includes('accent') ? 'accent' : 'color';
-  const accentVal = String(props[accentKey] ?? (def?.props as Record<string, unknown> | undefined)?.[accentKey] ?? '#0F172A');
+  // Text color is the renderer's tint channel (--ca/--cc/--ct), the same
+  // hook the legacy builder exposed as "tint".
+  const hasAccent = !!(def && (def.fields ?? []).includes('accent'));
+  const accentVal = String(props['color'] ?? '');
   const font = String(props['font'] ?? 'Inter');
   const weight = String(props['weight'] ?? 'Bold');
   const size = (props['fontSize'] as number | undefined) ?? 56;
@@ -454,13 +494,17 @@ function StyleTab({ comp }: { comp: SceneComponent }) {
     commands.updateComponentProps(comp.id, patch);
 
   const resetStyle = () => {
-    const fallback = (def?.props as Record<string, unknown> | undefined)?.[accentKey];
+    const fallback = (def?.props as Record<string, unknown> | undefined)?.[
+      hasAccent ? 'accent' : 'color'
+    ];
     const next: Record<string, unknown> = {};
     for (const k of STYLE_KEYS) next[k] = undefined;
     // clearing via explicit defaults (undefined props fall back to renderer defaults)
     commands.updateComponentProps(comp.id, {
       ...next,
-      ...(fallback !== undefined ? { [accentKey]: fallback } : {}),
+      ...(fallback !== undefined
+        ? { [hasAccent ? 'accent' : 'color']: fallback }
+        : {}),
     });
     commands.updateComponent(comp.id, { opacity: 1 });
   };
@@ -506,17 +550,12 @@ function StyleTab({ comp }: { comp: SceneComponent }) {
             ))}
           </div>
         </div>
-        <div className="es-row">
-          <label>Line height</label>
-          <input
-            aria-label="Line height"
-            type="number"
-            step={0.1}
-            min={0.5}
-            value={lineHeight}
-            onChange={(e) => setStyle({ lineHeight: +e.target.value || 0 })}
-          />
-        </div>
+        <Field
+          label="Line height"
+          type="number"
+          value={lineHeight}
+          onCommit={(v) => setStyle({ lineHeight: +v || 0 })}
+        />
         <div className="es-row">
           <label>Letter spacing</label>
           <AffixField ariaLabel="Letter spacing" suffix="px" value={letterSpacing} onCommit={(v) => setStyle({ letterSpacing: +v || 0 })} />
@@ -528,14 +567,14 @@ function StyleTab({ comp }: { comp: SceneComponent }) {
             aria-label="Text color"
             type="color"
             value={/^#[0-9a-fA-F]{6}$/.test(accentVal) ? accentVal : '#0F172A'}
-            onChange={(e) => setStyle({ [accentKey]: e.target.value })}
+            onChange={(e) => setStyle({ color: e.target.value })}
             style={{ width: 28, height: 28, padding: 0, border: 'none', background: 'none' }}
           />
           <input
             aria-label="Text color hex"
             type="text"
             value={accentVal}
-            onChange={(e) => setStyle({ [accentKey]: e.target.value })}
+            onChange={(e) => setStyle({ color: e.target.value })}
             style={{ flex: 1 }}
           />
           <span className="es-static">100%</span>
@@ -781,6 +820,12 @@ export function PropertiesInspector() {
     );
   }
 
+  const edgeId = s.selection.edgeId;
+  if (edgeId) {
+    const edge = s.project.edges.find((e) => e.id === edgeId);
+    if (edge) return <EdgeTab s={s} edge={edge} />;
+  }
+
   const c = sel[0];
 
   if (isState(c)) {
@@ -815,8 +860,123 @@ export function PropertiesInspector() {
   );
 }
 
+/* ---------------- Edge tab (wire inspector) ---------------- */
+
+const EDGE_PRESETS: [string, string][] = [
+  ['none', 'None'],
+  ['https', 'HTTPS'],
+  ['grpc', 'gRPC'],
+  ['sql', 'SQL'],
+  ['event', 'Event'],
+  ['success', 'Success'],
+  ['error', 'Error'],
+];
+
+function EdgeTab({ s, edge }: { s: EditorStore; edge: Edge }) {
+  const comps = s.project.comps;
+  const label = (id: string) => comps.find((c) => c.id === id)?.type ?? id;
+  const set = (patch: Partial<Edge>) => commands.updateEdge(edge.id, patch);
+  const on = edge.animate !== false;
+  return (
+    <div className="es-properties">
+      <h2 className="es-properties__header">Wire</h2>
+      <p style={{ color: 'var(--prop-muted)', fontSize: 12, marginTop: 0 }}>
+        {label(edge.from)} → {edge.to ? label(edge.to) : '?'}
+      </p>
+      <Section title="Label">
+        <Field
+          label="Text"
+          value={edge.label ?? ''}
+          onCommit={(v) => set({ label: v })}
+        />
+        <Field
+          label="Caption"
+          value={edge.caption ?? ''}
+          onCommit={(v) => set({ caption: v })}
+        />
+      </Section>
+      <Section title="Style">
+        <div className="es-row">
+          <label>Preset</label>
+          <select
+            aria-label="Preset"
+            value={edge.preset ?? 'none'}
+            onChange={(e) => set({ preset: e.target.value })}
+          >
+            {EDGE_PRESETS.map(([v, n]) => (
+              <option key={v} value={v}>{n}</option>
+            ))}
+          </select>
+        </div>
+        <div className="es-row">
+          <label>Routing</label>
+          <select
+            aria-label="Routing"
+            value={edge.routing ?? 'smooth'}
+            onChange={(e) => set({ routing: e.target.value })}
+          >
+            {['smooth', 'step', 'straight', 'curved'].map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+        <div className="es-row">
+          <label>Branch</label>
+          <select
+            aria-label="Branch"
+            value={edge.branch ?? 'none'}
+            onChange={(e) => set({ branch: e.target.value })}
+          >
+            {['none', 'success', 'error'].map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+        <div className="es-row">
+          <label>Direction</label>
+          <select
+            aria-label="Direction"
+            value={edge.dir ?? 'fwd'}
+            onChange={(e) => set({ dir: e.target.value })}
+          >
+            {['fwd', 'both', 'bwd'].map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+        <Field
+          label="Weight"
+          type="number"
+          value={edge.weight ?? 2}
+          onCommit={(v) => set({ weight: Math.max(1, Math.min(5, +v || 2)) })}
+        />
+        <div className="es-row">
+          <label>Animate</label>
+          <span style={{ flex: 1 }} />
+          <button
+            className={'es-toggle' + (on ? ' on' : '')}
+            role="switch"
+            aria-checked={on}
+            aria-label="Animate wire"
+            onClick={() => set({ animate: !on })}
+          />
+        </div>
+      </Section>
+      <div className="es-properties__actions" style={{ gridTemplateColumns: '1fr' }}>
+        <button
+          className="es-btn es-properties__delete"
+          onClick={() => commands.deleteEdge(edge.id)}
+        >
+          🗑 Delete wire
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PropArea({ label, value, onCommit }: { label: string; value: string; onCommit: (v: string) => void }) {
   const [draft, setDraft] = useState<string | null>(null);
+  const gesture = useLiveGesture();
   const id = `es-f-${label.replace(/\W+/g, '-').toLowerCase()}`;
   return (
     <div className="es-row">
@@ -824,9 +984,13 @@ function PropArea({ label, value, onCommit }: { label: string; value: string; on
       <textarea
         id={id}
         value={draft ?? value}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          gesture.begin();
+          setDraft(e.target.value);
+          onCommit(e.target.value);
+        }}
         onBlur={() => {
-          if (draft !== null && draft !== value) onCommit(draft);
+          gesture.end();
           setDraft(null);
         }}
       />
