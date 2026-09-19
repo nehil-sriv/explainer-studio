@@ -1,0 +1,23 @@
+/* Editor DARK theme — navy workbench per the approved mock.
+ * Overrides --ed-* only. Canvas untouched.
+ * Activate: <html data-editor-theme="dark">. Persist in localStorage under
+ * an EDITOR-ONLY key (never inside project JSON / scene storage).
+ */
+[data-editor-theme="dark"] {
+  --ed-app-bg: #070d1d;
+  --ed-panel-bg: #0d1730;
+  --ed-panel-bg-2: #111f3a;
+  --ed-canvas-well: #060b18;
+  --ed-border: rgba(148, 163, 184, 0.16);
+  --ed-border-strong: rgba(148, 163, 184, 0.32);
+  --ed-text: #e8edf7;
+  --ed-text-muted: #93a0b8;
+  --ed-text-faint: #5d6b87;
+  --ed-accent: #2f7bff;
+  --ed-accent-ink: #ffffff;
+  --ed-accent-soft: rgba(47, 123, 255, 0.2);
+  --ed-tile-bg: #14213d;
+  --ed-tile-border: rgba(148, 163, 184, 0.18);
+  --ed-tile-ink: #7aa8ff;
+  color-scheme: dark;
+}

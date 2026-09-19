@@ -1,0 +1,12 @@
+/* Entrance keyframes — verbatim from index.html (builder inline <style>).
+   Every frame carries scale(var(--ks)) rotate(var(--kr)), set per element
+   from the comp transform, so entrances never wipe it mid-flight. */
+  @keyframes pa-fade      { from{opacity:0} to{opacity:1} }
+  @keyframes pa-left      { from{opacity:0;transform:translateX(-120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-right     { from{opacity:0;transform:translateX(120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-up        { from{opacity:0;transform:translateY(120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-down      { from{opacity:0;transform:translateY(-120px) scale(var(--ks,1)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-zoom      { from{opacity:0;transform:scale(calc(var(--ks,1)*0.4)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-zoomout   { from{opacity:0;transform:scale(calc(var(--ks,1)*2.2)) rotate(var(--kr,0deg))} to{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }
+  @keyframes pa-glitchin  { 0%{opacity:0;transform:translate(-8px,3px) scale(var(--ks,1)) rotate(var(--kr,0deg))} 20%{opacity:1;transform:translate(7px,-4px) scale(var(--ks,1)) rotate(var(--kr,0deg))}
+                            40%{transform:translate(-5px,2px) scale(var(--ks,1)) rotate(var(--kr,0deg))} 60%{transform:translate(4px,-2px) scale(var(--ks,1)) rotate(var(--kr,0deg))} 100%{opacity:1;transform:scale(var(--ks,1)) rotate(var(--kr,0deg))} }

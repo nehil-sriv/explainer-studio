@@ -1,0 +1,25 @@
+/* CanvasWorkspace — the extracted scene renderer mounted in React.
+   .comp positioning mirrors the legacy builder (absolute placement);
+   selection chrome is es- scoped and can never leak into recordings. */
+.es-stage {
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+}
+.es-stage .comp { position: absolute; }
+.es-stage .comp.es-sel { outline: 2px solid var(--ed-accent); outline-offset: 3px; }
+.es-edges { position: absolute; inset: 0; pointer-events: none; }
+.es-takebar {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: color-mix(in srgb, var(--ed-panel-bg) 88%, transparent);
+  border: 1px solid var(--ed-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--ed-text);
+}

@@ -1,0 +1,104 @@
+{
+  "_comment": "Phase 0 coverage fixture. Observed schema only (version/scene/comps/edges/scenes/currentSceneName). No new fields. Open via 📂 Open. Scene 1 = request flow (matches UI mock: Title -> Request path -> Database fails -> Error message). Scene 2 = recovery.",
+  "version": 1,
+  "scene": { "w": 1920, "h": 1080 },
+  "scenes": [
+    { "id": "sc-flow", "name": "Scene 1 · The request flow" },
+    { "id": "sc-recovery", "name": "Scene 2 · Recovery and resolution" }
+  ],
+  "currentSceneName": "Scene 1 · The request flow",
+  "comps": [
+    {
+      "id": "title1", "type": "title", "x": 90, "y": 70, "scale": 1, "rot": 0, "z": 10,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-left", "animDur": 0.6, "animDelay": 0,
+      "sceneId": "sc-flow",
+      "props": { "text": "From users to [a]insights[/a]", "glitch": "", "size": 96 }
+    },
+    {
+      "id": "users", "type": "gnode", "x": 90, "y": 420, "scale": 1, "rot": 0, "z": 11,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-up", "animDur": 0.6, "animDelay": 0.1,
+      "sceneId": "sc-flow",
+      "props": { "icon": "user", "title": "Users", "sub": "Web, mobile, anywhere", "accent": "var(--phos-green)" }
+    },
+    {
+      "id": "lb", "type": "lb", "x": 420, "y": 430, "scale": 1, "rot": 0, "z": 12,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-up", "animDur": 0.6, "animDelay": 0.2,
+      "sceneId": "sc-flow", "pin": true,
+      "props": { "label": "Load Balancer · Distributes traffic", "accent": "var(--phos-green)" }
+    },
+    {
+      "id": "app1", "type": "svc", "x": 700, "y": 360, "scale": 1, "rot": 0, "z": 13,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-up", "animDur": 0.6, "animDelay": 0.25,
+      "sceneId": "sc-flow",
+      "props": { "name": "App Server", "sub": "serves traffic", "accent": "var(--phos-green)", "state": "healthy" }
+    },
+    {
+      "id": "db", "type": "svc", "x": 1120, "y": 360, "scale": 1, "rot": 0, "z": 14,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-zoom", "animDur": 0.6, "animDelay": 0,
+      "sceneId": "sc-flow", "clearBefore": true, "seqHold": 1.6,
+      "props": { "name": "Database", "sub": "Stores application data", "accent": "var(--alert-red)", "state": "error" }
+    },
+    {
+      "id": "fail-arrow-note", "type": "caption", "x": 1120, "y": 560, "scale": 1, "rot": 0, "z": 15,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-fade", "animDur": 0.5, "animDelay": 0.1,
+      "sceneId": "sc-flow",
+      "props": { "text": "[r][b]Database fails[/b][/r] · fails to respond [s1.5]⚠[/s]" }
+    },
+    {
+      "id": "db-fail-patch", "type": "state", "x": 0, "y": 0, "scale": 1, "rot": 0, "z": 16,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-fade", "animDur": 0.4,
+      "sceneId": "sc-flow", "target": "db", "label": "Database fails",
+      "props": {},
+      "patch": { "state": "error", "accent": "var(--alert-red)", "sub": "Fails to respond" }
+    },
+    {
+      "id": "alert1", "type": "warn", "x": 1420, "y": 420, "scale": 1, "rot": 0, "z": 17,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-zoom", "animDur": 0.5, "animDelay": 0,
+      "sceneId": "sc-flow", "hideWhen": "err-msg",
+      "props": { "label": "Error budget burning", "accent": "var(--alert-red)" }
+    },
+    {
+      "id": "err-msg", "type": "caption", "x": 90, "y": 880, "scale": 1, "rot": 0, "z": 18,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-up", "animDur": 0.5, "animDelay": 0,
+      "sceneId": "sc-flow", "out": "fade",
+      "props": { "text": "PEOPLE → APPLICATIONS → DATA → [a]INSIGHTS[/a]" }
+    },
+    {
+      "id": "term1", "type": "terminal", "x": 90, "y": 420, "scale": 1, "rot": 0, "z": 19,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-fade", "animDur": 0.5, "animDelay": 0,
+      "sceneId": "sc-recovery", "clearBefore": true,
+      "props": {
+        "title": "~/recovery — zsh",
+        "body": "$ detect issue\n✓ alert fired (db latency)\n$ investigate\n✓ failover to replica\n$ apply fix\n✓ system recovered",
+        "w": 900, "stepped": true
+      }
+    },
+    {
+      "id": "check1", "type": "checklist", "x": 1050, "y": 420, "scale": 1, "rot": 0, "z": 20,
+      "opacity": 1, "draft": false, "fscale": 1, "anim": "pa-up", "animDur": 0.5, "animDelay": 0.1,
+      "sceneId": "sc-recovery",
+      "props": {
+        "items": "Detect the issue|done\nInvestigate|done\nApply the fix|done\nSystem recovered|never",
+        "stepped": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-users-lb", "from": "users", "fromPort": "right", "to": "lb", "toPort": "left",
+      "preset": "none", "label": "request path", "caption": "", "routing": "smooth",
+      "branch": "none", "weight": 3, "dir": "fwd", "style": "dots", "speed": 2, "animate": true
+    },
+    {
+      "id": "e-lb-app", "from": "lb", "fromPort": "right", "to": "app1", "toPort": "left",
+      "preset": "none", "label": "", "caption": "", "routing": "step",
+      "branch": "none", "weight": 3, "dir": "fwd", "style": "dots", "speed": 2, "animate": true
+    },
+    {
+      "id": "e-app-db", "from": "app1", "fromPort": "right", "to": "db", "toPort": "left",
+      "preset": "none", "label": "failure arrow", "caption": "", "routing": "smooth",
+      "branch": "none", "weight": 4, "dir": "fwd", "style": "dots", "speed": 1, "animate": true
+    }
+  ],
+  "saved": []
+}

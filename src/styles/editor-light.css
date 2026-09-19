@@ -1,0 +1,22 @@
+/* Editor LIGHT theme — overrides --ed-* only. Canvas untouched.
+ * Load order (Phase 5): editor-tokens.css -> editor-light.css.
+ * Activate: <html data-editor-theme="light"> (default).
+ */
+[data-editor-theme="light"] {
+  --ed-app-bg: #f3f4f6;
+  --ed-panel-bg: #ffffff;
+  --ed-panel-bg-2: #f8fafc;
+  --ed-canvas-well: #e9ebef;
+  --ed-border: #e5e7eb;
+  --ed-border-strong: #d1d5db;
+  --ed-text: #111827;
+  --ed-text-muted: #6b7280;
+  --ed-text-faint: #9ca3af;
+  --ed-accent: #2563eb;
+  --ed-accent-ink: #ffffff;
+  --ed-accent-soft: #dbeafe;
+  --ed-tile-bg: #ffffff;
+  --ed-tile-border: #e5e7eb;
+  --ed-tile-ink: #2563eb;
+  color-scheme: light;
+}
