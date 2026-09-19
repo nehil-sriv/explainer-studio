@@ -10,6 +10,7 @@ import { compLabel } from '../labels.js';
 import { CURATED_CATALOG, categoryFor, shortSceneName } from '../library/catalog.js';
 import { boxOf } from '../canvas/snapping.js';
 import { RunSection, StateStepEditor } from './StorySections.js';
+import './properties.css';
 import {
   downloadUrl,
   exportCompPNG,
@@ -90,10 +91,10 @@ function glyphFor(type: string): string {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 4 }}>
-      <div className="es-group-head"><span className="t">{title}</span></div>
+    <section className="es-properties_section">
+      <h3 className="es-properties__section-title">{title}</h3>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -104,11 +105,11 @@ function CompHeader({ comp }: { comp: SceneComponent }) {
     (def?.group ? def.group.charAt(0).toUpperCase() + def.group.slice(1) : 'Custom');
   const title = def?.name || comp.type;
   return (
-    <div className="es-comp-head">
-      <span className="glyph" aria-hidden>{glyphFor(comp.type)}</span>
+    <div className="es-properties__component">
+      <span className="es-properties__component-icon" aria-hidden>{glyphFor(comp.type)}</span>
       <span>
-        <div style={{ fontWeight: 700 }}>{title}</div>
-        <div className="sub">{category} component</div>
+        <div className="es-properties__component-name">{title}</div>
+        <div className="es-properties__component-type">{category} component</div>
       </span>
     </div>
   );
@@ -197,16 +198,7 @@ function StoryGroup({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
   );
   return (
     <Section title="Story">
-      <div
-        style={{
-          border: '1px solid var(--ed-accent)',
-          borderRadius: 8,
-          padding: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-        }}
-      >
+      <div className="es-properties__story">
         <div className="es-row" style={{ marginBottom: 0 }}>
           <span className="es-playicon" aria-hidden>▶</span>
           <span>
@@ -216,6 +208,7 @@ function StoryGroup({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
             </div>
           </span>
         </div>
+        <div className="es-properties__story-body">
         <div className="es-row" style={{ marginBottom: 0 }}>
           <label>Appears</label>
           <select
@@ -267,6 +260,7 @@ function StoryGroup({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
               </option>
             ))}
           </select>
+        </div>
         </div>
       </div>
     </Section>
@@ -342,36 +336,22 @@ function CopyAsGroup({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
       setStatus(`⚠ ${err instanceof Error ? err.message : err}`);
     }
   };
-  const card: React.CSSProperties = {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 2,
-    padding: '12px 6px',
-    background: 'var(--ed-panel-bg-2)',
-    border: '1px solid var(--ed-border)',
-    borderRadius: 8,
-    cursor: 'pointer',
-    color: 'var(--ed-text)',
-    font: 'inherit',
-  };
   return (
     <Section title="Copy as">
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button style={card} onClick={exportPNG} title="Export this component as a PNG image">
-          <span style={{ fontSize: 22 }} aria-hidden>🖼</span>
-          <span style={{ fontWeight: 700 }}>PNG</span>
-          <span style={{ fontSize: 11, color: 'var(--ed-text-muted)' }}>Component image</span>
+      <div className="es-properties__copy-grid">
+        <button className="es-properties__copy-card" onClick={exportPNG} title="Export this component as a PNG image">
+          <span className="es-properties__copy-icon" aria-hidden>🖼</span>
+          <span className="es-properties__copy-name">PNG</span>
+          <span className="es-properties__copy-subtitle">Component image</span>
         </button>
         <button
-          style={card}
+          className="es-properties__copy-card"
           title="Video captures the whole scene — use the Export menu for GIF/WebM"
           onClick={() => setStatus('Video captures the full scene — use ⤴ Export for GIF/WebM.')}
         >
-          <span style={{ fontSize: 22 }} aria-hidden>▶</span>
-          <span style={{ fontWeight: 700 }}>Video</span>
-          <span style={{ fontSize: 11, color: 'var(--ed-text-muted)' }}>Scene only</span>
+          <span className="es-properties__copy-icon" aria-hidden>▶</span>
+          <span className="es-properties__copy-name">Video</span>
+          <span className="es-properties__copy-subtitle">Scene only</span>
         </button>
       </div>
       {status && <p style={{ fontSize: 11 }}>{status}</p>}
@@ -432,13 +412,12 @@ function ContentTab({ s, comp }: { s: EditorStore; comp: SceneComponent }) {
       <StoryGroup s={s} comp={comp} />
       <EntranceGroup comp={comp} />
       <CopyAsGroup s={s} comp={comp} />
-      <div className="es-row">
-        <button className="es-btn" style={{ flex: 1 }} onClick={() => commands.duplicateSelection()}>
+      <div className="es-row es-properties__actions">
+        <button className="es-btn" onClick={() => commands.duplicateSelection()}>
           ⧉ Duplicate
         </button>
         <button
-          className="es-btn"
-          style={{ flex: 1, color: '#e5484d' }}
+          className="es-btn es-properties__delete"
           onClick={() => commands.deleteSelection()}
         >
           🗑 Delete
@@ -511,7 +490,7 @@ function StyleTab({ comp }: { comp: SceneComponent }) {
         </div>
         <div className="es-row">
           <label>Alignment</label>
-          <div style={{ flex: 1, display: 'flex', gap: 4 }} role="group" aria-label="Alignment">
+          <div role="group" aria-label="Alignment">
             {ALIGN_OPTIONS.map((a) => (
               <button
                 key={a.value}
@@ -519,7 +498,6 @@ function StyleTab({ comp }: { comp: SceneComponent }) {
                 aria-pressed={align === a.value}
                 aria-label={`Align ${a.label}`}
                 title={a.label}
-                style={align === a.value ? { borderColor: 'var(--ed-accent)', color: 'var(--ed-accent)' } : undefined}
                 onClick={() => setStyle({ align: a.value })}
               >
                 {a.glyph}
@@ -776,8 +754,8 @@ export function PropertiesInspector() {
 
   if (!sel.length) {
     return (
-      <div>
-        <h2>Properties</h2>
+      <div className="es-properties">
+        <h2 className="es-properties__header">Properties</h2>
         <div className="es-row"><label>Steps</label><span>{s.project.comps.length}</span></div>
         <Field label="W" type="number" value={s.project.scene.w} onCommit={(v) => commands.setCanvasSize(+v || 1920, s.project.scene.h)} />
         <Field label="H" type="number" value={s.project.scene.h} onCommit={(v) => commands.setCanvasSize(s.project.scene.w, +v || 1080)} />
@@ -790,8 +768,8 @@ export function PropertiesInspector() {
 
   if (sel.length > 1) {
     return (
-      <div>
-        <h2>Properties</h2>
+      <div className="es-properties">
+        <h2 className="es-properties__header">Properties</h2>
         <p>{sel.length} selected</p>
         <div className="es-row">
           <button className="es-btn" onClick={() => commands.duplicateSelection()}>⧉ Duplicate</button>
@@ -806,7 +784,7 @@ export function PropertiesInspector() {
 
   if (isState(c)) {
     return (
-      <div>
+      <div className="es-properties">
         <StateStepEditor s={s} comp={c} />
         <div className="es-row">
           <button className="es-btn" onClick={() => commands.deleteSelection()}>🗑 Delete step</button>
@@ -816,11 +794,15 @@ export function PropertiesInspector() {
   }
 
   return (
-    <div>
-      <h2>Properties</h2>
-      <div className="es-tabs">
+    <div className="es-properties">
+      <h2 className="es-properties__header">Properties</h2>
+      <div className="es-tabs es-properties__tabs">
         {(['content', 'style', 'layout'] as const).map((t) => (
-          <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
+          <button
+            key={t}
+            className={'es-properties__tab' + (tab === t ? ' is-active on' : '')}
+            onClick={() => setTab(t)}
+          >
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
