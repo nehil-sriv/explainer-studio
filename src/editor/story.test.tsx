@@ -104,7 +104,7 @@ describe('story workflow', () => {
     act(() => {
       commands.selectComps(['db']);
     });
-    await user.click(screen.getByText('Layout'));
+    await user.click(screen.getByText('Content'));
     const changes = container.querySelector('select[aria-label="Changes"]') as HTMLSelectElement;
     fireEvent.change(changes, { target: { value: '__add__' } });
     const s = editorStore.getState();

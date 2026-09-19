@@ -106,40 +106,68 @@ describe('revamped chrome (mock parity)', () => {
     expect(container.querySelector('[data-testid="sequence"]')!.textContent).toContain('Scene 3');
   });
 
-  it('properties opens on Layout with Appears/Arrange/Position; Style holds looks', () => {
+  it('properties tabs match the mock: Content / Style / Layout own their sections', async () => {
     loadFixture();
     act(() => {
       commands.selectComps(['db']);
     });
+    const user = userEvent.setup();
     const { container } = render(<AppShell />);
     const insp = container.querySelector('.es-insp')!;
-    fireEvent.click(within(insp as HTMLElement).getByText('Layout'));
-    expect(insp.textContent).toContain('Scene 1 › Step 5');
-    for (const t of ['Position', 'Size', 'Rotation', 'Appearance', 'Style', 'Color', 'Stroke', 'Opacity', 'Label', 'Sublabel']) {
+    const tabs = within(insp.querySelector('.es-tabs') as HTMLElement);
+
+    // Content (default): Text + Story + Entrance + Copy as + Duplicate/Delete
+    for (const t of ['Text', 'Story', 'Appears', 'Changes', 'Exits', 'Entrance', 'Copy as', 'PNG', 'Video', 'Duplicate', 'Delete']) {
       expect(insp.textContent).toContain(t);
     }
-    expect(insp.textContent).toContain('Step 5');
-    expect(insp.textContent).toContain('Appears');
-    expect(insp.textContent).toContain('Arrange');
-    // label toggle hides/restores; color preset writes the accent role
-    const labelSwitch = within(insp as HTMLElement).getByLabelText('Label visible');
-    fireEvent.click(labelSwitch);
-    expect(
-      (editorStore.getState().project.comps.find((c) => c.id === 'db')!.props as Record<string, unknown>)['name'],
-    ).toBe('');
-    fireEvent.click(labelSwitch);
-    expect(
-      (editorStore.getState().project.comps.find((c) => c.id === 'db')!.props as Record<string, unknown>)['name'],
-    ).toBe('Database');
+    expect(insp.textContent).toContain('Advanced timing');
+    for (const t of ['Typography', 'Text color', 'Align to canvas', 'Constraints']) {
+      expect(insp.textContent).not.toContain(t);
+    }
+
+    // Style: Typography + Text color + Background + Effects + Opacity + Reset
+    await user.click(tabs.getByText('Style'));
+    for (const t of ['Typography', 'Font', 'Weight', 'Size', 'Alignment', 'Line height', 'Letter spacing', 'Text color', 'Background', 'Effects', 'Shadow', 'Blur', 'Opacity', 'Reset style']) {
+      expect(insp.textContent).toContain(t);
+    }
+    for (const t of ['Appears', 'Entrance', 'Position', 'Arrange', 'Align to canvas', 'Copy as']) {
+      expect(insp.textContent).not.toContain(t);
+    }
+
+    // Layout: Position + Size + Rotation + Align + Arrange + Constraints + Lock
+    await user.click(tabs.getByText('Layout'));
+    for (const t of ['Position', 'Size', 'Rotation', 'Align to canvas', 'Arrange', 'Bring to front', 'Bring forward', 'Send backward', 'Send to back', 'Constraints', 'Horizontal', 'Vertical', 'Lock']) {
+      expect(insp.textContent).toContain(t);
+    }
+    for (const t of ['Typography', 'Text color', 'Entrance', 'Copy as', 'Appears']) {
+      expect(insp.textContent).not.toContain(t);
+    }
+
+    // arrange still flows through commands (Bring forward lifts z)
     const z0 = editorStore.getState().project.comps.find((c) => c.id === 'db')!.z!;
-    fireEvent.click(within(insp as HTMLElement).getByText(/Bring forward/));
+    await user.click(within(insp as HTMLElement).getByText(/Bring forward/));
     expect(editorStore.getState().project.comps.find((c) => c.id === 'db')!.z).toBeGreaterThan(z0!);
-    // tabs switch to real editors
-    const tabs = within(insp.querySelector('.es-tabs') as HTMLElement);
-    fireEvent.click(tabs.getByText('Style'));
-    expect(insp.textContent).toContain('Appearance');
-    expect(insp.textContent).toContain('Entrance');
-    fireEvent.click(tabs.getByText('Layout'));
-    expect(insp.textContent).toContain('Component PNG');
+    // lock toggle persists
+    const lockSwitch = within(insp as HTMLElement).getByLabelText('Lock component');
+    fireEvent.click(lockSwitch);
+    expect(
+      editorStore.getState().project.comps.find((c) => c.id === 'db')!.locked,
+    ).toBe(true);
+    fireEvent.click(lockSwitch);
+    expect(
+      editorStore.getState().project.comps.find((c) => c.id === 'db')!.locked,
+    ).toBe(false);
+    // style writes persist (font size + alignment)
+    await user.click(tabs.getByText('Style'));
+    const sizeInput = within(insp as HTMLElement).getByLabelText('Size') as HTMLInputElement;
+    fireEvent.blur(sizeInput);
+    await user.click(within(insp as HTMLElement).getByLabelText('Align Center'));
+    expect(
+      (editorStore.getState().project.comps.find((c) => c.id === 'db')!.props as Record<string, unknown>)['align'],
+    ).toBe('center');
+    // back to content: story step + entrance still wired
+    await user.click(tabs.getByText('Content'));
+    expect(insp.textContent).toContain('Appears');
+    expect(insp.textContent).toContain('Component image');
   });
 });
